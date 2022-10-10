@@ -1,0 +1,75 @@
+################################################################################
+#  Licensed to the Apache Software Foundation (ASF) under one
+#  or more contributor license agreements.  See the NOTICE file
+#  distributed with this work for additional information
+#  regarding copyright ownership.  The ASF licenses this file
+#  to you under the Apache License, Version 2.0 (the
+#  "License"); you may not use this file except in compliance
+#  with the License.  You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+# limitations under the License.
+################################################################################
+
+name: Build flink-connector-mongodb
+on: [push, pull_request]
+jobs:
+  compile_and_test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        jdk: [8, 11]
+    timeout-minutes: 40
+    env:
+      MVN_COMMON_OPTIONS: -U -B --no-transfer-progress
+      MVN_CONNECTION_OPTIONS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.httpconnectionManager.ttlSeconds=120
+      FLINK_URL: https://s3.amazonaws.com/flink-nightly/flink-1.16-SNAPSHOT-bin-scala_2.12.tgz
+      MVN_BUILD_OUTPUT_FILE: "/tmp/mvn_build_output.out"
+      MVN_VALIDATION_DIR: "/tmp/flink-validation-deployment"
+    steps:
+      - run: echo "Running CI pipeline for JDK version ${{ matrix.jdk }}"
+
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Set JDK
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.jdk }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Set Maven 3.8.6
+        uses: stCarolas/setup-maven@v4.2
+        with:
+          maven-version: 3.8.6
+
+      - name: Download Flink binary
+        working-directory: ./..
+        run: wget -q -c ${{ env.FLINK_URL }} -O - | tar -xz
+
+      - name: Compile and test flink-connector-mongodb
+        timeout-minutes: 30
+        run: |
+          set -o pipefail
+
+          mvn clean deploy ${MVN_COMMON_OPTIONS} \
+            -DaltDeploymentRepository=validation_repository::default::file:${{ env.MVN_VALIDATION_DIR }} \
+            -Dscala-2.12 \
+            -Prun-end-to-end-tests -DdistDir=$(pwd)/../flink-1.16-SNAPSHOT \
+            -Dflink.convergence.phase=install -Pcheck-convergence \
+            ${{ env.MVN_CONNECTION_OPTIONS }} \
+            -Dlog4j.configurationFile=file://$(pwd)/tools/ci/log4j.properties \
+            | tee ${{ env.MVN_BUILD_OUTPUT_FILE }}
+
+      - name: Check licensing
+        run: |
+          mvn ${MVN_COMMON_OPTIONS} exec:java@check-license -N \
+            -Dexec.args="${{ env.MVN_BUILD_OUTPUT_FILE }} $(pwd) ${{ env.MVN_VALIDATION_DIR }}" \
+            ${{ env.MVN_CONNECTION_OPTIONS }} \
+            -Dlog4j.configurationFile=file://$(pwd)/tools/ci/log4j.properties
