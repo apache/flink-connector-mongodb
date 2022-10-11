@@ -17,18 +17,21 @@
 
 package org.apache.flink.connector.mongodb.table;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.planner.factories.TestValuesTableFactory;
-import org.apache.flink.table.planner.runtime.utils.StreamTestSink;
 import org.apache.flink.table.runtime.functions.table.lookup.LookupCacheManager;
 import org.apache.flink.table.test.lookup.cache.LookupCacheAssert;
 import org.apache.flink.test.junit5.MiniClusterExtension;
@@ -111,7 +114,7 @@ public class MongoDynamicTableSourceITCase {
     private static MongoClient mongoClient;
 
     public static StreamExecutionEnvironment env;
-    public static TableEnvironment tEnv;
+    public static StreamTableEnvironment tEnv;
 
     @BeforeAll
     static void beforeAll() {
@@ -134,7 +137,6 @@ public class MongoDynamicTableSourceITCase {
         if (mongoClient != null) {
             mongoClient.close();
         }
-        StreamTestSink.clear();
     }
 
     @BeforeEach
@@ -217,24 +219,26 @@ public class MongoDynamicTableSourceITCase {
 
         tEnv.executeSql(createTestDDl(lookupOptions));
 
-        // Create and prepare a value source
-        String dataId =
-                TestValuesTableFactory.registerData(
-                        Arrays.asList(
-                                Row.of(1L, "Alice"),
-                                Row.of(1L, "Alice"),
-                                Row.of(2L, "Bob"),
-                                Row.of(3L, "Charlie")));
-        tEnv.executeSql(
-                String.format(
-                        "CREATE TABLE value_source (\n"
-                                + "`id` BIGINT,\n"
-                                + "`name` STRING,\n"
-                                + "`proctime` AS PROCTIME()\n"
-                                + ") WITH (\n"
-                                + "'connector' = 'values', \n"
-                                + "'data-id' = '%s')",
-                        dataId));
+        DataStream<Row> sourceStream =
+                env.fromCollection(
+                                Arrays.asList(
+                                        Row.of(1L, "Alice"),
+                                        Row.of(1L, "Alice"),
+                                        Row.of(2L, "Bob"),
+                                        Row.of(3L, "Charlie")))
+                        .returns(
+                                new RowTypeInfo(
+                                        new TypeInformation[] {Types.LONG, Types.STRING},
+                                        new String[] {"id", "name"}));
+
+        Schema sourceSchema =
+                Schema.newBuilder()
+                        .column("id", DataTypes.BIGINT())
+                        .column("name", DataTypes.STRING())
+                        .columnByExpression("proctime", "PROCTIME()")
+                        .build();
+
+        tEnv.createTemporaryView("value_source", sourceStream, sourceSchema);
 
         if (caching == Caching.ENABLE_CACHE) {
             LookupCacheManager.keepCacheOnRelease(true);

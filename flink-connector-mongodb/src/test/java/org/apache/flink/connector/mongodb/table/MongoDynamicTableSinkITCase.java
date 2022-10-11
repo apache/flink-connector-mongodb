@@ -18,15 +18,22 @@
 
 package org.apache.flink.connector.mongodb.table;
 
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeinfo.Types;
+import org.apache.flink.api.java.typeutils.RowTypeInfo;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.EnvironmentSettings;
+import org.apache.flink.table.api.Schema;
+import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.expressions.Expression;
-import org.apache.flink.table.planner.factories.TestValuesTableFactory;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
@@ -216,26 +223,30 @@ public class MongoDynamicTableSinkITCase {
         String database = "test";
         String collection = "test_sink_with_all_row_kind";
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
-        String dataId =
-                TestValuesTableFactory.registerData(
-                        Arrays.asList(
-                                Row.ofKind(RowKind.INSERT, 1L, "Alice"),
-                                Row.ofKind(RowKind.DELETE, 1L, "Alice"),
-                                Row.ofKind(RowKind.INSERT, 2L, "Bob"),
-                                Row.ofKind(RowKind.UPDATE_BEFORE, 2L, "Bob"),
-                                Row.ofKind(RowKind.UPDATE_AFTER, 2L, "Tom")));
+        DataStream<Row> sourceStream =
+                env.fromCollection(
+                                Arrays.asList(
+                                        Row.ofKind(RowKind.INSERT, 1L, "Alice"),
+                                        Row.ofKind(RowKind.DELETE, 1L, "Alice"),
+                                        Row.ofKind(RowKind.INSERT, 2L, "Bob"),
+                                        Row.ofKind(RowKind.UPDATE_BEFORE, 2L, "Bob"),
+                                        Row.ofKind(RowKind.UPDATE_AFTER, 2L, "Tom")))
+                        .returns(
+                                new RowTypeInfo(
+                                        new TypeInformation[] {Types.LONG, Types.STRING},
+                                        new String[] {"id", "name"}));
 
-        tEnv.executeSql(
-                String.format(
-                        "CREATE TABLE value_source (\n"
-                                + "`_id` BIGINT,\n"
-                                + "`name` STRING\n"
-                                + ") WITH (\n"
-                                + "'connector' = 'values', \n"
-                                + "'data-id' = '%s')",
-                        dataId));
+        Schema sourceSchema =
+                Schema.newBuilder()
+                        .column("id", DataTypes.BIGINT())
+                        .column("name", DataTypes.STRING())
+                        .build();
+
+        Table sourceTable = tEnv.fromChangelogStream(sourceStream, sourceSchema);
+        tEnv.createTemporaryView("value_source", sourceTable);
 
         tEnv.executeSql(
                 String.format(

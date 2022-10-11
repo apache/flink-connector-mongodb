@@ -65,8 +65,8 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUI
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.CHUNKS_COLLECTION;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.COLLECTIONS_COLLECTION;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.CONFIG_DATABASE;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Mockito.when;
 
 /** Unit tests for {@link MongoShardedSplitter}. */
