@@ -147,7 +147,9 @@ public class MongoConvertersTest {
                         false,
                         TimestampData.fromEpochMillis(now.getEpochSecond() * 1000),
                         StringData.fromString(
-                                OffsetDateTime.ofInstant(now, ZoneOffset.UTC)
+                                OffsetDateTime.ofInstant(
+                                                Instant.ofEpochMilli(now.toEpochMilli()),
+                                                ZoneOffset.UTC)
                                         .format(ISO_OFFSET_DATE_TIME)),
                         StringData.fromString("/^9$/i"),
                         StringData.fromString("function() { return 10; }"),

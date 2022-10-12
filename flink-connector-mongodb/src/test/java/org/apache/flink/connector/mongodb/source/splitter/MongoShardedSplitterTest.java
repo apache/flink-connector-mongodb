@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.splitter;
 
+import org.apache.flink.connector.mongodb.common.utils.MongoUtils;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.MongoShardedSplitter;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.MongoSplitContext;
@@ -25,7 +26,6 @@ import org.apache.flink.util.TestLoggerExtension;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoCollection;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
@@ -33,12 +33,11 @@ import org.bson.BsonInt32;
 import org.bson.BsonInt64;
 import org.bson.BsonObjectId;
 import org.bson.BsonString;
-import org.bson.conversions.Bson;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Answers;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
@@ -46,10 +45,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.or;
-import static com.mongodb.client.model.Projections.include;
-import static com.mongodb.client.model.Sorts.ascending;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.AVG_OBJ_SIZE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.COUNT_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DROPPED_FIELD;
@@ -58,29 +53,19 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MAX_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.NAMESPACE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHARD_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SIZE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUID_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.CHUNKS_COLLECTION;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.COLLECTIONS_COLLECTION;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.CONFIG_DATABASE;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
 
 /** Unit tests for {@link MongoShardedSplitter}. */
 @ExtendWith(TestLoggerExtension.class)
 public class MongoShardedSplitterTest {
 
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private MongoClient mongoClient;
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private MongoCollection<BsonDocument> collectionsColl;
-
-    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
-    private MongoCollection<BsonDocument> chunksColl;
+    @Mock private MongoClient mongoClient;
 
     @BeforeEach
     public void setUp() {
@@ -90,38 +75,8 @@ public class MongoShardedSplitterTest {
     @Test
     public void testShardedSplitter() {
         MongoNamespace namespace = new MongoNamespace("test_db.test_coll");
-
-        when(mongoClient
-                        .getDatabase(CONFIG_DATABASE)
-                        .getCollection(COLLECTIONS_COLLECTION)
-                        .withDocumentClass(BsonDocument.class))
-                .thenReturn(collectionsColl);
-
-        when(mongoClient
-                        .getDatabase(CONFIG_DATABASE)
-                        .getCollection(CHUNKS_COLLECTION)
-                        .withDocumentClass(BsonDocument.class))
-                .thenReturn(chunksColl);
-
         BsonDocument mockCollectionMetadata = mockCollectionMetadata();
-        when(collectionsColl
-                        .find(eq(ID_FIELD, namespace.getFullName()))
-                        .projection(include(ID_FIELD, UUID_FIELD, DROPPED_FIELD, KEY_FIELD))
-                        .first())
-                .thenReturn(mockCollectionMetadata);
-
-        Bson chunksFilter =
-                or(
-                        new BsonDocument(NAMESPACE_FIELD, mockCollectionMetadata.get(ID_FIELD)),
-                        new BsonDocument(UUID_FIELD, mockCollectionMetadata.get(UUID_FIELD)));
-
         ArrayList<BsonDocument> mockChunksData = mockChunksData();
-        when(chunksColl
-                        .find(chunksFilter)
-                        .projection(include(MIN_FIELD, MAX_FIELD, SHARD_FIELD))
-                        .sort(ascending(MIN_FIELD))
-                        .into(new ArrayList<>()))
-                .thenReturn(mockChunksData);
 
         MongoSplitContext splitContext =
                 MongoSplitContext.of(
@@ -143,8 +98,18 @@ public class MongoShardedSplitterTest {
                             mockCollectionMetadata.getDocument(KEY_FIELD)));
         }
 
-        Collection<MongoScanSourceSplit> actual = MongoShardedSplitter.INSTANCE.split(splitContext);
-        assertThat(actual, equalTo(expected));
+        try (MockedStatic<MongoUtils> util = mockStatic(MongoUtils.class)) {
+            util.when(() -> MongoUtils.readCollectionMetadata(any(), any()))
+                    .thenReturn(mockCollectionMetadata);
+
+            util.when(() -> MongoUtils.readChunks(any(), any())).thenReturn(mockChunksData);
+
+            util.when(() -> MongoUtils.isValidShardedCollection(any())).thenReturn(true);
+
+            Collection<MongoScanSourceSplit> actual =
+                    MongoShardedSplitter.INSTANCE.split(splitContext);
+            assertThat(actual, equalTo(expected));
+        }
     }
 
     private BsonDocument mockCollectionMetadata() {
