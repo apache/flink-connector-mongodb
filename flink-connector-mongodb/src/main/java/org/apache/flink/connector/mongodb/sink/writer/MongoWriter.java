@@ -26,8 +26,8 @@ import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
+import org.apache.flink.connector.mongodb.sink.writer.context.DefaultMongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
-import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContextImpl;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.runtime.operators.util.metrics.CountingCollector;
@@ -49,7 +49,7 @@ import java.util.List;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * This class is responsible to write records in a MongoDB collection.
+ * This class is responsible for writing records to a MongoDB collection.
  *
  * @param <IN> The type of the input elements.
  */
@@ -95,7 +95,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                         metricGroup.getNumRecordsSendCounter());
 
         // Initialize the serialization schema.
-        this.sinkContext = new MongoSinkContextImpl(initContext, writeOptions);
+        this.sinkContext = new DefaultMongoSinkContext(initContext, writeOptions);
         try {
             SerializationSchema.InitializationContext initializationContext =
                     initContext.asSerializationSchemaInitializationContext();
@@ -131,9 +131,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
 
     @Override
     public void close() {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
+        mongoClient.close();
     }
 
     @VisibleForTesting
@@ -155,8 +153,9 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 bulkRequests.clear();
                 break;
             } catch (MongoException e) {
-                LOG.error("Bulk Write to MongoDB failed, retry times = {}", i, e);
+                LOG.debug("Bulk Write to MongoDB failed, retry times = {}", i, e);
                 if (i >= maxRetryTimes) {
+                    LOG.error("Bulk Write to MongoDB failed", e);
                     throw new IOException(e);
                 }
                 try {

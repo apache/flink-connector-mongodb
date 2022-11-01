@@ -54,9 +54,9 @@ import java.util.function.Supplier;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * The Source implementation of MongoDB. Please use a {@link MongoSourceBuilder} to construct a
- * {@link MongoSource}. The following example shows how to create a MongoSource emitting records of
- * <code>String</code> type.
+ * The Source implementation of MongoDB. Use a {@link MongoSourceBuilder} to construct a {@link
+ * MongoSource}. The following example shows how to create a MongoSource emitting records of <code>
+ * String</code> type.
  *
  * <pre>{@code
  * MongoSource<String> source = MongoSource.<String>builder()

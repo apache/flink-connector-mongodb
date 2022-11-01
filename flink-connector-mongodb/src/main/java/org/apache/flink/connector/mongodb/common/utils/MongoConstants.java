@@ -17,7 +17,7 @@
 
 package org.apache.flink.connector.mongodb.common.utils;
 
-import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.Internal;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -26,7 +26,7 @@ import org.bson.BsonMinKey;
 import org.bson.BsonValue;
 
 /** Constants for MongoDB. */
-@PublicEvolving
+@Internal
 public class MongoConstants {
 
     public static final String ID_FIELD = "_id";

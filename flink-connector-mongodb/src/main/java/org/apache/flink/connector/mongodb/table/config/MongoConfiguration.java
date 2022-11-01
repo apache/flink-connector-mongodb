@@ -117,7 +117,7 @@ public class MongoConfiguration implements Serializable {
 
     @Nullable
     public Integer getSinkParallelism() {
-        return config.getOptional(SINK_PARALLELISM).orElse(null);
+        return config.getOptional(SINK_PARALLELISM).orElse(1);
     }
 
     @Override

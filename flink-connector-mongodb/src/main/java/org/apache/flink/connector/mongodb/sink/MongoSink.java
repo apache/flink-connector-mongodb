@@ -31,9 +31,12 @@ import com.mongodb.client.model.WriteModel;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
- * MongoDB sink that requests multiple {@link WriteModel bulkRequests} against a cluster for each
- * incoming element. The following example shows how to create a MongoSink receiving records of
- * {@code Document} type.
+ * Mongo sink converts each incoming element into MongoDB {@link WriteModel} (bulk write action) and
+ * bulk writes to mongodb when the number of actions is greater than bulkFlushMaxActions or the
+ * flush interval is greater than bulkFlushMaxActions.
+ *
+ * <p>The following example shows how to create a MongoSink receiving records of {@code Document}
+ * type.
  *
  * <pre>{@code
  * MongoSink<Document> sink = MongoSink.<Document>builder()

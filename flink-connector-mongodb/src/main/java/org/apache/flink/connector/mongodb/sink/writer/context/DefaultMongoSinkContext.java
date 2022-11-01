@@ -22,16 +22,16 @@ import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 
-/** An implementation that would contain all the required context. */
+/** Default {@link MongoSinkContext} implementation. */
 @Internal
-public class MongoSinkContextImpl implements MongoSinkContext {
+public class DefaultMongoSinkContext implements MongoSinkContext {
 
     private final int numberOfParallelSubtasks;
     private final int parallelInstanceId;
     private final ProcessingTimeService processingTimeService;
     private final MongoWriteOptions writeOptions;
 
-    public MongoSinkContextImpl(Sink.InitContext initContext, MongoWriteOptions writeOptions) {
+    public DefaultMongoSinkContext(Sink.InitContext initContext, MongoWriteOptions writeOptions) {
         this.parallelInstanceId = initContext.getSubtaskId();
         this.numberOfParallelSubtasks = initContext.getNumberOfParallelSubtasks();
         this.processingTimeService = initContext.getProcessingTimeService();

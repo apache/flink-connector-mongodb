@@ -20,8 +20,6 @@ package org.apache.flink.connector.mongodb.sink.config;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 
-import javax.annotation.Nullable;
-
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -34,7 +32,7 @@ import static org.apache.flink.util.Preconditions.checkState;
 
 /** The configured class for Mongo sink. */
 @PublicEvolving
-public class MongoWriteOptions implements Serializable {
+public final class MongoWriteOptions implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
@@ -42,14 +40,14 @@ public class MongoWriteOptions implements Serializable {
     private final long bulkFlushIntervalMs;
     private final int maxRetryTimes;
     private final DeliveryGuarantee deliveryGuarantee;
-    private final @Nullable Integer parallelism;
+    private final int parallelism;
 
     private MongoWriteOptions(
             int bulkFlushMaxActions,
             long bulkFlushIntervalMs,
             int maxRetryTimes,
             DeliveryGuarantee deliveryGuarantee,
-            @Nullable Integer parallelism) {
+            int parallelism) {
         this.bulkFlushMaxActions = bulkFlushMaxActions;
         this.bulkFlushIntervalMs = bulkFlushIntervalMs;
         this.maxRetryTimes = maxRetryTimes;
@@ -73,8 +71,7 @@ public class MongoWriteOptions implements Serializable {
         return deliveryGuarantee;
     }
 
-    @Nullable
-    public Integer getParallelism() {
+    public int getParallelism() {
         return parallelism;
     }
 
@@ -91,7 +88,7 @@ public class MongoWriteOptions implements Serializable {
                 && bulkFlushIntervalMs == that.bulkFlushIntervalMs
                 && maxRetryTimes == that.maxRetryTimes
                 && deliveryGuarantee == that.deliveryGuarantee
-                && Objects.equals(parallelism, that.parallelism);
+                && parallelism == that.parallelism;
     }
 
     @Override
@@ -114,7 +111,9 @@ public class MongoWriteOptions implements Serializable {
         private long bulkFlushIntervalMs = BULK_FLUSH_INTERVAL.defaultValue().toMillis();
         private int maxRetryTimes = SINK_MAX_RETRIES.defaultValue();
         private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE;
-        private @Nullable Integer parallelism;
+        private int parallelism = 1;
+
+        private MongoWriteOptionsBuilder() {}
 
         /**
          * Sets the maximum number of actions to buffer for each bulk request. You can pass -1 to
@@ -180,10 +179,8 @@ public class MongoWriteOptions implements Serializable {
          * @param parallelism the write parallelism
          * @return this builder
          */
-        public MongoWriteOptionsBuilder setParallelism(Integer parallelism) {
-            checkArgument(
-                    parallelism == null || parallelism > 0,
-                    "Mongo sink parallelism must be larger than 0.");
+        public MongoWriteOptionsBuilder setParallelism(int parallelism) {
+            checkArgument(parallelism > 0, "Mongo sink parallelism must be larger than 0.");
             this.parallelism = parallelism;
             return this;
         }

@@ -132,7 +132,9 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the partition size of MongoDB split.
+     * Sets the partition memory size of MongoDB split. Split a MongoDB collection into multiple
+     * partitions according to the partition memory size. We can read these partitions in parallel
+     * to improve the reading speed.
      *
      * @param partitionSize the memory size of a partition.
      * @return this builder
@@ -154,7 +156,8 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the limit of documents to read.
+     * Sets the limit of documents to read. If limit is not set or set to -1, we will not push the
+     * limit down to MongoDB.
      *
      * @param limit the limit of documents to read.
      * @return this builder
