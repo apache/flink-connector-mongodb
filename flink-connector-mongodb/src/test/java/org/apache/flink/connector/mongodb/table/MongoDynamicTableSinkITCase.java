@@ -70,10 +70,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.apache.flink.table.api.Expressions.row;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT tests for {@link MongoDynamicTableSink}. */
 @Testcontainers
@@ -215,7 +212,7 @@ public class MongoDynamicTableSinkITCase {
                                 Arrays.asList(
                                         new Document("k", "15_1"), new Document("k", "15_2")));
 
-        assertThat(actual, equalTo(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -267,7 +264,7 @@ public class MongoDynamicTableSinkITCase {
 
         List<Document> actual = coll.find().into(new ArrayList<>());
 
-        assertThat(actual, equalTo(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -303,7 +300,7 @@ public class MongoDynamicTableSinkITCase {
                     new Document("_id", objectId).append("f1", "r1"),
                     new Document("_id", "str").append("f1", "r2")
                 };
-        assertThat(actual, containsInAnyOrder(expected));
+        assertThat(actual).containsExactlyInAnyOrder(expected);
     }
 
     @Test
@@ -326,9 +323,9 @@ public class MongoDynamicTableSinkITCase {
         List<Document> actual = new ArrayList<>();
         coll.find().into(actual);
 
-        assertThat(actual, hasSize(2));
+        assertThat(actual).hasSize(2);
         for (Document doc : actual) {
-            assertThat(doc.get("f1"), equalTo("d1"));
+            assertThat(doc.get("f1")).isEqualTo("d1");
         }
     }
 
@@ -371,7 +368,7 @@ public class MongoDynamicTableSinkITCase {
         expected.put("h", 4);
         expected.put("i", Date.from(now));
         expected.put("j", Date.from(now));
-        assertThat(actual, equalTo(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -417,7 +414,7 @@ public class MongoDynamicTableSinkITCase {
         expected.put("h", 4);
         expected.put("i", Date.from(now));
         expected.put("j", Date.from(now));
-        assertThat(actual, equalTo(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     private void testSinkWithoutReversedId(

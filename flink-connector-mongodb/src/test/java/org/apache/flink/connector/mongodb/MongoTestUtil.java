@@ -30,9 +30,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Collection of utility methods for MongoDB tests. */
 @Internal
@@ -57,13 +55,13 @@ public class MongoTestUtil {
 
     public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, Integer... ids) {
         boolean existOne = coll.find(Filters.in("_id", ids)).first() != null;
-        assertThat(existOne, is(false));
+        assertThat(existOne).isFalse();
     }
 
     public static void assertThatIdsAreWritten(MongoCollection<Document> coll, Integer... ids) {
         List<Integer> actualIds = new ArrayList<>();
         coll.find(Filters.in("_id", ids)).map(d -> d.getInteger("_id")).into(actualIds);
 
-        assertThat(actualIds, containsInAnyOrder(ids));
+        assertThat(actualIds).containsExactlyInAnyOrder(ids);
     }
 }

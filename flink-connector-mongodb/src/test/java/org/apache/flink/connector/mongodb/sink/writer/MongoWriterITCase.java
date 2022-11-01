@@ -73,10 +73,7 @@ import java.util.OptionalLong;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreNotWritten;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for {@link MongoWriter}. */
 @Testcontainers
@@ -218,8 +215,8 @@ public class MongoWriterITCase {
 
             writer.doBulkWrite();
 
-            assertThat(recordsSend.isPresent(), is(true));
-            assertThat(recordsSend.get().getCount(), is(3L));
+            assertThat(recordsSend.isPresent()).isTrue();
+            assertThat(recordsSend.get().getCount()).isEqualTo(3L);
         }
     }
 
@@ -241,8 +238,8 @@ public class MongoWriterITCase {
 
             writer.doBulkWrite();
 
-            assertThat(currentSendTime.isPresent(), is(true));
-            assertThat(currentSendTime.get().getValue(), greaterThan(0L));
+            assertThat(currentSendTime.isPresent()).isTrue();
+            assertThat(currentSendTime.get().getValue()).isGreaterThan(0L);
         }
     }
 
@@ -266,15 +263,14 @@ public class MongoWriterITCase {
 
         MongoSerializationSchema<Document> testSerializationSchema =
                 (element, context) -> {
-                    assertThat(context.getParallelInstanceId(), equalTo(0));
-                    assertThat(context.getNumberOfParallelInstances(), equalTo(1));
-                    assertThat(context.getWriteOptions(), equalTo(expectOptions));
-                    assertThat(
-                            context.processTime(),
-                            equalTo(
+                    assertThat(context.getParallelInstanceId()).isEqualTo(0);
+                    assertThat(context.getNumberOfParallelInstances()).isEqualTo(1);
+                    assertThat(context.getWriteOptions()).isEqualTo(expectOptions);
+                    assertThat(context.processTime())
+                            .isEqualTo(
                                     initContext
                                             .getProcessingTimeService()
-                                            .getCurrentProcessingTime()));
+                                            .getCurrentProcessingTime());
                     return new InsertOneModel<>(element.toBsonDocument());
                 };
 
