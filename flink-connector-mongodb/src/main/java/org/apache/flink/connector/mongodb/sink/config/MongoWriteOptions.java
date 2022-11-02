@@ -169,7 +169,8 @@ public final class MongoWriteOptions implements Serializable {
          */
         public MongoWriteOptionsBuilder setMaxRetryTimes(int maxRetryTimes) {
             checkArgument(
-                    maxRetryTimes >= 0, "The max retry times must be larger than or equal to 0.");
+                    maxRetryTimes >= 0,
+                    "The sink max retry times must be larger than or equal to 0.");
             this.maxRetryTimes = maxRetryTimes;
             return this;
         }

@@ -270,34 +270,42 @@ public class MongoDynamicTableFactoryTest {
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties4))
                 .hasStackTraceContaining("The samples per partition must be larger than 0.");
 
+        // lookup retry times shouldn't be negative
+        properties = getRequiredOptions();
+        properties.put("lookup.max-retries", "-1");
+        Map<String, String> finalProperties5 = properties;
+        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties5))
+                .hasStackTraceContaining(
+                        "The 'lookup.max-retries' must be larger than or equals to 0.");
+
         // lookup retry interval shouldn't be negative
         properties = getRequiredOptions();
         properties.put("lookup.retry.interval", "0ms");
-        Map<String, String> finalProperties5 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties5))
-                .hasStackTraceContaining(
-                        "The retry interval (in milliseconds) must be larger than 0.");
+        Map<String, String> finalProperties6 = properties;
+        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties6))
+                .hasStackTraceContaining("The 'lookup.retry.interval' must be larger than 0.");
 
         // sink retries shouldn't be negative
         properties = getRequiredOptions();
         properties.put("sink.max-retries", "-1");
-        Map<String, String> finalProperties6 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties6))
-                .hasStackTraceContaining("The max retry times must be larger than or equal to 0.");
+        Map<String, String> finalProperties7 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
+                .hasStackTraceContaining(
+                        "The sink max retry times must be larger than or equal to 0.");
 
         // sink retry interval shouldn't be negative
         properties = getRequiredOptions();
         properties.put("sink.retry.interval", "0ms");
-        Map<String, String> finalProperties7 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
+        Map<String, String> finalProperties8 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties8))
                 .hasStackTraceContaining(
                         "The retry interval (in milliseconds) must be larger than 0.");
 
         // sink buffered actions shouldn't be smaller than 1
         properties = getRequiredOptions();
         properties.put("sink.bulk-flush.max-actions", "0");
-        Map<String, String> finalProperties8 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties8))
+        Map<String, String> finalProperties9 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties9))
                 .hasStackTraceContaining("Max number of buffered actions must be larger than 0.");
     }
 

@@ -33,6 +33,7 @@ import org.apache.flink.table.connector.source.SourceProvider;
 import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
 import org.apache.flink.table.connector.source.lookup.LookupFunctionProvider;
+import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.connector.source.lookup.PartialCachingLookupProvider;
 import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
 import org.apache.flink.table.data.RowData;
@@ -45,6 +46,9 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
+import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** A {@link DynamicTableSource} for MongoDB. */
 @Internal
@@ -72,6 +76,14 @@ public class MongoDynamicTableSource
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.lookupCache = lookupCache;
+        checkArgument(
+                lookupRetryTimes >= 0,
+                String.format(
+                        "The '%s' must be larger than or equals to 0.",
+                        LookupOptions.MAX_RETRIES.key()));
+        checkArgument(
+                lookupRetryIntervalMs > 0,
+                String.format("The '%s' must be larger than 0.", LOOKUP_RETRY_INTERVAL.key()));
         this.lookupRetryTimes = lookupRetryTimes;
         this.lookupRetryIntervalMs = lookupRetryIntervalMs;
         this.physicalRowDataType = physicalRowDataType;

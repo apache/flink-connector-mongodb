@@ -81,13 +81,6 @@ public class MongoRowDataLookupFunction extends LookupFunction {
         checkNotNull(fieldNames, "No fieldNames supplied.");
         checkNotNull(fieldTypes, "No fieldTypes supplied.");
         checkNotNull(keyNames, "No keyNames supplied.");
-        checkArgument(
-                lookupMaxRetryTimes >= 0,
-                "The lookup max retry times must be larger than or equals to 0.");
-        checkArgument(
-                lookupRetryIntervalMs > 0,
-                "The lookup retry interval millis must be larger than 0.");
-
         this.connectionOptions = checkNotNull(connectionOptions);
         this.maxRetryTimes = lookupMaxRetryTimes;
         this.retryIntervalMs = lookupRetryIntervalMs;
