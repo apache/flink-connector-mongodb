@@ -159,8 +159,8 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the limit of documents to read. If limit is not set or set to -1, we will not push the
-     * limit down to MongoDB.
+     * Sets the limit of documents to read. If limit is not set or set to -1, the documents of the
+     * entire collection will be read.
      *
      * @param limit the limit of documents to read.
      * @return this builder
