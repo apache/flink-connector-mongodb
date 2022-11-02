@@ -18,8 +18,10 @@
 package org.apache.flink.connector.mongodb.sink;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.api.java.ClosureCleaner;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
@@ -67,6 +69,8 @@ public class MongoSink<IN> implements Sink<IN> {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);
         this.serializationSchema = checkNotNull(serializationSchema);
+        ClosureCleaner.clean(
+                serializationSchema, ExecutionConfig.ClosureCleanerLevel.RECURSIVE, true);
     }
 
     public static <IN> MongoSinkBuilder<IN> builder() {
