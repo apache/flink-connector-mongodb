@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
@@ -54,6 +55,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.splitVe
  *
  * <p>Requires splitVector privilege.
  */
+@Internal
 public class MongoSplitVectorSplitter implements MongoSplitters.MongoSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSplitVectorSplitter.class);

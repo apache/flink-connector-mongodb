@@ -47,7 +47,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** A {@link DynamicTableSource} for MongoDB. */

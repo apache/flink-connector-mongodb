@@ -17,7 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
-import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SourceSplit;
 
 import org.bson.BsonDocument;
@@ -25,7 +25,7 @@ import org.bson.BsonDocument;
 import java.util.Objects;
 
 /** A {@link SourceSplit} implementation for a MongoDB's partition. */
-@Internal
+@PublicEvolving
 public class MongoScanSourceSplit extends MongoSourceSplit {
 
     private static final long serialVersionUID = 1L;

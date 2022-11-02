@@ -17,7 +17,10 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
+import org.apache.flink.annotation.PublicEvolving;
+
 /** MongoDB source split state. */
+@PublicEvolving
 public class MongoSourceSplitState {
 
     private final MongoSourceSplit split;

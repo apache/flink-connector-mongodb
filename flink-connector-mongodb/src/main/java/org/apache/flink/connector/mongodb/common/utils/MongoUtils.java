@@ -17,6 +17,8 @@
 
 package org.apache.flink.connector.mongodb.common.utils;
 
+import org.apache.flink.annotation.Internal;
+
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
@@ -49,6 +51,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHA
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUID_FIELD;
 
 /** A util class with some helper method for MongoDB commands. */
+@Internal
 public class MongoUtils {
 
     public static final int UNAUTHORIZED_ERROR = 13;

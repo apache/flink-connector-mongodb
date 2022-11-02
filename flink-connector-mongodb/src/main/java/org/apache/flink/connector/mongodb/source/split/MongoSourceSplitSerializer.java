@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import org.bson.BsonDocument;
@@ -28,6 +29,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 
 /** The {@link SimpleVersionedSerializer serializer} for {@link MongoSourceSplit}. */
+@Internal
 public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<MongoSourceSplit> {
 
     public static final MongoSourceSplitSerializer INSTANCE = new MongoSourceSplitSerializer();

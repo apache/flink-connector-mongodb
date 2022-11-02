@@ -17,14 +17,14 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
-import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SourceSplit;
 
 import java.io.Serializable;
 import java.util.Objects;
 
 /** A super class of {@link SourceSplit} implementation for a MongoDB's source split. */
-@Internal
+@PublicEvolving
 public abstract class MongoSourceSplit implements SourceSplit, Serializable {
 
     protected final String splitId;

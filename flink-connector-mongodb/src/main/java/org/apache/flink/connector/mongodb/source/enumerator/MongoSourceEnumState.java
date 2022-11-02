@@ -17,7 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.enumerator;
 
-import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoSplitAssigner;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoSourceSplitReader;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
@@ -31,7 +31,7 @@ import java.util.Map;
  * The state class for MongoDB source enumerator, used for storing the split state. This class is
  * managed and controlled by {@link MongoSplitAssigner}.
  */
-@Internal
+@PublicEvolving
 public class MongoSourceEnumState {
 
     /** The Mongo collections remaining. */

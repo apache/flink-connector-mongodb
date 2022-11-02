@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.reader.split;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
@@ -27,5 +28,6 @@ import org.bson.BsonDocument;
  *
  * @param <T> Mongo source split.
  */
+@Internal
 public interface MongoSourceSplitReader<T extends MongoSourceSplit>
         extends SplitReader<BsonDocument, T> {}

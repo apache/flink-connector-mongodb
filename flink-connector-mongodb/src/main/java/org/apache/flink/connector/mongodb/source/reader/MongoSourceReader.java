@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.reader;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
@@ -39,6 +40,7 @@ import java.util.function.Supplier;
  *
  * @param <OUT> The output message type for flink.
  */
+@Internal
 public class MongoSourceReader<OUT>
         extends SingleThreadMultiplexSourceReaderBase<
                 BsonDocument, OUT, MongoSourceSplit, MongoSourceSplitState> {

@@ -25,10 +25,10 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.Objects;
 
-import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.BULK_FLUSH_MAX_ACTIONS;
-import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_MAX_RETRIES;
-import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_RETRY_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_MAX_ACTIONS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -121,6 +121,7 @@ public final class MongoWriteOptions implements Serializable {
     }
 
     /** Builder for {@link MongoWriteOptions}. */
+    @PublicEvolving
     public static class MongoWriteOptionsBuilder {
         private int bulkFlushMaxActions = BULK_FLUSH_MAX_ACTIONS.defaultValue();
         private long bulkFlushIntervalMs = BULK_FLUSH_INTERVAL.defaultValue().toMillis();

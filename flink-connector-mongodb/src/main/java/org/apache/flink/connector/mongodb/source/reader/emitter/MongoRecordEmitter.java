@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.source.reader.emitter;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReader;
@@ -30,6 +31,7 @@ import org.bson.BsonDocument;
  * The {@link RecordEmitter} implementation for {@link MongoSourceReader} . We would always update
  * the last consumed message id in this emitter.
  */
+@Internal
 public class MongoRecordEmitter<T>
         implements RecordEmitter<BsonDocument, T, MongoSourceSplitState> {
 

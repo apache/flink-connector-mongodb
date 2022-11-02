@@ -76,6 +76,7 @@ public class MongoConnectionOptions implements Serializable {
     }
 
     /** Builder for {@link MongoConnectionOptions}. */
+    @PublicEvolving
     public static class MongoConnectionOptionsBuilder {
         private String uri;
         private String database;
