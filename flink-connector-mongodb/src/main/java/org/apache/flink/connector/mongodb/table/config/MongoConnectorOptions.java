@@ -122,4 +122,11 @@ public class MongoConnectorOptions {
                     .defaultValue(3)
                     .withDescription(
                             "Specifies the max retry times if writing records to database failed.");
+
+    public static final ConfigOption<Duration> SINK_RETRY_INTERVAL =
+            ConfigOptions.key("sink.retry.interval")
+                    .durationType()
+                    .defaultValue(Duration.ofMillis(1000L))
+                    .withDescription(
+                            "Specifies the retry time interval if writing records to database failed.");
 }

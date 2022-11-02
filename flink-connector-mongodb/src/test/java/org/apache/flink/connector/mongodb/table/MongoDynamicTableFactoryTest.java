@@ -175,6 +175,7 @@ public class MongoDynamicTableFactoryTest {
         properties.put("sink.bulk-flush.interval", "2min");
         properties.put("sink.delivery-guarantee", "at-least-once");
         properties.put("sink.max-retries", "5");
+        properties.put("sink.retry.interval", "2s");
 
         DynamicTableSink actual = createTableSink(SCHEMA, properties);
 
@@ -190,6 +191,7 @@ public class MongoDynamicTableFactoryTest {
                         .setBulkFlushIntervalMs(TimeUnit.MINUTES.toMillis(2))
                         .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
                         .setMaxRetryTimes(5)
+                        .setRetryInterval(TimeUnit.SECONDS.toMillis(2))
                         .build();
 
         MongoDynamicTableSink expected =
@@ -270,11 +272,19 @@ public class MongoDynamicTableFactoryTest {
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties5))
                 .hasStackTraceContaining("The max retry times must be larger than or equal to 0.");
 
+        // sink retries shouldn't be negative
+        properties = getRequiredOptions();
+        properties.put("sink.retry.interval", "0ms");
+        Map<String, String> finalProperties6 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties6))
+                .hasStackTraceContaining(
+                        "The retry interval (in milliseconds) must be larger than 0.");
+
         // sink buffered actions shouldn't be smaller than 1
         properties = getRequiredOptions();
         properties.put("sink.bulk-flush.max-actions", "0");
-        Map<String, String> finalProperties6 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties6))
+        Map<String, String> finalProperties7 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
                 .hasStackTraceContaining("Max number of buffered actions must be larger than 0.");
     }
 

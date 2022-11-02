@@ -142,6 +142,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         }
 
         int maxRetryTimes = writeOptions.getMaxRetryTimes();
+        long retryIntervalMs = writeOptions.getRetryIntervalMs();
         for (int i = 0; i <= maxRetryTimes; i++) {
             try {
                 lastSendTime = System.currentTimeMillis();
@@ -159,7 +160,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                     throw new IOException(e);
                 }
                 try {
-                    Thread.sleep(1000L * i);
+                    Thread.sleep(retryIntervalMs * (i + 1));
                 } catch (InterruptedException ex) {
                     Thread.currentThread().interrupt();
                     throw new IOException(

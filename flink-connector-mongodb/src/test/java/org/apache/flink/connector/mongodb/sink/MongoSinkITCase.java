@@ -103,7 +103,7 @@ public class MongoSinkITCase {
         boolean failure = false;
         try {
             runTest(index, false, deliveryGuarantee, null);
-        } catch (IllegalStateException e) {
+        } catch (IllegalArgumentException e) {
             failure = true;
             assertThat(deliveryGuarantee).isSameAs(DeliveryGuarantee.EXACTLY_ONCE);
         } finally {

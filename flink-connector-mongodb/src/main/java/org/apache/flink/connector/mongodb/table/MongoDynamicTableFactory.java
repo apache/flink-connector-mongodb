@@ -56,6 +56,7 @@ import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOpti
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
@@ -96,6 +97,7 @@ public class MongoDynamicTableFactory
         optionalOptions.add(BULK_FLUSH_INTERVAL);
         optionalOptions.add(DELIVERY_GUARANTEE);
         optionalOptions.add(SINK_MAX_RETRIES);
+        optionalOptions.add(SINK_RETRY_INTERVAL);
         optionalOptions.add(SINK_PARALLELISM);
         optionalOptions.add(LookupOptions.CACHE_TYPE);
         optionalOptions.add(LookupOptions.MAX_RETRIES);
@@ -115,6 +117,7 @@ public class MongoDynamicTableFactory
         forwardOptions.add(BULK_FLUSH_MAX_ACTIONS);
         forwardOptions.add(BULK_FLUSH_INTERVAL);
         forwardOptions.add(SINK_MAX_RETRIES);
+        forwardOptions.add(SINK_RETRY_INTERVAL);
         return forwardOptions;
     }
 
@@ -190,6 +193,7 @@ public class MongoDynamicTableFactory
                         .setBulkFlushMaxActions(configuration.getBulkFlushMaxActions())
                         .setBulkFlushIntervalMs(configuration.getBulkFlushIntervalMs())
                         .setMaxRetryTimes(configuration.getSinkMaxRetryTimes())
+                        .setRetryInterval(configuration.getSinkRetryIntervalMs())
                         .setDeliveryGuarantee(configuration.getDeliveryGuarantee());
 
         Optional.ofNullable(configuration.getSinkParallelism()).ifPresent(builder::setParallelism);

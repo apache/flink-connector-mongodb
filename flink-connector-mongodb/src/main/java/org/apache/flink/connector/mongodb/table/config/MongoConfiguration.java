@@ -41,6 +41,7 @@ import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOpti
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
@@ -109,6 +110,10 @@ public class MongoConfiguration implements Serializable {
 
     public int getSinkMaxRetryTimes() {
         return config.get(SINK_MAX_RETRIES);
+    }
+
+    public long getSinkRetryIntervalMs() {
+        return config.get(SINK_RETRY_INTERVAL).toMillis();
     }
 
     public DeliveryGuarantee getDeliveryGuarantee() {
