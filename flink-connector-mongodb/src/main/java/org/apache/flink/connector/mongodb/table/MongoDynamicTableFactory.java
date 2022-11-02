@@ -41,6 +41,7 @@ import org.bson.BsonValue;
 import javax.annotation.Nullable;
 
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
@@ -184,12 +185,15 @@ public class MongoDynamicTableFactory
     }
 
     private MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {
-        return MongoWriteOptions.builder()
-                .setBulkFlushMaxActions(configuration.getBulkFlushMaxActions())
-                .setBulkFlushIntervalMs(configuration.getBulkFlushIntervalMs())
-                .setMaxRetryTimes(configuration.getSinkMaxRetryTimes())
-                .setDeliveryGuarantee(configuration.getDeliveryGuarantee())
-                .setParallelism(configuration.getSinkParallelism())
-                .build();
+        MongoWriteOptions.MongoWriteOptionsBuilder builder =
+                MongoWriteOptions.builder()
+                        .setBulkFlushMaxActions(configuration.getBulkFlushMaxActions())
+                        .setBulkFlushIntervalMs(configuration.getBulkFlushIntervalMs())
+                        .setMaxRetryTimes(configuration.getSinkMaxRetryTimes())
+                        .setDeliveryGuarantee(configuration.getDeliveryGuarantee());
+
+        Optional.ofNullable(configuration.getSinkParallelism()).ifPresent(builder::setParallelism);
+
+        return builder.build();
     }
 }

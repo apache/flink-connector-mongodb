@@ -20,6 +20,8 @@ package org.apache.flink.connector.mongodb.sink.config;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 
+import javax.annotation.Nullable;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -40,14 +42,14 @@ public final class MongoWriteOptions implements Serializable {
     private final long bulkFlushIntervalMs;
     private final int maxRetryTimes;
     private final DeliveryGuarantee deliveryGuarantee;
-    private final int parallelism;
+    private final Integer parallelism;
 
     private MongoWriteOptions(
             int bulkFlushMaxActions,
             long bulkFlushIntervalMs,
             int maxRetryTimes,
             DeliveryGuarantee deliveryGuarantee,
-            int parallelism) {
+            @Nullable Integer parallelism) {
         this.bulkFlushMaxActions = bulkFlushMaxActions;
         this.bulkFlushIntervalMs = bulkFlushIntervalMs;
         this.maxRetryTimes = maxRetryTimes;
@@ -71,7 +73,8 @@ public final class MongoWriteOptions implements Serializable {
         return deliveryGuarantee;
     }
 
-    public int getParallelism() {
+    @Nullable
+    public Integer getParallelism() {
         return parallelism;
     }
 
@@ -88,7 +91,7 @@ public final class MongoWriteOptions implements Serializable {
                 && bulkFlushIntervalMs == that.bulkFlushIntervalMs
                 && maxRetryTimes == that.maxRetryTimes
                 && deliveryGuarantee == that.deliveryGuarantee
-                && parallelism == that.parallelism;
+                && Objects.equals(parallelism, that.parallelism);
     }
 
     @Override
@@ -111,7 +114,7 @@ public final class MongoWriteOptions implements Serializable {
         private long bulkFlushIntervalMs = BULK_FLUSH_INTERVAL.defaultValue().toMillis();
         private int maxRetryTimes = SINK_MAX_RETRIES.defaultValue();
         private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE;
-        private int parallelism = 1;
+        private Integer parallelism;
 
         private MongoWriteOptionsBuilder() {}
 
@@ -174,10 +177,9 @@ public final class MongoWriteOptions implements Serializable {
         }
 
         /**
-         * Sets the write parallelism.
-         *
-         * @param parallelism the write parallelism
-         * @return this builder
+         * Sets the parallelism of the Mongo sink operator. By default, the parallelism
+         * is determined by the framework using the same parallelism of the upstream chained
+         * operator.
          */
         public MongoWriteOptionsBuilder setParallelism(int parallelism) {
             checkArgument(parallelism > 0, "Mongo sink parallelism must be larger than 0.");
