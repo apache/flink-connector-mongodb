@@ -60,6 +60,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
 
     private final MongoConnectionOptions connectionOptions;
     private final int maxRetryTimes;
+    private final long retryIntervalMs;
 
     private final List<String> fieldNames;
     private final List<String> keyNames;
@@ -72,6 +73,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
     public MongoRowDataLookupFunction(
             MongoConnectionOptions connectionOptions,
             int lookupMaxRetryTimes,
+            long lookupRetryIntervalMs,
             List<String> fieldNames,
             List<DataType> fieldTypes,
             List<String> keyNames,
@@ -79,10 +81,16 @@ public class MongoRowDataLookupFunction extends LookupFunction {
         checkNotNull(fieldNames, "No fieldNames supplied.");
         checkNotNull(fieldTypes, "No fieldTypes supplied.");
         checkNotNull(keyNames, "No keyNames supplied.");
-        checkArgument(lookupMaxRetryTimes >= 0, "The lookup max retry times must >= 0.");
+        checkArgument(
+                lookupMaxRetryTimes >= 0,
+                "The lookup max retry times must be larger than or equals to 0.");
+        checkArgument(
+                lookupRetryIntervalMs > 0,
+                "The lookup retry interval millis must be larger than 0.");
 
         this.connectionOptions = checkNotNull(connectionOptions);
         this.maxRetryTimes = lookupMaxRetryTimes;
+        this.retryIntervalMs = lookupRetryIntervalMs;
         this.fieldNames = fieldNames;
         this.mongoRowConverter = BsonToRowDataConverters.createNullableConverter(rowType);
 
@@ -146,7 +154,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                     throw new RuntimeException("Execution of MongoDB lookup failed.", e);
                 }
                 try {
-                    Thread.sleep(1000L * (retry + 1));
+                    Thread.sleep(retryIntervalMs * (retry + 1));
                 } catch (InterruptedException e1) {
                     throw new RuntimeException(e1);
                 }

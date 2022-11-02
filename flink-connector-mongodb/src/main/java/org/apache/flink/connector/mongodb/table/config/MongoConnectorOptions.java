@@ -97,6 +97,13 @@ public class MongoConnectorOptions {
                     .withDescription(
                             "Specifies the the samples count per partition. It only takes effect when the partition strategy is sample.");
 
+    public static final ConfigOption<Duration> LOOKUP_RETRY_INTERVAL =
+            ConfigOptions.key("lookup.retry.interval")
+                    .durationType()
+                    .defaultValue(Duration.ofMillis(1000L))
+                    .withDescription(
+                            "Specifies the retry time interval if lookup records from database failed.");
+
     public static final ConfigOption<Integer> BULK_FLUSH_MAX_ACTIONS =
             ConfigOptions.key("sink.bulk-flush.max-actions")
                     .intType()

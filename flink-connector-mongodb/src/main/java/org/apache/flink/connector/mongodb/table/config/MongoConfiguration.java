@@ -34,6 +34,7 @@ import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOpti
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_FETCH_SIZE;
@@ -97,6 +98,10 @@ public class MongoConfiguration implements Serializable {
     // -----------------------------------Lookup Config----------------------------------------
     public int getLookupMaxRetryTimes() {
         return config.get(LookupOptions.MAX_RETRIES);
+    }
+
+    public long getLookupRetryIntervalMs() {
+        return config.get(LOOKUP_RETRY_INTERVAL).toMillis();
     }
 
     // -----------------------------------Write Config------------------------------------------

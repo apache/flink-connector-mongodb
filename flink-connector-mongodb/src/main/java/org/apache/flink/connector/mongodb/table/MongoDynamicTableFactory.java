@@ -49,6 +49,7 @@ import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOpti
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.SCAN_FETCH_SIZE;
@@ -101,6 +102,7 @@ public class MongoDynamicTableFactory
         optionalOptions.add(SINK_PARALLELISM);
         optionalOptions.add(LookupOptions.CACHE_TYPE);
         optionalOptions.add(LookupOptions.MAX_RETRIES);
+        optionalOptions.add(LOOKUP_RETRY_INTERVAL);
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS);
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE);
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_MAX_ROWS);
@@ -135,6 +137,7 @@ public class MongoDynamicTableFactory
                 getReadOptions(config),
                 getLookupCache(options),
                 config.getLookupMaxRetryTimes(),
+                config.getLookupRetryIntervalMs(),
                 context.getPhysicalRowDataType());
     }
 

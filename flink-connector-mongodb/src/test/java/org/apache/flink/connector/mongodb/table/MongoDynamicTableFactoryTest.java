@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.flink.connector.mongodb.table.config.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSink;
 import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSource;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -83,6 +84,7 @@ public class MongoDynamicTableFactoryTest {
                         MongoReadOptions.builder().build(),
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
+                        LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
                         SCHEMA.toPhysicalRowDataType());
         assertThat(actualSource).isEqualTo(expectedSource);
 
@@ -133,6 +135,7 @@ public class MongoDynamicTableFactoryTest {
                         readOptions,
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
+                        LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
                         SCHEMA.toPhysicalRowDataType());
 
         assertThat(actual).isEqualTo(expected);
@@ -147,6 +150,7 @@ public class MongoDynamicTableFactoryTest {
         properties.put("lookup.partial-cache.cache-missing-key", "false");
         properties.put("lookup.partial-cache.max-rows", "15213");
         properties.put("lookup.max-retries", "10");
+        properties.put("lookup.retry.interval", "20ms");
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
@@ -163,6 +167,7 @@ public class MongoDynamicTableFactoryTest {
                         MongoReadOptions.builder().build(),
                         DefaultLookupCache.fromConfig(Configuration.fromMap(properties)),
                         10,
+                        20,
                         SCHEMA.toPhysicalRowDataType());
 
         assertThat(actual).isEqualTo(expected);
@@ -265,26 +270,34 @@ public class MongoDynamicTableFactoryTest {
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties4))
                 .hasStackTraceContaining("The samples per partition must be larger than 0.");
 
-        // sink retries shouldn't be negative
+        // lookup retry interval shouldn't be negative
         properties = getRequiredOptions();
-        properties.put("sink.max-retries", "-1");
+        properties.put("lookup.retry.interval", "0ms");
         Map<String, String> finalProperties5 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties5))
-                .hasStackTraceContaining("The max retry times must be larger than or equal to 0.");
+                .hasStackTraceContaining(
+                        "The retry interval (in milliseconds) must be larger than 0.");
 
         // sink retries shouldn't be negative
         properties = getRequiredOptions();
-        properties.put("sink.retry.interval", "0ms");
+        properties.put("sink.max-retries", "-1");
         Map<String, String> finalProperties6 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties6))
+                .hasStackTraceContaining("The max retry times must be larger than or equal to 0.");
+
+        // sink retry interval shouldn't be negative
+        properties = getRequiredOptions();
+        properties.put("sink.retry.interval", "0ms");
+        Map<String, String> finalProperties7 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
                 .hasStackTraceContaining(
                         "The retry interval (in milliseconds) must be larger than 0.");
 
         // sink buffered actions shouldn't be smaller than 1
         properties = getRequiredOptions();
         properties.put("sink.bulk-flush.max-actions", "0");
-        Map<String, String> finalProperties7 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
+        Map<String, String> finalProperties8 = properties;
+        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties8))
                 .hasStackTraceContaining("Max number of buffered actions must be larger than 0.");
     }
 

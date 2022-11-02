@@ -58,6 +58,7 @@ public class MongoDynamicTableSource
     private final MongoReadOptions readOptions;
     @Nullable private final LookupCache lookupCache;
     private final int lookupRetryTimes;
+    private final long lookupRetryIntervalMs;
     private DataType physicalRowDataType;
     private int limit = -1;
 
@@ -66,11 +67,13 @@ public class MongoDynamicTableSource
             MongoReadOptions readOptions,
             @Nullable LookupCache lookupCache,
             int lookupRetryTimes,
+            long lookupRetryIntervalMs,
             DataType physicalRowDataType) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.lookupCache = lookupCache;
         this.lookupRetryTimes = lookupRetryTimes;
+        this.lookupRetryIntervalMs = lookupRetryIntervalMs;
         this.physicalRowDataType = physicalRowDataType;
     }
 
@@ -89,6 +92,7 @@ public class MongoDynamicTableSource
                 new MongoRowDataLookupFunction(
                         connectionOptions,
                         lookupRetryTimes,
+                        lookupRetryIntervalMs,
                         DataType.getFieldNames(physicalRowDataType),
                         DataType.getFieldDataTypes(physicalRowDataType),
                         keyNames,
@@ -136,7 +140,12 @@ public class MongoDynamicTableSource
     @Override
     public DynamicTableSource copy() {
         return new MongoDynamicTableSource(
-                connectionOptions, readOptions, lookupCache, lookupRetryTimes, physicalRowDataType);
+                connectionOptions,
+                readOptions,
+                lookupCache,
+                lookupRetryTimes,
+                lookupRetryIntervalMs,
+                physicalRowDataType);
     }
 
     @Override
@@ -171,7 +180,8 @@ public class MongoDynamicTableSource
                 && Objects.equals(physicalRowDataType, that.physicalRowDataType)
                 && Objects.equals(limit, that.limit)
                 && Objects.equals(lookupCache, that.lookupCache)
-                && Objects.equals(lookupRetryTimes, that.lookupRetryTimes);
+                && Objects.equals(lookupRetryTimes, that.lookupRetryTimes)
+                && Objects.equals(lookupRetryIntervalMs, that.lookupRetryIntervalMs);
     }
 
     @Override
@@ -182,6 +192,7 @@ public class MongoDynamicTableSource
                 physicalRowDataType,
                 limit,
                 lookupCache,
-                lookupRetryTimes);
+                lookupRetryTimes,
+                lookupRetryIntervalMs);
     }
 }
