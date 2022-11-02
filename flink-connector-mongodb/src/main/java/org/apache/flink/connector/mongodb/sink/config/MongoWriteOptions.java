@@ -32,7 +32,10 @@ import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 import static org.apache.flink.util.Preconditions.checkState;
 
-/** The configured class for Mongo sink. */
+/**
+ * Configurations for MongoSink to control write operations. All the options list here could be
+ * configured by {@link MongoWriteOptionsBuilder}.
+ */
 @PublicEvolving
 public final class MongoWriteOptions implements Serializable {
 
@@ -177,9 +180,8 @@ public final class MongoWriteOptions implements Serializable {
         }
 
         /**
-         * Sets the parallelism of the Mongo sink operator. By default, the parallelism
-         * is determined by the framework using the same parallelism of the upstream chained
-         * operator.
+         * Sets the parallelism of the Mongo sink operator. By default, the parallelism is
+         * determined by the framework using the same parallelism of the upstream chained operator.
          */
         public MongoWriteOptionsBuilder setParallelism(int parallelism) {
             checkArgument(parallelism > 0, "Mongo sink parallelism must be larger than 0.");
