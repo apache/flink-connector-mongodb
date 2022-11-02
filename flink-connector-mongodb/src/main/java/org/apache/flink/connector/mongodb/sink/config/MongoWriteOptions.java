@@ -190,7 +190,7 @@ public final class MongoWriteOptions implements Serializable {
 
         /**
          * Sets the wanted {@link DeliveryGuarantee}. The default delivery guarantee is {@link
-         * DeliveryGuarantee#NONE}
+         * DeliveryGuarantee#AT_LEAST_ONCE}
          *
          * @param deliveryGuarantee which describes the record emission behaviour
          * @return this builder
