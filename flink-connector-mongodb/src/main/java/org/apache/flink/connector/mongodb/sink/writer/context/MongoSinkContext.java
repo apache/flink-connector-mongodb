@@ -18,23 +18,13 @@
 package org.apache.flink.connector.mongodb.sink.writer.context;
 
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 
 /** This context provides information for {@link MongoSerializationSchema}. */
 @PublicEvolving
-public interface MongoSinkContext {
-
-    /**
-     * Get the number of the subtask that MongoSink is running on. The numbering starts from 0 and
-     * goes up to parallelism-1. (parallelism as returned by {@link #getNumberOfParallelInstances()}
-     *
-     * @return number of subtask
-     */
-    int getParallelInstanceId();
-
-    /** @return number of parallel MongoSink tasks. */
-    int getNumberOfParallelInstances();
+public interface MongoSinkContext extends Sink.InitContext {
 
     /** Returns the current process time in flink. */
     long processTime();

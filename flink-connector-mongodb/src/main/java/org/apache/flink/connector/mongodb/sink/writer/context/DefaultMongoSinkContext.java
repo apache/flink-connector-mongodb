@@ -18,43 +18,75 @@
 package org.apache.flink.connector.mongodb.sink.writer.context;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
+import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
+import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
+import org.apache.flink.util.UserCodeClassLoader;
+
+import java.util.OptionalLong;
 
 /** Default {@link MongoSinkContext} implementation. */
 @Internal
 public class DefaultMongoSinkContext implements MongoSinkContext {
 
-    private final int numberOfParallelSubtasks;
-    private final int parallelInstanceId;
-    private final ProcessingTimeService processingTimeService;
+    private final Sink.InitContext initContext;
     private final MongoWriteOptions writeOptions;
 
     public DefaultMongoSinkContext(Sink.InitContext initContext, MongoWriteOptions writeOptions) {
-        this.parallelInstanceId = initContext.getSubtaskId();
-        this.numberOfParallelSubtasks = initContext.getNumberOfParallelSubtasks();
-        this.processingTimeService = initContext.getProcessingTimeService();
+        this.initContext = initContext;
         this.writeOptions = writeOptions;
     }
 
     @Override
-    public int getParallelInstanceId() {
-        return parallelInstanceId;
-    }
-
-    @Override
-    public int getNumberOfParallelInstances() {
-        return numberOfParallelSubtasks;
-    }
-
-    @Override
     public long processTime() {
-        return processingTimeService.getCurrentProcessingTime();
+        return initContext.getProcessingTimeService().getCurrentProcessingTime();
     }
 
     @Override
     public MongoWriteOptions getWriteOptions() {
         return writeOptions;
+    }
+
+    @Override
+    public UserCodeClassLoader getUserCodeClassLoader() {
+        return initContext.getUserCodeClassLoader();
+    }
+
+    @Override
+    public MailboxExecutor getMailboxExecutor() {
+        return initContext.getMailboxExecutor();
+    }
+
+    @Override
+    public ProcessingTimeService getProcessingTimeService() {
+        return initContext.getProcessingTimeService();
+    }
+
+    @Override
+    public int getSubtaskId() {
+        return initContext.getSubtaskId();
+    }
+
+    @Override
+    public int getNumberOfParallelSubtasks() {
+        return initContext.getNumberOfParallelSubtasks();
+    }
+
+    @Override
+    public SinkWriterMetricGroup metricGroup() {
+        return initContext.metricGroup();
+    }
+
+    @Override
+    public OptionalLong getRestoredCheckpointId() {
+        return initContext.getRestoredCheckpointId();
+    }
+
+    @Override
+    public SerializationSchema.InitializationContext asSerializationSchemaInitializationContext() {
+        return initContext.asSerializationSchemaInitializationContext();
     }
 }
