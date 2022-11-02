@@ -140,12 +140,13 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                     return rows;
                 }
             } catch (MongoException e) {
-                LOG.error(String.format("MongoDB lookup error, retry times = %d", retry), e);
+                LOG.debug("MongoDB lookup error, retry times = {}", retry, e);
                 if (retry >= maxRetryTimes) {
+                    LOG.error("MongoDB lookup error", e);
                     throw new RuntimeException("Execution of MongoDB lookup failed.", e);
                 }
                 try {
-                    Thread.sleep(1000L * retry);
+                    Thread.sleep(1000L * (retry + 1));
                 } catch (InterruptedException e1) {
                     throw new RuntimeException(e1);
                 }

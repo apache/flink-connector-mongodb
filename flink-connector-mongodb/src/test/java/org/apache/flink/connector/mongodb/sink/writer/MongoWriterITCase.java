@@ -65,8 +65,6 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import javax.annotation.Nullable;
-
 import java.util.Optional;
 import java.util.OptionalLong;
 
@@ -314,7 +312,7 @@ public class MongoWriterITCase {
             int bulkFlushMaxActions,
             long bulkFlushInterval,
             boolean flushOnCheckpoint,
-            @Nullable Integer parallelism,
+            int parallelism,
             Sink.InitContext initContext,
             MongoSerializationSchema<Document> serializationSchema) {
 
