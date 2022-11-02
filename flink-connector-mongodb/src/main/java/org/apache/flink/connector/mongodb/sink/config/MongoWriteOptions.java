@@ -134,7 +134,7 @@ public final class MongoWriteOptions implements Serializable {
 
         /**
          * Sets the maximum number of actions to buffer for each bulk request. You can pass -1 to
-         * disable it. The default flush size 1000.
+         * disable it. The default flush size is 1000.
          *
          * @param numMaxActions the maximum number of actions to buffer per bulk request.
          * @return this builder

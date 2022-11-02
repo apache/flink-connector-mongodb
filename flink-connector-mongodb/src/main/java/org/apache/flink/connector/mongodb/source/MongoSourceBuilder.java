@@ -23,6 +23,7 @@ import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
+import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
 import org.bson.BsonDocument;
 
@@ -121,7 +122,8 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the partition strategy.
+     * Sets the partition strategy. Available partition strategies are single, sample, split-vector,
+     * sharded and default. You can see {@link PartitionStrategy} for detail.
      *
      * @param partitionStrategy the strategy of a partition.
      * @return this builder
@@ -133,8 +135,8 @@ public class MongoSourceBuilder<OUT> {
 
     /**
      * Sets the partition memory size of MongoDB split. Split a MongoDB collection into multiple
-     * partitions according to the partition memory size. We can read these partitions in parallel
-     * to improve the reading speed.
+     * partitions according to the partition memory size. Partitions can be read in parallel by
+     * multiple {@link MongoScanSourceSplitReader} to speed up the overall read time.
      *
      * @param partitionSize the memory size of a partition.
      * @return this builder
@@ -145,9 +147,10 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the samples size per partition only effective for sample partition strategy.
+     * Sets the number of samples to take per partition. The total number of samples taken is:
+     * samples per partition * ( count / number of documents per partition).
      *
-     * @param samplesPerPartition the samples size per partition
+     * @param samplesPerPartition the memory size of a partition.
      * @return this builder
      */
     public MongoSourceBuilder<OUT> setSamplesPerPartition(int samplesPerPartition) {

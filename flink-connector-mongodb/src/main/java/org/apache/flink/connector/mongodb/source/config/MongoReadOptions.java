@@ -20,6 +20,7 @@ package org.apache.flink.connector.mongodb.source.config;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -168,7 +169,8 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
-         * Sets the partition strategy.
+         * Sets the partition strategy. Available partition strategies are single, sample,
+         * split-vector, sharded and default. You can see {@link PartitionStrategy} for detail.
          *
          * @param partitionStrategy the strategy of a partition.
          * @return this builder
@@ -180,7 +182,9 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
-         * Sets the partition size of MongoDB split.
+         * Sets the partition memory size of MongoDB split. Split a MongoDB collection into multiple
+         * partitions according to the partition memory size. Partitions can be read in parallel by
+         * multiple {@link MongoScanSourceSplitReader} to speed up the overall read time.
          *
          * @param partitionSize the memory size of a partition.
          * @return this builder
@@ -195,7 +199,8 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
-         * Sets the partition size of MongoDB split.
+         * Sets the number of samples to take per partition. The total number of samples taken is:
+         * samples per partition * ( count / number of documents per partition).
          *
          * @param samplesPerPartition the memory size of a partition.
          * @return this builder
