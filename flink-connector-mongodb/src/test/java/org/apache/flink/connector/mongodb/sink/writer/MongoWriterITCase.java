@@ -120,12 +120,11 @@ public class MongoWriterITCase {
     void testWriteOnBulkFlush() throws Exception {
         final String collection = "test-bulk-flush-without-checkpoint";
         final boolean flushOnCheckpoint = false;
-        final int bulkFlushMaxActions = 5;
-        final int bulkFlushInterval = -1;
+        final int batchSize = 5;
+        final int batchIntervalMs = -1;
 
         try (final MongoWriter<Document> writer =
-                createWriter(
-                        collection, bulkFlushMaxActions, bulkFlushInterval, flushOnCheckpoint)) {
+                createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             writer.write(buildMessage(1), null);
             writer.write(buildMessage(2), null);
             writer.write(buildMessage(3), null);
@@ -150,15 +149,14 @@ public class MongoWriterITCase {
     }
 
     @Test
-    void testWriteOnBulkIntervalFlush() throws Exception {
+    void testWriteOnBatchIntervalFlush() throws Exception {
         final String collection = "test-bulk-flush-with-interval";
         final boolean flushOnCheckpoint = false;
-        final int bulkFlushMaxActions = -1;
-        final int bulkFlushInterval = 1000;
+        final int batchSize = -1;
+        final int batchIntervalMs = 1000;
 
         try (final MongoWriter<Document> writer =
-                createWriter(
-                        collection, bulkFlushMaxActions, bulkFlushInterval, flushOnCheckpoint)) {
+                createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             writer.write(buildMessage(1), null);
             writer.write(buildMessage(2), null);
             writer.write(buildMessage(3), null);
@@ -173,13 +171,12 @@ public class MongoWriterITCase {
     void testWriteOnCheckpoint() throws Exception {
         final String collection = "test-bulk-flush-with-checkpoint";
         final boolean flushOnCheckpoint = true;
-        final int bulkFlushMaxActions = -1;
-        final int bulkFlushInterval = -1;
+        final int batchSize = -1;
+        final int batchIntervalMs = -1;
 
         // Enable flush on checkpoint
         try (final MongoWriter<Document> writer =
-                createWriter(
-                        collection, bulkFlushMaxActions, bulkFlushInterval, flushOnCheckpoint)) {
+                createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             writer.write(buildMessage(1), null);
             writer.write(buildMessage(2), null);
             writer.write(buildMessage(3), null);
@@ -197,12 +194,11 @@ public class MongoWriterITCase {
     void testIncrementRecordsSendMetric() throws Exception {
         final String collection = "test-inc-records-send";
         final boolean flushOnCheckpoint = false;
-        final int bulkFlushMaxActions = 2;
-        final int bulkFlushInterval = -1;
+        final int batchSize = 2;
+        final int batchIntervalMs = -1;
 
         try (final MongoWriter<Document> writer =
-                createWriter(
-                        collection, bulkFlushMaxActions, bulkFlushInterval, flushOnCheckpoint)) {
+                createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             final Optional<Counter> recordsSend =
                     metricListener.getCounter(MetricNames.NUM_RECORDS_SEND);
             writer.write(buildMessage(1), null);
@@ -222,12 +218,11 @@ public class MongoWriterITCase {
     void testCurrentSendTime() throws Exception {
         final String collection = "test-current-send-time";
         boolean flushOnCheckpoint = false;
-        final int bulkFlushMaxActions = 2;
-        final int bulkFlushInterval = -1;
+        final int batchSize = 2;
+        final int batchIntervalMs = -1;
 
         try (final MongoWriter<Document> writer =
-                createWriter(
-                        collection, bulkFlushMaxActions, bulkFlushInterval, flushOnCheckpoint)) {
+                createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             final Optional<Gauge<Long>> currentSendTime =
                     metricListener.getGauge("currentSendTime");
 
@@ -245,15 +240,15 @@ public class MongoWriterITCase {
     void testSinkContext() throws Exception {
         final String collection = "test-sink-context";
         boolean flushOnCheckpoint = false;
-        final int bulkFlushMaxActions = 2;
-        final int bulkFlushInterval = -1;
+        final int batchSize = 2;
+        final int batchIntervalMs = -1;
         final int sinkParallelism = 1;
 
         MongoWriteOptions expectOptions =
                 MongoWriteOptions.builder()
-                        .setBulkFlushMaxActions(bulkFlushMaxActions)
-                        .setBulkFlushIntervalMs(bulkFlushInterval)
-                        .setMaxRetryTimes(0)
+                        .setBatchSize(batchSize)
+                        .setBatchIntervalMs(batchIntervalMs)
+                        .setMaxRetries(0)
                         .setParallelism(sinkParallelism)
                         .build();
 
@@ -275,8 +270,8 @@ public class MongoWriterITCase {
         try (MongoWriter<Document> writer =
                 createWriter(
                         collection,
-                        bulkFlushMaxActions,
-                        bulkFlushInterval,
+                        batchSize,
+                        batchIntervalMs,
                         flushOnCheckpoint,
                         sinkParallelism,
                         initContext,
@@ -293,14 +288,11 @@ public class MongoWriterITCase {
     }
 
     private MongoWriter<Document> createWriter(
-            String collection,
-            int bulkFlushMaxActions,
-            long bulkFlushInterval,
-            boolean flushOnCheckpoint) {
+            String collection, int batchSize, long batchIntervalMs, boolean flushOnCheckpoint) {
         return createWriter(
                 collection,
-                bulkFlushMaxActions,
-                bulkFlushInterval,
+                batchSize,
+                batchIntervalMs,
                 flushOnCheckpoint,
                 DEFAULT_SINK_PARALLELISM,
                 new MockInitContext(metricListener),
@@ -309,8 +301,8 @@ public class MongoWriterITCase {
 
     private MongoWriter<Document> createWriter(
             String collection,
-            int bulkFlushMaxActions,
-            long bulkFlushInterval,
+            int batchSize,
+            long batchIntervalMs,
             boolean flushOnCheckpoint,
             int parallelism,
             Sink.InitContext initContext,
@@ -325,9 +317,9 @@ public class MongoWriterITCase {
 
         MongoWriteOptions writeOptions =
                 MongoWriteOptions.builder()
-                        .setBulkFlushMaxActions(bulkFlushMaxActions)
-                        .setBulkFlushIntervalMs(bulkFlushInterval)
-                        .setMaxRetryTimes(0)
+                        .setBatchSize(batchSize)
+                        .setBatchIntervalMs(batchIntervalMs)
+                        .setMaxRetries(0)
                         .setParallelism(parallelism)
                         .build();
 

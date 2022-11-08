@@ -25,8 +25,8 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.Objects;
 
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_MAX_ACTIONS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.util.Preconditions.checkArgument;
@@ -41,38 +41,38 @@ public final class MongoWriteOptions implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private final int bulkFlushMaxActions;
-    private final long bulkFlushIntervalMs;
-    private final int maxRetryTimes;
+    private final int batchSize;
+    private final long batchIntervalMs;
+    private final int maxRetries;
     private final long retryIntervalMs;
     private final DeliveryGuarantee deliveryGuarantee;
     private final Integer parallelism;
 
     private MongoWriteOptions(
-            int bulkFlushMaxActions,
-            long bulkFlushIntervalMs,
-            int maxRetryTimes,
+            int batchSize,
+            long batchIntervalMs,
+            int maxRetries,
             long retryIntervalMs,
             DeliveryGuarantee deliveryGuarantee,
             @Nullable Integer parallelism) {
-        this.bulkFlushMaxActions = bulkFlushMaxActions;
-        this.bulkFlushIntervalMs = bulkFlushIntervalMs;
-        this.maxRetryTimes = maxRetryTimes;
+        this.batchSize = batchSize;
+        this.batchIntervalMs = batchIntervalMs;
+        this.maxRetries = maxRetries;
         this.retryIntervalMs = retryIntervalMs;
         this.deliveryGuarantee = deliveryGuarantee;
         this.parallelism = parallelism;
     }
 
-    public int getBulkFlushMaxActions() {
-        return bulkFlushMaxActions;
+    public int getBatchSize() {
+        return batchSize;
     }
 
-    public long getBulkFlushIntervalMs() {
-        return bulkFlushIntervalMs;
+    public long getBatchIntervalMs() {
+        return batchIntervalMs;
     }
 
-    public int getMaxRetryTimes() {
-        return maxRetryTimes;
+    public int getMaxRetries() {
+        return maxRetries;
     }
 
     public long getRetryIntervalMs() {
@@ -97,9 +97,9 @@ public final class MongoWriteOptions implements Serializable {
             return false;
         }
         MongoWriteOptions that = (MongoWriteOptions) o;
-        return bulkFlushMaxActions == that.bulkFlushMaxActions
-                && bulkFlushIntervalMs == that.bulkFlushIntervalMs
-                && maxRetryTimes == that.maxRetryTimes
+        return batchSize == that.batchSize
+                && batchIntervalMs == that.batchIntervalMs
+                && maxRetries == that.maxRetries
                 && retryIntervalMs == that.retryIntervalMs
                 && deliveryGuarantee == that.deliveryGuarantee
                 && Objects.equals(parallelism, that.parallelism);
@@ -108,9 +108,9 @@ public final class MongoWriteOptions implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                bulkFlushMaxActions,
-                bulkFlushIntervalMs,
-                maxRetryTimes,
+                batchSize,
+                batchIntervalMs,
+                maxRetries,
                 retryIntervalMs,
                 deliveryGuarantee,
                 parallelism);
@@ -123,9 +123,9 @@ public final class MongoWriteOptions implements Serializable {
     /** Builder for {@link MongoWriteOptions}. */
     @PublicEvolving
     public static class MongoWriteOptionsBuilder {
-        private int bulkFlushMaxActions = BULK_FLUSH_MAX_ACTIONS.defaultValue();
-        private long bulkFlushIntervalMs = BULK_FLUSH_INTERVAL.defaultValue().toMillis();
-        private int maxRetryTimes = SINK_MAX_RETRIES.defaultValue();
+        private int batchSize = BUFFER_FLUSH_MAX_ROWS.defaultValue();
+        private long batchIntervalMs = BUFFER_FLUSH_INTERVAL.defaultValue().toMillis();
+        private int maxRetries = SINK_MAX_RETRIES.defaultValue();
         private long retryIntervalMs = SINK_RETRY_INTERVAL.defaultValue().toMillis();
         private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE;
         private Integer parallelism;
@@ -136,43 +136,42 @@ public final class MongoWriteOptions implements Serializable {
          * Sets the maximum number of actions to buffer for each bulk request. You can pass -1 to
          * disable it. The default flush size is 1000.
          *
-         * @param numMaxActions the maximum number of actions to buffer per bulk request.
+         * @param batchSize the maximum number of actions to buffer per bulk request.
          * @return this builder
          */
-        public MongoWriteOptionsBuilder setBulkFlushMaxActions(int numMaxActions) {
+        public MongoWriteOptionsBuilder setBatchSize(int batchSize) {
             checkArgument(
-                    numMaxActions == -1 || numMaxActions > 0,
-                    "Max number of buffered actions must be larger than 0.");
-            this.bulkFlushMaxActions = numMaxActions;
+                    batchSize == -1 || batchSize > 0,
+                    "Max number of batch size must be larger than 0.");
+            this.batchSize = batchSize;
             return this;
         }
 
         /**
          * Sets the bulk flush interval, in milliseconds. You can pass -1 to disable it.
          *
-         * @param intervalMillis the bulk flush interval, in milliseconds.
+         * @param batchIntervalMs the batch flush interval, in milliseconds.
          * @return this builder
          */
-        public MongoWriteOptionsBuilder setBulkFlushIntervalMs(long intervalMillis) {
+        public MongoWriteOptionsBuilder setBatchIntervalMs(long batchIntervalMs) {
             checkArgument(
-                    intervalMillis == -1 || intervalMillis >= 0,
-                    "Interval (in milliseconds) between each flush must be larger than "
+                    batchIntervalMs == -1 || batchIntervalMs >= 0,
+                    "The batch flush interval (in milliseconds) between each flush must be larger than "
                             + "or equal to 0.");
-            this.bulkFlushIntervalMs = intervalMillis;
+            this.batchIntervalMs = batchIntervalMs;
             return this;
         }
 
         /**
          * Sets the max retry times if writing records failed.
          *
-         * @param maxRetryTimes the max retry times.
+         * @param maxRetries the max retry times.
          * @return this builder
          */
-        public MongoWriteOptionsBuilder setMaxRetryTimes(int maxRetryTimes) {
+        public MongoWriteOptionsBuilder setMaxRetries(int maxRetries) {
             checkArgument(
-                    maxRetryTimes >= 0,
-                    "The sink max retry times must be larger than or equal to 0.");
-            this.maxRetryTimes = maxRetryTimes;
+                    maxRetries >= 0, "The sink max retry times must be larger than or equal to 0.");
+            this.maxRetries = maxRetries;
             return this;
         }
 
@@ -182,7 +181,7 @@ public final class MongoWriteOptions implements Serializable {
          * @param retryIntervalMs the retry time interval, in milliseconds.
          * @return this builder
          */
-        public MongoWriteOptionsBuilder setRetryInterval(long retryIntervalMs) {
+        public MongoWriteOptionsBuilder setRetryIntervalMs(long retryIntervalMs) {
             checkArgument(
                     retryIntervalMs > 0,
                     "The retry interval (in milliseconds) must be larger than 0.");
@@ -222,9 +221,9 @@ public final class MongoWriteOptions implements Serializable {
          */
         public MongoWriteOptions build() {
             return new MongoWriteOptions(
-                    bulkFlushMaxActions,
-                    bulkFlushIntervalMs,
-                    maxRetryTimes,
+                    batchSize,
+                    batchIntervalMs,
+                    maxRetries,
                     retryIntervalMs,
                     deliveryGuarantee,
                     parallelism);

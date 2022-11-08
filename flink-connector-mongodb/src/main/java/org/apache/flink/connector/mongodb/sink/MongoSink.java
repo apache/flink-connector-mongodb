@@ -34,8 +34,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
  * Mongo sink converts each incoming element into MongoDB {@link WriteModel} (bulk write action) and
- * bulk writes to mongodb when the number of actions is greater than bulkFlushMaxActions or the
- * flush interval is greater than bulkFlushMaxActions.
+ * bulk writes to mongodb when the number of actions is greater than batchSize or the flush interval
+ * is greater than batchIntervalMs.
  *
  * <p>The following example shows how to create a MongoSink receiving records of {@code Document}
  * type.
@@ -45,7 +45,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  *     .setUri("mongodb://user:password@127.0.0.1:27017")
  *     .setDatabase("db")
  *     .setCollection("coll")
- *     .setBulkFlushMaxActions(5)
+ *     .setBatchSize(5)
  *     .setSerializationSchema(
  *         (doc, context) -> new InsertOneModel<>(doc.toBsonDocument()))
  *     .build();

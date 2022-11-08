@@ -115,7 +115,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
             mailboxExecutor.yield();
         }
         collector.collect(serializationSchema.serialize(element, sinkContext));
-        if (isOverMaxActionsLimit() || isOverMaxFlushIntervalLimit()) {
+        if (isOverMaxBatchSizeLimit() || isOverMaxBatchIntervalLimit()) {
             doBulkWrite();
         }
     }
@@ -141,9 +141,9 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
             return;
         }
 
-        int maxRetryTimes = writeOptions.getMaxRetryTimes();
+        int maxRetries = writeOptions.getMaxRetries();
         long retryIntervalMs = writeOptions.getRetryIntervalMs();
-        for (int i = 0; i <= maxRetryTimes; i++) {
+        for (int i = 0; i <= maxRetries; i++) {
             try {
                 lastSendTime = System.currentTimeMillis();
                 mongoClient
@@ -155,7 +155,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 break;
             } catch (MongoException e) {
                 LOG.debug("Bulk Write to MongoDB failed, retry times = {}", i, e);
-                if (i >= maxRetryTimes) {
+                if (i >= maxRetries) {
                     LOG.error("Bulk Write to MongoDB failed", e);
                     throw new IOException(e);
                 }
@@ -170,13 +170,13 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         }
     }
 
-    private boolean isOverMaxActionsLimit() {
-        int bulkActions = writeOptions.getBulkFlushMaxActions();
+    private boolean isOverMaxBatchSizeLimit() {
+        int bulkActions = writeOptions.getBatchSize();
         return bulkActions != -1 && bulkRequests.size() >= bulkActions;
     }
 
-    private boolean isOverMaxFlushIntervalLimit() {
-        long bulkFlushInterval = writeOptions.getBulkFlushIntervalMs();
+    private boolean isOverMaxBatchIntervalLimit() {
+        long bulkFlushInterval = writeOptions.getBatchIntervalMs();
         long lastSentInterval = System.currentTimeMillis() - lastSendTime;
         return bulkFlushInterval != -1 && lastSentInterval >= bulkFlushInterval;
     }

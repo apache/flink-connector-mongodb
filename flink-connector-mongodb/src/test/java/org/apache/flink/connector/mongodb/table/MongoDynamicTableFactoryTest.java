@@ -176,8 +176,8 @@ public class MongoDynamicTableFactoryTest {
     @Test
     public void testMongoSinkProperties() {
         Map<String, String> properties = getRequiredOptions();
-        properties.put("sink.bulk-flush.max-actions", "1001");
-        properties.put("sink.bulk-flush.interval", "2min");
+        properties.put("sink.buffer-flush.max-rows", "1001");
+        properties.put("sink.buffer-flush.interval", "2min");
         properties.put("sink.delivery-guarantee", "at-least-once");
         properties.put("sink.max-retries", "5");
         properties.put("sink.retry.interval", "2s");
@@ -192,11 +192,11 @@ public class MongoDynamicTableFactoryTest {
                         .build();
         MongoWriteOptions writeOptions =
                 MongoWriteOptions.builder()
-                        .setBulkFlushMaxActions(1001)
-                        .setBulkFlushIntervalMs(TimeUnit.MINUTES.toMillis(2))
+                        .setBatchSize(1001)
+                        .setBatchIntervalMs(TimeUnit.MINUTES.toMillis(2))
                         .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-                        .setMaxRetryTimes(5)
-                        .setRetryInterval(TimeUnit.SECONDS.toMillis(2))
+                        .setMaxRetries(5)
+                        .setRetryIntervalMs(TimeUnit.SECONDS.toMillis(2))
                         .build();
 
         MongoDynamicTableSink expected =
@@ -301,12 +301,12 @@ public class MongoDynamicTableFactoryTest {
                 .hasStackTraceContaining(
                         "The retry interval (in milliseconds) must be larger than 0.");
 
-        // sink buffered actions shouldn't be smaller than 1
+        // sink buffered rows shouldn't be smaller than 1
         properties = getRequiredOptions();
-        properties.put("sink.bulk-flush.max-actions", "0");
+        properties.put("sink.buffer-flush.max-rows", "0");
         Map<String, String> finalProperties9 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties9))
-                .hasStackTraceContaining("Max number of buffered actions must be larger than 0.");
+                .hasStackTraceContaining("Max number of batch size must be larger than 0.");
     }
 
     private Map<String, String> getRequiredOptions() {

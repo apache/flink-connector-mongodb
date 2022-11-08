@@ -29,8 +29,8 @@ import javax.annotation.Nullable;
 import java.io.Serializable;
 import java.util.Objects;
 
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_MAX_ACTIONS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
@@ -96,7 +96,7 @@ public class MongoConfiguration implements Serializable {
     }
 
     // -----------------------------------Lookup Config----------------------------------------
-    public int getLookupMaxRetryTimes() {
+    public int getLookupMaxRetries() {
         return config.get(LookupOptions.MAX_RETRIES);
     }
 
@@ -105,15 +105,15 @@ public class MongoConfiguration implements Serializable {
     }
 
     // -----------------------------------Write Config------------------------------------------
-    public int getBulkFlushMaxActions() {
-        return config.get(BULK_FLUSH_MAX_ACTIONS);
+    public int getBufferFlushMaxRows() {
+        return config.get(BUFFER_FLUSH_MAX_ROWS);
     }
 
-    public long getBulkFlushIntervalMs() {
-        return config.get(BULK_FLUSH_INTERVAL).toMillis();
+    public long getBufferFlushIntervalMs() {
+        return config.get(BUFFER_FLUSH_INTERVAL).toMillis();
     }
 
-    public int getSinkMaxRetryTimes() {
+    public int getSinkMaxRetries() {
         return config.get(SINK_MAX_RETRIES);
     }
 

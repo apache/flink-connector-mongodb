@@ -84,10 +84,10 @@ public class MongoDynamicTableSink implements DynamicTableSink {
                         .setUri(connectionOptions.getUri())
                         .setDatabase(connectionOptions.getDatabase())
                         .setCollection(connectionOptions.getCollection())
-                        .setBulkFlushMaxActions(writeOptions.getBulkFlushMaxActions())
-                        .setBulkFlushIntervalMs(writeOptions.getBulkFlushIntervalMs())
+                        .setBatchSize(writeOptions.getBatchSize())
+                        .setBatchIntervalMs(writeOptions.getBatchIntervalMs())
                         .setDeliveryGuarantee(writeOptions.getDeliveryGuarantee())
-                        .setMaxRetryTimes(writeOptions.getMaxRetryTimes())
+                        .setMaxRetries(writeOptions.getMaxRetries())
                         .setSerializationSchema(serializationSchema)
                         .build();
 

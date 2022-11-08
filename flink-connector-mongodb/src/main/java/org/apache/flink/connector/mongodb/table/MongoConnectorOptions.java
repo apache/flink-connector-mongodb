@@ -104,15 +104,15 @@ public class MongoConnectorOptions {
                     .withDescription(
                             "Specifies the retry time interval if lookup records from database failed.");
 
-    public static final ConfigOption<Integer> BULK_FLUSH_MAX_ACTIONS =
-            ConfigOptions.key("sink.bulk-flush.max-actions")
+    public static final ConfigOption<Integer> BUFFER_FLUSH_MAX_ROWS =
+            ConfigOptions.key("sink.buffer-flush.max-rows")
                     .intType()
                     .defaultValue(1000)
                     .withDescription(
-                            "Specifies the maximum number of buffered actions per bulk request.");
+                            "Specifies the maximum number of buffered rows per bulk request.");
 
-    public static final ConfigOption<Duration> BULK_FLUSH_INTERVAL =
-            ConfigOptions.key("sink.bulk-flush.interval")
+    public static final ConfigOption<Duration> BUFFER_FLUSH_INTERVAL =
+            ConfigOptions.key("sink.buffer-flush.interval")
                     .durationType()
                     .defaultValue(Duration.ofSeconds(1))
                     .withDescription("Specifies the bulk flush interval.");

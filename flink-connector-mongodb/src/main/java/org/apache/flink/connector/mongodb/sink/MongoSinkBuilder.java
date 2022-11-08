@@ -84,33 +84,33 @@ public class MongoSinkBuilder<IN> {
      * Sets the maximum number of actions to buffer for each bulk request. You can pass -1 to
      * disable it. The default flush size is 1000.
      *
-     * @param numMaxActions the maximum number of actions to buffer per bulk request.
+     * @param batchSize the maximum number of actions to buffer per bulk request.
      * @return this builder
      */
-    public MongoSinkBuilder<IN> setBulkFlushMaxActions(int numMaxActions) {
-        writeOptionsBuilder.setBulkFlushMaxActions(numMaxActions);
+    public MongoSinkBuilder<IN> setBatchSize(int batchSize) {
+        writeOptionsBuilder.setBatchSize(batchSize);
         return this;
     }
 
     /**
      * Sets the bulk flush interval, in milliseconds. You can pass -1 to disable it.
      *
-     * @param intervalMillis the bulk flush interval, in milliseconds.
+     * @param batchIntervalMs the batch flush interval, in milliseconds.
      * @return this builder
      */
-    public MongoSinkBuilder<IN> setBulkFlushIntervalMs(long intervalMillis) {
-        writeOptionsBuilder.setBulkFlushIntervalMs(intervalMillis);
+    public MongoSinkBuilder<IN> setBatchIntervalMs(long batchIntervalMs) {
+        writeOptionsBuilder.setBatchIntervalMs(batchIntervalMs);
         return this;
     }
 
     /**
      * Sets the max retry times if writing records failed.
      *
-     * @param maxRetryTimes the max retry times.
+     * @param maxRetries the max retry times.
      * @return this builder
      */
-    public MongoSinkBuilder<IN> setMaxRetryTimes(int maxRetryTimes) {
-        writeOptionsBuilder.setMaxRetryTimes(maxRetryTimes);
+    public MongoSinkBuilder<IN> setMaxRetries(int maxRetries) {
+        writeOptionsBuilder.setMaxRetries(maxRetries);
         return this;
     }
 

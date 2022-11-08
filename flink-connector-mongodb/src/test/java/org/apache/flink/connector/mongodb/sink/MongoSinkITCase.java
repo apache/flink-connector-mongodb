@@ -138,7 +138,7 @@ public class MongoSinkITCase {
                         .setUri(MONGO_CONTAINER.getConnectionString())
                         .setDatabase(TEST_DATABASE)
                         .setCollection(collection)
-                        .setBulkFlushMaxActions(5)
+                        .setBatchSize(5)
                         .setDeliveryGuarantee(deliveryGuarantee)
                         .setSerializationSchema(new AppendOnlySerializationSchema())
                         .build();

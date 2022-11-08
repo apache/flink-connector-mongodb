@@ -44,8 +44,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BULK_FLUSH_MAX_ACTIONS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
@@ -94,8 +94,8 @@ public class MongoDynamicTableFactory
         optionalOptions.add(SCAN_PARTITION_STRATEGY);
         optionalOptions.add(SCAN_PARTITION_SIZE);
         optionalOptions.add(SCAN_PARTITION_SAMPLES);
-        optionalOptions.add(BULK_FLUSH_MAX_ACTIONS);
-        optionalOptions.add(BULK_FLUSH_INTERVAL);
+        optionalOptions.add(BUFFER_FLUSH_MAX_ROWS);
+        optionalOptions.add(BUFFER_FLUSH_INTERVAL);
         optionalOptions.add(DELIVERY_GUARANTEE);
         optionalOptions.add(SINK_MAX_RETRIES);
         optionalOptions.add(SINK_RETRY_INTERVAL);
@@ -116,8 +116,8 @@ public class MongoDynamicTableFactory
         forwardOptions.add(SCAN_FETCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_BATCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_NO_TIMEOUT);
-        forwardOptions.add(BULK_FLUSH_MAX_ACTIONS);
-        forwardOptions.add(BULK_FLUSH_INTERVAL);
+        forwardOptions.add(BUFFER_FLUSH_MAX_ROWS);
+        forwardOptions.add(BUFFER_FLUSH_INTERVAL);
         forwardOptions.add(SINK_MAX_RETRIES);
         forwardOptions.add(SINK_RETRY_INTERVAL);
         return forwardOptions;
@@ -136,7 +136,7 @@ public class MongoDynamicTableFactory
                 getConnectionOptions(config),
                 getReadOptions(config),
                 getLookupCache(options),
-                config.getLookupMaxRetryTimes(),
+                config.getLookupMaxRetries(),
                 config.getLookupRetryIntervalMs(),
                 context.getPhysicalRowDataType());
     }
@@ -193,10 +193,10 @@ public class MongoDynamicTableFactory
     private MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {
         MongoWriteOptions.MongoWriteOptionsBuilder builder =
                 MongoWriteOptions.builder()
-                        .setBulkFlushMaxActions(configuration.getBulkFlushMaxActions())
-                        .setBulkFlushIntervalMs(configuration.getBulkFlushIntervalMs())
-                        .setMaxRetryTimes(configuration.getSinkMaxRetryTimes())
-                        .setRetryInterval(configuration.getSinkRetryIntervalMs())
+                        .setBatchSize(configuration.getBufferFlushMaxRows())
+                        .setBatchIntervalMs(configuration.getBufferFlushIntervalMs())
+                        .setMaxRetries(configuration.getSinkMaxRetries())
+                        .setRetryIntervalMs(configuration.getSinkRetryIntervalMs())
                         .setDeliveryGuarantee(configuration.getDeliveryGuarantee());
 
         Optional.ofNullable(configuration.getSinkParallelism()).ifPresent(builder::setParallelism);

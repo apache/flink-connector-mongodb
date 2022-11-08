@@ -61,7 +61,7 @@ public class MongoDynamicTableSource
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
     @Nullable private final LookupCache lookupCache;
-    private final int lookupRetryTimes;
+    private final int lookupMaxRetries;
     private final long lookupRetryIntervalMs;
     private DataType physicalRowDataType;
     private int limit = -1;
@@ -70,21 +70,21 @@ public class MongoDynamicTableSource
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
             @Nullable LookupCache lookupCache,
-            int lookupRetryTimes,
+            int lookupMaxRetries,
             long lookupRetryIntervalMs,
             DataType physicalRowDataType) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.lookupCache = lookupCache;
         checkArgument(
-                lookupRetryTimes >= 0,
+                lookupMaxRetries >= 0,
                 String.format(
                         "The '%s' must be larger than or equals to 0.",
                         LookupOptions.MAX_RETRIES.key()));
         checkArgument(
                 lookupRetryIntervalMs > 0,
                 String.format("The '%s' must be larger than 0.", LOOKUP_RETRY_INTERVAL.key()));
-        this.lookupRetryTimes = lookupRetryTimes;
+        this.lookupMaxRetries = lookupMaxRetries;
         this.lookupRetryIntervalMs = lookupRetryIntervalMs;
         this.physicalRowDataType = physicalRowDataType;
     }
@@ -103,7 +103,7 @@ public class MongoDynamicTableSource
         MongoRowDataLookupFunction lookupFunction =
                 new MongoRowDataLookupFunction(
                         connectionOptions,
-                        lookupRetryTimes,
+                        lookupMaxRetries,
                         lookupRetryIntervalMs,
                         DataType.getFieldNames(physicalRowDataType),
                         DataType.getFieldDataTypes(physicalRowDataType),
@@ -155,7 +155,7 @@ public class MongoDynamicTableSource
                 connectionOptions,
                 readOptions,
                 lookupCache,
-                lookupRetryTimes,
+                lookupMaxRetries,
                 lookupRetryIntervalMs,
                 physicalRowDataType);
     }
@@ -192,7 +192,7 @@ public class MongoDynamicTableSource
                 && Objects.equals(physicalRowDataType, that.physicalRowDataType)
                 && Objects.equals(limit, that.limit)
                 && Objects.equals(lookupCache, that.lookupCache)
-                && Objects.equals(lookupRetryTimes, that.lookupRetryTimes)
+                && Objects.equals(lookupMaxRetries, that.lookupMaxRetries)
                 && Objects.equals(lookupRetryIntervalMs, that.lookupRetryIntervalMs);
     }
 
@@ -204,7 +204,7 @@ public class MongoDynamicTableSource
                 physicalRowDataType,
                 limit,
                 lookupCache,
-                lookupRetryTimes,
+                lookupMaxRetries,
                 lookupRetryIntervalMs);
     }
 }

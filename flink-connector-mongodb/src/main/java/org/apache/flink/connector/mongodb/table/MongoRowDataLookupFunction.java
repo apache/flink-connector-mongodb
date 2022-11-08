@@ -59,7 +59,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
     private static final long serialVersionUID = 1L;
 
     private final MongoConnectionOptions connectionOptions;
-    private final int maxRetryTimes;
+    private final int maxRetries;
     private final long retryIntervalMs;
 
     private final List<String> fieldNames;
@@ -72,8 +72,8 @@ public class MongoRowDataLookupFunction extends LookupFunction {
 
     public MongoRowDataLookupFunction(
             MongoConnectionOptions connectionOptions,
-            int lookupMaxRetryTimes,
-            long lookupRetryIntervalMs,
+            int maxRetries,
+            long retryIntervalMs,
             List<String> fieldNames,
             List<DataType> fieldTypes,
             List<String> keyNames,
@@ -82,8 +82,8 @@ public class MongoRowDataLookupFunction extends LookupFunction {
         checkNotNull(fieldTypes, "No fieldTypes supplied.");
         checkNotNull(keyNames, "No keyNames supplied.");
         this.connectionOptions = checkNotNull(connectionOptions);
-        this.maxRetryTimes = lookupMaxRetryTimes;
-        this.retryIntervalMs = lookupRetryIntervalMs;
+        this.maxRetries = maxRetries;
+        this.retryIntervalMs = retryIntervalMs;
         this.fieldNames = fieldNames;
         this.mongoRowConverter = BsonToRowDataConverters.createNullableConverter(rowType);
 
@@ -118,7 +118,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
      */
     @Override
     public Collection<RowData> lookup(RowData keyRow) {
-        for (int retry = 0; retry <= maxRetryTimes; retry++) {
+        for (int retry = 0; retry <= maxRetries; retry++) {
             try {
                 BsonDocument lookupValues = (BsonDocument) lookupKeyRowConverter.convert(keyRow);
 
@@ -142,7 +142,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                 }
             } catch (MongoException e) {
                 LOG.debug("MongoDB lookup error, retry times = {}", retry, e);
-                if (retry >= maxRetryTimes) {
+                if (retry >= maxRetries) {
                     LOG.error("MongoDB lookup error", e);
                     throw new RuntimeException("Execution of MongoDB lookup failed.", e);
                 }
