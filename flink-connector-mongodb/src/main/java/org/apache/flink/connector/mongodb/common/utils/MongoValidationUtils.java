@@ -21,10 +21,11 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.DistinctType;
+import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.LogicalTypeFamily;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 
-import java.util.LinkedHashSet;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,24 +33,22 @@ import java.util.stream.Collectors;
 /** Utility methods for validating MongoDB properties. */
 @Internal
 public class MongoValidationUtils {
-    private static final Set<LogicalTypeRoot> ALLOWED_PRIMARY_KEY_TYPES = new LinkedHashSet<>();
-
-    static {
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.CHAR);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.VARCHAR);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.BOOLEAN);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.DECIMAL);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.TINYINT);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.SMALLINT);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.INTEGER);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.BIGINT);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.FLOAT);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.DOUBLE);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.TIMESTAMP_WITH_LOCAL_TIME_ZONE);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.INTERVAL_YEAR_MONTH);
-        ALLOWED_PRIMARY_KEY_TYPES.add(LogicalTypeRoot.INTERVAL_DAY_TIME);
-    }
+    private static final Set<LogicalTypeRoot> ALLOWED_PRIMARY_KEY_TYPES =
+            EnumSet.of(
+                    LogicalTypeRoot.CHAR,
+                    LogicalTypeRoot.VARCHAR,
+                    LogicalTypeRoot.BOOLEAN,
+                    LogicalTypeRoot.DECIMAL,
+                    LogicalTypeRoot.TINYINT,
+                    LogicalTypeRoot.SMALLINT,
+                    LogicalTypeRoot.INTEGER,
+                    LogicalTypeRoot.BIGINT,
+                    LogicalTypeRoot.FLOAT,
+                    LogicalTypeRoot.DOUBLE,
+                    LogicalTypeRoot.TIMESTAMP_WITHOUT_TIME_ZONE,
+                    LogicalTypeRoot.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
+                    LogicalTypeRoot.INTERVAL_YEAR_MONTH,
+                    LogicalTypeRoot.INTERVAL_DAY_TIME);
 
     /**
      * Checks that the table does not have a primary key defined on illegal types. In MongoDB the
@@ -64,16 +63,7 @@ public class MongoValidationUtils {
         List<LogicalTypeRoot> illegalTypes =
                 fieldDataTypes.stream()
                         .map(DataType::getLogicalType)
-                        .map(
-                                logicalType -> {
-                                    if (logicalType.is(LogicalTypeRoot.DISTINCT_TYPE)) {
-                                        return ((DistinctType) logicalType)
-                                                .getSourceType()
-                                                .getTypeRoot();
-                                    } else {
-                                        return logicalType.getTypeRoot();
-                                    }
-                                })
+                        .map(LogicalType::getTypeRoot)
                         .filter(t -> !ALLOWED_PRIMARY_KEY_TYPES.contains(t))
                         .collect(Collectors.toList());
         if (!illegalTypes.isEmpty()) {
