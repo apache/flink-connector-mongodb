@@ -44,8 +44,7 @@ public interface MongoSerializationSchema<IN> extends Serializable {
      *
      * @param initializationContext Contextual information that can be used during initialization.
      * @param sinkContext Runtime information i.e. partitions, subtaskId.
-     * @param sinkConfiguration All the configure options for the MongoDB sink. You can add custom
-     *     options.
+     * @param sinkConfiguration All the configure options for the MongoDB sink.
      */
     default void open(
             SerializationSchema.InitializationContext initializationContext,
