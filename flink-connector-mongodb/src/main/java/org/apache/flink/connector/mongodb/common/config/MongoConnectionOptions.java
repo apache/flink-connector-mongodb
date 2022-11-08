@@ -82,6 +82,8 @@ public class MongoConnectionOptions implements Serializable {
         private String database;
         private String collection;
 
+        private MongoConnectionOptionsBuilder() {}
+
         /**
          * Sets the connection string of MongoDB.
          *

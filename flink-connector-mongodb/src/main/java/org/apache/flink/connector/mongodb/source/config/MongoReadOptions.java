@@ -131,6 +131,8 @@ public class MongoReadOptions implements Serializable {
         private MemorySize partitionSize = SCAN_PARTITION_SIZE.defaultValue();
         private int samplesPerPartition = SCAN_PARTITION_SAMPLES.defaultValue();
 
+        private MongoReadOptionsBuilder() {}
+
         /**
          * Sets the number of documents should be fetched per round-trip when reading.
          *
