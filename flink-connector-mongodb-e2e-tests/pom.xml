@@ -59,6 +59,39 @@ under the License.
 		</dependency>
 	</dependencies>
 
+	<profiles>
+		<profile>
+			<id>run-end-to-end-tests</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-surefire-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>end-to-end-tests</id>
+								<phase>integration-test</phase>
+								<goals>
+									<goal>test</goal>
+								</goals>
+								<configuration>
+									<includes>
+										<include>**/*.*</include>
+									</includes>
+									<!-- E2E tests must not access flink-dist concurrently. -->
+									<forkCount>1</forkCount>
+									<systemPropertyVariables>
+										<moduleDir>${project.basedir}</moduleDir>
+									</systemPropertyVariables>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -71,9 +104,16 @@ under the License.
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
-				<configuration>
-					<skip>true</skip>
-				</configuration>
+				<executions>
+					<execution>
+						<id>default-test</id>
+						<phase>none</phase>
+					</execution>
+					<execution>
+						<id>integration-tests</id>
+						<phase>none</phase>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
