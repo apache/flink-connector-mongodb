@@ -160,7 +160,13 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
-         * Set this option to true to prevent cursor timeout (10 minutes).
+         * The MongoDB server normally times out idle cursors after an inactivity period (10
+         * minutes) to prevent excess memory use. Set this option to prevent that. If a session is
+         * idle for longer than 30 minutes, the MongoDB server marks that session as expired and may
+         * close it at any time. When the MongoDB server closes the session, it also kills any
+         * in-progress operations and open cursors associated with the session. This includes
+         * cursors configured with {@code noCursorTimeout()} or a {@code maxTimeMS()} greater than
+         * 30 minutes.
          *
          * @param noCursorTimeout Set this option to true to prevent cursor timeout (10 minutes)
          * @return this builder
@@ -193,6 +199,11 @@ public class MongoReadOptions implements Serializable {
          */
         public MongoReadOptionsBuilder setPartitionSize(MemorySize partitionSize) {
             checkNotNull(partitionSize, "The partition size must not be null");
+            // The splitVector command's maxChunkSize minimum value was 1 mb.
+            // If we use parameters below 1mb, the command will fail.
+            // Also, chunks that are too small have no performance benefit for partitioning.
+            // Help for splitVector command:
+            // {splitVector: "db.coll", keyPattern:{x:1}, min:{x:10}, max:{x:20}, maxChunkSize:200}
             checkArgument(
                     partitionSize.getMebiBytes() >= 1,
                     "The partition size must be larger than or equals to 1mb.");
@@ -201,10 +212,14 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
-         * Sets the number of samples to take per partition. The total number of samples taken is:
-         * samples per partition * ( count / number of documents per partition).
+         * Sets the number of samples to take per partition which is only used for the sample
+         * partition strategy {@link PartitionStrategy#SAMPLE}. The sample partitioner samples the
+         * collection, projects and sorts by the partition fields. Then uses every {@code
+         * samplesPerPartition} as the value to use to calculate the partition boundaries. The total
+         * number of samples taken is: samples per partition * ( count of documents / number of
+         * documents per partition).
          *
-         * @param samplesPerPartition the memory size of a partition.
+         * @param samplesPerPartition number of samples per partition.
          * @return this builder
          */
         public MongoReadOptionsBuilder setSamplesPerPartition(int samplesPerPartition) {

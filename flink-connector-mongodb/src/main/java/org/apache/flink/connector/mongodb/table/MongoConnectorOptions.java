@@ -95,7 +95,10 @@ public class MongoConnectorOptions {
                     .intType()
                     .defaultValue(10)
                     .withDescription(
-                            "Specifies the the samples count per partition. It only takes effect when the partition strategy is sample.");
+                            "Specifies the the samples count per partition. It only takes effect when the partition strategy is sample. "
+                                    + "The sample partitioner samples the collection, projects and sorts by the partition fields. "
+                                    + "Then uses every 'scan.partition.samples' as the value to use to calculate the partition boundaries."
+                                    + "The total number of samples taken is calculated as: samples per partition * (count of documents / number of documents per partition.");
 
     public static final ConfigOption<Duration> LOOKUP_RETRY_INTERVAL =
             ConfigOptions.key("lookup.retry.interval")
@@ -121,7 +124,8 @@ public class MongoConnectorOptions {
             ConfigOptions.key("sink.delivery-guarantee")
                     .enumType(DeliveryGuarantee.class)
                     .defaultValue(DeliveryGuarantee.AT_LEAST_ONCE)
-                    .withDescription("Optional delivery guarantee when committing.");
+                    .withDescription(
+                            "Optional delivery guarantee when committing. The exactly-once guarantee is not supported yet.");
 
     public static final ConfigOption<Integer> SINK_MAX_RETRIES =
             ConfigOptions.key("sink.max-retries")

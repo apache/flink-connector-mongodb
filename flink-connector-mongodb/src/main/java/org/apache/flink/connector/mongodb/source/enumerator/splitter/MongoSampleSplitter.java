@@ -54,8 +54,8 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
  *       document size to determine the number of documents per partition so may not be even.
  *       Defaults to: 64mb.
  *   <li>scan.partition.samples: The number of samples to take per partition. Defaults to: 10. The
- *       total number of samples taken is calculated as: {@code samples per partition * (count /
- *       number of documents per partition)}.
+ *       total number of samples taken is calculated as: {@code samples per partition * (count of
+ *       documents / number of documents per partition)}.
  * </ul>
  */
 @Internal
