@@ -30,7 +30,6 @@ import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.table.types.logical.RowType;
-import org.apache.flink.table.types.logical.utils.LogicalTypeUtils;
 
 import com.mongodb.internal.HexUtils;
 import org.bson.BsonBinary;
@@ -47,7 +46,6 @@ import org.bson.types.Decimal128;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -284,8 +282,6 @@ public class BsonToRowDataConverters {
     }
 
     private static BsonToRowDataConverter createArrayConverter(ArrayType arrayType) {
-        final Class<?> elementClass =
-                LogicalTypeUtils.toInternalConversionClass(arrayType.getElementType());
         final BsonToRowDataConverter elementConverter =
                 createNullableConverter(arrayType.getElementType());
 
@@ -303,7 +299,7 @@ public class BsonToRowDataConverters {
                 }
 
                 List<BsonValue> in = bsonValue.asArray();
-                final Object[] elementArray = (Object[]) Array.newInstance(elementClass, in.size());
+                final Object[] elementArray = new Object[in.size()];
                 for (int i = 0; i < in.size(); i++) {
                     elementArray[i] = elementConverter.convert(in.get(i));
                 }

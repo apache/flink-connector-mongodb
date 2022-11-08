@@ -106,8 +106,8 @@ public class MongoSourceEnumStateSerializer
         }
     }
 
-    private static MongoScanSourceSplit deserializeMongoScanSourceSplit(int version, DataInputStream in)
-            throws IOException {
+    private static MongoScanSourceSplit deserializeMongoScanSourceSplit(
+            int version, DataInputStream in) throws IOException {
         return (MongoScanSourceSplit)
                 MongoSourceSplitSerializer.INSTANCE.deserializeMongoSourceSplit(version, in);
     }
