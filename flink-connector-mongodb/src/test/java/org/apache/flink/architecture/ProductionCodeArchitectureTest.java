@@ -27,7 +27,7 @@ import com.tngtech.archunit.junit.ArchTests;
 
 /** Architecture tests for production code. */
 @AnalyzeClasses(
-        packages = "org.apache.flink.connector",
+        packages = "org.apache.flink.connector.mongodb",
         importOptions = {
             ImportOption.DoNotIncludeTests.class,
             ImportOption.DoNotIncludeArchives.class,
