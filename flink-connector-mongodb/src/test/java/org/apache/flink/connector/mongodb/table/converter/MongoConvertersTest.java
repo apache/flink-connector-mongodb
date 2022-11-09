@@ -492,10 +492,10 @@ public class MongoConvertersTest {
                         Integer.MIN_VALUE,
                         Long.MAX_VALUE,
                         Long.MIN_VALUE,
-                        Double.MAX_VALUE,
-                        -Double.MAX_VALUE,
-                        Float.MAX_VALUE,
-                        -Float.MAX_VALUE);
+                        Double.POSITIVE_INFINITY,
+                        Double.NEGATIVE_INFINITY,
+                        Float.POSITIVE_INFINITY,
+                        Float.NEGATIVE_INFINITY);
 
         // Test for compatible decimal sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =

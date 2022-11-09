@@ -473,9 +473,9 @@ public class BsonToRowDataConverters {
             if (decimal128Value.isFinite()) {
                 return decimal128Value.doubleValue();
             } else if (decimal128Value.isNegative()) {
-                return -Double.MAX_VALUE;
+                return Double.NEGATIVE_INFINITY;
             } else {
-                return Double.MAX_VALUE;
+                return Double.POSITIVE_INFINITY;
             }
         }
         if (bsonValue.isBoolean()) {
@@ -506,9 +506,9 @@ public class BsonToRowDataConverters {
             if (decimal128Value.isFinite()) {
                 return decimal128Value.floatValue();
             } else if (decimal128Value.isNegative()) {
-                return -Float.MAX_VALUE;
+                return Float.NEGATIVE_INFINITY;
             } else {
-                return Float.MAX_VALUE;
+                return Float.POSITIVE_INFINITY;
             }
         }
         if (bsonValue.isBoolean()) {
