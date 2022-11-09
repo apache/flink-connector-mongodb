@@ -37,7 +37,7 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
     // This version should be bumped after modifying the MongoSourceSplit.
     public static final int CURRENT_VERSION = 0;
 
-    private static final int SCAN_SPLIT_FLAG = 1;
+    public static final int SCAN_SPLIT_FLAG = 1;
 
     private MongoSourceSplitSerializer() {}
 
@@ -62,7 +62,11 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
         // VERSION 0 deserialization
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 DataInputStream in = new DataInputStream(bais)) {
-            return deserializeMongoSourceSplit(version, in);
+            int splitKind = in.readInt();
+            if (splitKind == SCAN_SPLIT_FLAG) {
+                return deserializeMongoScanSourceSplit(version, in);
+            }
+            throw new IOException("Unknown split kind: " + splitKind);
         }
     }
 
@@ -77,15 +81,6 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
             out.writeUTF(split.getMax().toJson());
             out.writeUTF(split.getHint().toJson());
         }
-    }
-
-    public MongoSourceSplit deserializeMongoSourceSplit(int version, DataInputStream in)
-            throws IOException {
-        int splitKind = in.readInt();
-        if (splitKind == SCAN_SPLIT_FLAG) {
-            return deserializeMongoScanSourceSplit(version, in);
-        }
-        throw new IOException("Unknown split kind: " + splitKind);
     }
 
     public MongoScanSourceSplit deserializeMongoScanSourceSplit(int version, DataInputStream in)

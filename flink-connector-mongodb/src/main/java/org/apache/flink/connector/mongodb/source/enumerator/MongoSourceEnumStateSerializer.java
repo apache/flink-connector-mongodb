@@ -35,6 +35,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.de
 import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.deserializeMap;
 import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.serializeList;
 import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.serializeMap;
+import static org.apache.flink.connector.mongodb.source.split.MongoSourceSplitSerializer.SCAN_SPLIT_FLAG;
 
 /** The {@link SimpleVersionedSerializer Serializer} for the enumerator state of Mongo source. */
 @Internal
@@ -108,7 +109,10 @@ public class MongoSourceEnumStateSerializer
 
     private static MongoScanSourceSplit deserializeMongoScanSourceSplit(
             int version, DataInputStream in) throws IOException {
-        return (MongoScanSourceSplit)
-                MongoSourceSplitSerializer.INSTANCE.deserializeMongoSourceSplit(version, in);
+        int splitKind = in.readInt();
+        if (splitKind == SCAN_SPLIT_FLAG) {
+            return MongoSourceSplitSerializer.INSTANCE.deserializeMongoScanSourceSplit(version, in);
+        }
+        throw new IOException("Split kind mismatch expect 1 but was " + splitKind);
     }
 }
