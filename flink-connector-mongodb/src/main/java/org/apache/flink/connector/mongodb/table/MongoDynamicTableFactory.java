@@ -41,7 +41,6 @@ import org.bson.BsonValue;
 import javax.annotation.Nullable;
 
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
@@ -156,6 +155,7 @@ public class MongoDynamicTableFactory
         return new MongoDynamicTableSink(
                 getConnectionOptions(config),
                 getWriteOptions(config),
+                config.getSinkParallelism(),
                 context.getPhysicalRowDataType(),
                 keyExtractor);
     }
@@ -191,16 +191,12 @@ public class MongoDynamicTableFactory
     }
 
     private MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {
-        MongoWriteOptions.MongoWriteOptionsBuilder builder =
-                MongoWriteOptions.builder()
-                        .setBatchSize(configuration.getBufferFlushMaxRows())
-                        .setBatchIntervalMs(configuration.getBufferFlushIntervalMs())
-                        .setMaxRetries(configuration.getSinkMaxRetries())
-                        .setRetryIntervalMs(configuration.getSinkRetryIntervalMs())
-                        .setDeliveryGuarantee(configuration.getDeliveryGuarantee());
-
-        Optional.ofNullable(configuration.getSinkParallelism()).ifPresent(builder::setParallelism);
-
-        return builder.build();
+        return MongoWriteOptions.builder()
+                .setBatchSize(configuration.getBufferFlushMaxRows())
+                .setBatchIntervalMs(configuration.getBufferFlushIntervalMs())
+                .setMaxRetries(configuration.getSinkMaxRetries())
+                .setRetryIntervalMs(configuration.getSinkRetryIntervalMs())
+                .setDeliveryGuarantee(configuration.getDeliveryGuarantee())
+                .build();
     }
 }

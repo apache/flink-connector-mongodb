@@ -20,8 +20,6 @@ package org.apache.flink.connector.mongodb.sink.config;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 
-import javax.annotation.Nullable;
-
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -46,21 +44,18 @@ public final class MongoWriteOptions implements Serializable {
     private final int maxRetries;
     private final long retryIntervalMs;
     private final DeliveryGuarantee deliveryGuarantee;
-    private final Integer parallelism;
 
     private MongoWriteOptions(
             int batchSize,
             long batchIntervalMs,
             int maxRetries,
             long retryIntervalMs,
-            DeliveryGuarantee deliveryGuarantee,
-            @Nullable Integer parallelism) {
+            DeliveryGuarantee deliveryGuarantee) {
         this.batchSize = batchSize;
         this.batchIntervalMs = batchIntervalMs;
         this.maxRetries = maxRetries;
         this.retryIntervalMs = retryIntervalMs;
         this.deliveryGuarantee = deliveryGuarantee;
-        this.parallelism = parallelism;
     }
 
     public int getBatchSize() {
@@ -83,11 +78,6 @@ public final class MongoWriteOptions implements Serializable {
         return deliveryGuarantee;
     }
 
-    @Nullable
-    public Integer getParallelism() {
-        return parallelism;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -101,19 +91,13 @@ public final class MongoWriteOptions implements Serializable {
                 && batchIntervalMs == that.batchIntervalMs
                 && maxRetries == that.maxRetries
                 && retryIntervalMs == that.retryIntervalMs
-                && deliveryGuarantee == that.deliveryGuarantee
-                && Objects.equals(parallelism, that.parallelism);
+                && deliveryGuarantee == that.deliveryGuarantee;
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(
-                batchSize,
-                batchIntervalMs,
-                maxRetries,
-                retryIntervalMs,
-                deliveryGuarantee,
-                parallelism);
+                batchSize, batchIntervalMs, maxRetries, retryIntervalMs, deliveryGuarantee);
     }
 
     public static MongoWriteOptionsBuilder builder() {
@@ -128,7 +112,6 @@ public final class MongoWriteOptions implements Serializable {
         private int maxRetries = SINK_MAX_RETRIES.defaultValue();
         private long retryIntervalMs = SINK_RETRY_INTERVAL.defaultValue().toMillis();
         private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE;
-        private Integer parallelism;
 
         private MongoWriteOptionsBuilder() {}
 
@@ -205,28 +188,13 @@ public final class MongoWriteOptions implements Serializable {
         }
 
         /**
-         * Sets the parallelism of the Mongo sink operator. By default, the parallelism is
-         * determined by the framework using the same parallelism of the upstream chained operator.
-         */
-        public MongoWriteOptionsBuilder setParallelism(int parallelism) {
-            checkArgument(parallelism > 0, "Mongo sink parallelism must be larger than 0.");
-            this.parallelism = parallelism;
-            return this;
-        }
-
-        /**
          * Build the {@link MongoWriteOptions}.
          *
          * @return a MongoWriteOptions with the settings made for this builder.
          */
         public MongoWriteOptions build() {
             return new MongoWriteOptions(
-                    batchSize,
-                    batchIntervalMs,
-                    maxRetries,
-                    retryIntervalMs,
-                    deliveryGuarantee,
-                    parallelism);
+                    batchSize, batchIntervalMs, maxRetries, retryIntervalMs, deliveryGuarantee);
         }
     }
 }

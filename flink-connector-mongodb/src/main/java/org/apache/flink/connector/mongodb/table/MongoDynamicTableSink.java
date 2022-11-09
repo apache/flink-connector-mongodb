@@ -34,6 +34,8 @@ import org.apache.flink.util.function.SerializableFunction;
 
 import org.bson.BsonValue;
 
+import javax.annotation.Nullable;
+
 import java.util.Objects;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -44,16 +46,19 @@ public class MongoDynamicTableSink implements DynamicTableSink {
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
+    @Nullable private final Integer parallelism;
     private final DataType physicalRowDataType;
     private final SerializableFunction<RowData, BsonValue> keyExtractor;
 
     public MongoDynamicTableSink(
             MongoConnectionOptions connectionOptions,
             MongoWriteOptions writeOptions,
+            @Nullable Integer parallelism,
             DataType physicalRowDataType,
             SerializableFunction<RowData, BsonValue> keyExtractor) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);
+        this.parallelism = parallelism;
         this.physicalRowDataType = checkNotNull(physicalRowDataType);
         this.keyExtractor = checkNotNull(keyExtractor);
     }
@@ -91,13 +96,13 @@ public class MongoDynamicTableSink implements DynamicTableSink {
                         .setSerializationSchema(serializationSchema)
                         .build();
 
-        return SinkV2Provider.of(mongoSink, writeOptions.getParallelism());
+        return SinkV2Provider.of(mongoSink, parallelism);
     }
 
     @Override
     public MongoDynamicTableSink copy() {
         return new MongoDynamicTableSink(
-                connectionOptions, writeOptions, physicalRowDataType, keyExtractor);
+                connectionOptions, writeOptions, parallelism, physicalRowDataType, keyExtractor);
     }
 
     @Override
@@ -116,11 +121,12 @@ public class MongoDynamicTableSink implements DynamicTableSink {
         MongoDynamicTableSink that = (MongoDynamicTableSink) o;
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(writeOptions, that.writeOptions)
+                && Objects.equals(parallelism, that.parallelism)
                 && Objects.equals(physicalRowDataType, that.physicalRowDataType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionOptions, writeOptions, physicalRowDataType);
+        return Objects.hash(connectionOptions, writeOptions, parallelism, physicalRowDataType);
     }
 }

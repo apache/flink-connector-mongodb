@@ -94,8 +94,6 @@ public class MongoWriterITCase {
     private static final MongoDBContainer MONGO_CONTAINER =
             MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
 
-    private static final int DEFAULT_SINK_PARALLELISM = 2;
-
     private static MongoClient mongoClient;
     private static MetricListener metricListener;
 
@@ -242,14 +240,12 @@ public class MongoWriterITCase {
         boolean flushOnCheckpoint = false;
         final int batchSize = 2;
         final int batchIntervalMs = -1;
-        final int sinkParallelism = 1;
 
         MongoWriteOptions expectOptions =
                 MongoWriteOptions.builder()
                         .setBatchSize(batchSize)
                         .setBatchIntervalMs(batchIntervalMs)
                         .setMaxRetries(0)
-                        .setParallelism(sinkParallelism)
                         .build();
 
         Sink.InitContext initContext = new MockInitContext(metricListener);
@@ -273,7 +269,6 @@ public class MongoWriterITCase {
                         batchSize,
                         batchIntervalMs,
                         flushOnCheckpoint,
-                        sinkParallelism,
                         initContext,
                         testSerializationSchema)) {
             writer.write(buildMessage(1), null);
@@ -294,7 +289,6 @@ public class MongoWriterITCase {
                 batchSize,
                 batchIntervalMs,
                 flushOnCheckpoint,
-                DEFAULT_SINK_PARALLELISM,
                 new MockInitContext(metricListener),
                 new UpsertSerializationSchema());
     }
@@ -304,7 +298,6 @@ public class MongoWriterITCase {
             int batchSize,
             long batchIntervalMs,
             boolean flushOnCheckpoint,
-            int parallelism,
             Sink.InitContext initContext,
             MongoSerializationSchema<Document> serializationSchema) {
 
@@ -320,7 +313,6 @@ public class MongoWriterITCase {
                         .setBatchSize(batchSize)
                         .setBatchIntervalMs(batchIntervalMs)
                         .setMaxRetries(0)
-                        .setParallelism(parallelism)
                         .build();
 
         return new MongoWriter<>(
