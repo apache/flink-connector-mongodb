@@ -22,21 +22,25 @@ import org.apache.flink.connector.mongodb.table.MongoKeyExtractor;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.LogicalTypeFamily;
 import org.apache.flink.table.types.logical.LogicalTypeRoot;
 
 import org.bson.BsonType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /** Utility methods for validating MongoDB properties. */
 @Internal
 public class MongoValidationUtils {
-    private static final Set<LogicalTypeRoot> ALLOWED_PRIMARY_KEY_TYPES =
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoValidationUtils.class);
+
+    public static final Set<LogicalTypeRoot> ALLOWED_PRIMARY_KEY_TYPES =
             EnumSet.of(
                     LogicalTypeRoot.CHAR,
                     LogicalTypeRoot.VARCHAR,
@@ -52,6 +56,24 @@ public class MongoValidationUtils {
                     LogicalTypeRoot.TIMESTAMP_WITH_LOCAL_TIME_ZONE,
                     LogicalTypeRoot.INTERVAL_YEAR_MONTH,
                     LogicalTypeRoot.INTERVAL_DAY_TIME);
+
+    private static final Set<LogicalTypeRoot> DENIED_PRIMARY_KEY_TYPES =
+            EnumSet.of(
+                    LogicalTypeRoot.BINARY,
+                    LogicalTypeRoot.VARBINARY,
+                    LogicalTypeRoot.DATE,
+                    LogicalTypeRoot.TIME_WITHOUT_TIME_ZONE,
+                    LogicalTypeRoot.TIMESTAMP_WITH_TIME_ZONE,
+                    LogicalTypeRoot.ARRAY,
+                    LogicalTypeRoot.MULTISET,
+                    LogicalTypeRoot.MAP,
+                    LogicalTypeRoot.ROW,
+                    LogicalTypeRoot.DISTINCT_TYPE,
+                    LogicalTypeRoot.STRUCTURED_TYPE,
+                    LogicalTypeRoot.NULL,
+                    LogicalTypeRoot.RAW,
+                    LogicalTypeRoot.SYMBOL,
+                    LogicalTypeRoot.UNRESOLVED);
 
     /**
      * Checks that the table does not have a primary key defined on illegal types. In MongoDB the
@@ -89,17 +111,24 @@ public class MongoValidationUtils {
      */
     public static void validatePrimaryKey(DataType primaryKeyDataType) {
         List<DataType> fieldDataTypes = DataType.getFieldDataTypes(primaryKeyDataType);
-        List<LogicalTypeRoot> illegalTypes =
-                fieldDataTypes.stream()
-                        .map(DataType::getLogicalType)
-                        .map(LogicalType::getTypeRoot)
-                        .filter(t -> !ALLOWED_PRIMARY_KEY_TYPES.contains(t))
-                        .collect(Collectors.toList());
+        List<DataType> illegalTypes = new ArrayList<>();
+        for (DataType fieldType : fieldDataTypes) {
+            LogicalTypeRoot typeRoot = fieldType.getLogicalType().getTypeRoot();
+            if (!ALLOWED_PRIMARY_KEY_TYPES.contains(typeRoot)) {
+                illegalTypes.add(fieldType);
+                if (!DENIED_PRIMARY_KEY_TYPES.contains(typeRoot)) {
+                    LOG.warn(
+                            "Detected newly added root type {} that should to be explicitly accepted or rejected.",
+                            fieldType);
+                }
+            }
+        }
+
         if (!illegalTypes.isEmpty()) {
             throw new ValidationException(
                     String.format(
-                            "The table has a primary key on columns of illegal types: %s.",
-                            illegalTypes));
+                            "The table has a primary key on columns of illegal types: %s. Allowed types are %s.",
+                            illegalTypes, ALLOWED_PRIMARY_KEY_TYPES));
         }
     }
 
