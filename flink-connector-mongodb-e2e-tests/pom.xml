@@ -38,7 +38,7 @@ under the License.
 			<scope>test</scope>
 		</dependency>
 
-		<!--using mongodb shade jar to execute end-to-end test-->
+		<!-- Use fat jar so we don't need to create a user-jar. -->
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-sql-connector-mongodb</artifactId>
