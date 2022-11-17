@@ -37,7 +37,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * bulk writes to mongodb when the number of actions is greater than batchSize or the flush interval
  * is greater than batchIntervalMs.
  *
- * <p>The following example shows how to create a MongoSink receiving records of {@code Document}
+ * <p>The following example shows how to create a MongoSink sending records of {@code Document}
  * type.
  *
  * <pre>{@code
