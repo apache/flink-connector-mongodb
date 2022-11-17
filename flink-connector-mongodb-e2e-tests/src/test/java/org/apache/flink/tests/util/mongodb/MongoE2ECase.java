@@ -64,7 +64,7 @@ class MongoE2ECase {
 
     private static final String MONGODB_HOSTNAME = "mongodb";
 
-    public static final String MONGO_4_0 = "mongo:4.0.10";
+    private static final String MONGO_4_0 = "mongo:4.0.10";
 
     private static final Network NETWORK = Network.newNetwork();
 
