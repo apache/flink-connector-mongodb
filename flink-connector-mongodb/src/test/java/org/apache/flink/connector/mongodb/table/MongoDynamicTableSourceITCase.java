@@ -84,10 +84,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
 @Testcontainers
@@ -163,7 +160,7 @@ public class MongoDynamicTableSourceITCase {
                         .sorted()
                         .collect(Collectors.toList());
 
-        assertThat(result, equalTo(expected));
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -180,7 +177,7 @@ public class MongoDynamicTableSourceITCase {
         List<String> expected =
                 Stream.of("+I[2, +I[13]]", "+I[2, +I[13]]").sorted().collect(Collectors.toList());
 
-        assertThat(result, equalTo(expected));
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -200,8 +197,8 @@ public class MongoDynamicTableSourceITCase {
         expected.add(
                 "+I[2, 2, false, [3], 4, 5, 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.0, 1.10, {k=12}, +I[13], [14_1, 14_2], [+I[15_1], +I[15_2]]]");
 
-        assertThat(result.size(), is(1));
-        assertThat(expected, hasItem(result.get(0)));
+        assertThat(result).hasSize(1);
+        assertThat(result).containsAnyElementsOf(expected);
     }
 
     @ParameterizedTest
@@ -260,13 +257,13 @@ public class MongoDynamicTableSourceITCase {
             expected.add("+I[1, Alice, 1, 2, false]");
             expected.add("+I[2, Bob, 2, 2, false]");
 
-            assertThat(result.size(), is(3));
-            assertThat(result, equalTo(expected));
+            assertThat(result).hasSize(3);
+            assertThat(result).isEqualTo(expected);
             if (caching == Caching.ENABLE_CACHE) {
                 // Validate cache
                 Map<String, LookupCacheManager.RefCountedCache> managedCaches =
                         LookupCacheManager.getInstance().getManagedCaches();
-                assertThat(managedCaches.size(), is(1));
+                assertThat(managedCaches).hasSize(1);
                 LookupCache cache =
                         managedCaches.get(managedCaches.keySet().iterator().next()).getCache();
                 validateCachedValues(cache);

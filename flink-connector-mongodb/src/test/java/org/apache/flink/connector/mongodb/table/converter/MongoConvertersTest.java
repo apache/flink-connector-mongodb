@@ -58,8 +58,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link BsonToRowDataConverters} and {@link RowDataToBsonConverters}. */
 @ExtendWith(TestLoggerExtension.class)
@@ -169,7 +168,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(docWithFullTypes);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -202,7 +201,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -227,7 +226,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -252,7 +251,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -277,7 +276,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -321,7 +320,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -365,7 +364,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -394,7 +393,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -423,7 +422,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -456,7 +455,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -501,7 +500,7 @@ public class MongoConvertersTest {
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 
     @Test
@@ -571,6 +570,6 @@ public class MongoConvertersTest {
         RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =
                 RowDataToBsonConverters.createNullableConverter(rowType.getLogicalType());
         BsonDocument actual = (BsonDocument) rowDataToBsonConverter.convert(rowData);
-        assertThat(actual, equalTo(expect));
+        assertThat(actual).isEqualTo(expect);
     }
 }

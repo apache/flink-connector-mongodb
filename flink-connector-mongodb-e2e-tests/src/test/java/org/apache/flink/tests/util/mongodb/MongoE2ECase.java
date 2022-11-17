@@ -50,10 +50,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /** End-to-end test for the MongoDB connectors. */
 @Testcontainers
@@ -111,14 +111,14 @@ public class MongoE2ECase extends TestLogger {
         MongoDatabase db = mongoClient.getDatabase("test");
 
         int ordersCount = 5;
-        List<Document> orders = mockOrders(ordersCount);
-        db.getCollection("orders").insertMany(orders);
+        Document[] orders = mockOrders(ordersCount);
+        db.getCollection("orders").insertMany(Arrays.asList(orders));
 
         executeSqlStatements(readSqlFile("mongo_e2e.sql"));
 
         List<Document> ordersBackup = readAllBackupOrders(db, ordersCount);
 
-        assertThat(ordersBackup, equalTo(orders));
+        assertThat(ordersBackup).containsExactlyInAnyOrder(orders);
     }
 
     private List<Document> readAllBackupOrders(MongoDatabase db, int expect) throws Exception {
@@ -134,13 +134,13 @@ public class MongoE2ECase extends TestLogger {
         return backupOrders;
     }
 
-    private List<Document> mockOrders(int ordersCount) {
-        List<Document> orders = new ArrayList<>();
+    private Document[] mockOrders(int ordersCount) {
+        Document[] orders = new Document[ordersCount];
         for (int i = 1; i <= ordersCount; i++) {
-            orders.add(
+            orders[i] =
                     new Document("_id", new ObjectId())
                             .append("code", "ORDER_" + i)
-                            .append("quantity", ordersCount * 10L));
+                            .append("quantity", ordersCount * 10L);
         }
         return orders;
     }

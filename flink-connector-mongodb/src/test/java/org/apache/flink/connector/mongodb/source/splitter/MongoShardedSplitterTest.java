@@ -56,8 +56,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHARD_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SIZE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUID_FIELD;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 
@@ -108,7 +107,7 @@ public class MongoShardedSplitterTest {
 
             Collection<MongoScanSourceSplit> actual =
                     MongoShardedSplitter.INSTANCE.split(splitContext);
-            assertThat(actual, equalTo(expected));
+            assertThat(actual).isEqualTo(expected);
         }
     }
 
