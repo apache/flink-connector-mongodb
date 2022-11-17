@@ -120,7 +120,7 @@ public final class MongoWriteOptions implements Serializable {
          * Sets the maximum number of actions to buffer for each batch request. You can pass -1 to
          * disable batching.
          *
-         * @param batchSize the maximum number of actions to buffer per bulk request.
+         * @param batchSize the maximum number of actions to buffer for each batch request.
          * @return this builder
          */
         public MongoWriteOptionsBuilder setBatchSize(int batchSize) {
