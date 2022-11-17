@@ -54,14 +54,14 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUI
 @Internal
 public class MongoUtils {
 
-    public static final String COLL_STATS_COMMAND = "collStats";
-    public static final String SPLIT_VECTOR_COMMAND = "splitVector";
-    public static final String KEY_PATTERN_OPTION = "keyPattern";
-    public static final String MAX_CHUNK_SIZE_OPTION = "maxChunkSize";
+    private static final String COLL_STATS_COMMAND = "collStats";
+    private static final String SPLIT_VECTOR_COMMAND = "splitVector";
+    private static final String KEY_PATTERN_OPTION = "keyPattern";
+    private static final String MAX_CHUNK_SIZE_OPTION = "maxChunkSize";
 
-    public static final String CONFIG_DATABASE = "config";
-    public static final String COLLECTIONS_COLLECTION = "collections";
-    public static final String CHUNKS_COLLECTION = "chunks";
+    private static final String CONFIG_DATABASE = "config";
+    private static final String COLLECTIONS_COLLECTION = "collections";
+    private static final String CHUNKS_COLLECTION = "chunks";
 
     private MongoUtils() {}
 
