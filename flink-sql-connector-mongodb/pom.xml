@@ -69,7 +69,7 @@ under the License.
 								<filter>
 									<artifact>org.mongodb:mongodb-driver-core</artifact>
 									<excludes>
-										<exclude>META-INF/native-image</exclude>
+										<exclude>META-INF/native-image/**</exclude>
 									</excludes>
 								</filter>
 							</filters>
