@@ -52,8 +52,10 @@ public class MongoTestUtil {
     }
 
     public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, Integer... ids) {
-        boolean existOne = coll.find(Filters.in("_id", ids)).first() != null;
-        assertThat(existOne).isFalse();
+        List<Integer> idsAreWritten = new ArrayList<>();
+        coll.find(Filters.in("_id", ids)).map(d -> d.getInteger("_id")).into(idsAreWritten);
+
+        assertThat(idsAreWritten).isEmpty();
     }
 
     public static void assertThatIdsAreWritten(MongoCollection<Document> coll, Integer... ids) {
