@@ -34,7 +34,7 @@ import java.util.List;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MAX_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.UNAUTHORIZED_ERROR;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UNAUTHORIZED_ERROR;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isValidShardedCollection;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readChunks;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readCollectionMetadata;

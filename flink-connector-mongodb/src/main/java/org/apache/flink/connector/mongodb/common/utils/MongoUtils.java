@@ -54,8 +54,6 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUI
 @Internal
 public class MongoUtils {
 
-    public static final int UNAUTHORIZED_ERROR = 13;
-
     public static final String COLL_STATS_COMMAND = "collStats";
     public static final String SPLIT_VECTOR_COMMAND = "splitVector";
     public static final String KEY_PATTERN_OPTION = "keyPattern";

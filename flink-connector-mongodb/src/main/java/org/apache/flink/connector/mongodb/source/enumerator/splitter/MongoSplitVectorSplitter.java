@@ -43,7 +43,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ERR
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SPLIT_KEYS_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.UNAUTHORIZED_ERROR;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UNAUTHORIZED_ERROR;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isCommandSucceed;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.splitVector;
 
