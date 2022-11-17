@@ -111,7 +111,7 @@ public final class MongoWriteOptions implements Serializable {
         private long batchIntervalMs = BUFFER_FLUSH_INTERVAL.defaultValue().toMillis();
         private int maxRetries = SINK_MAX_RETRIES.defaultValue();
         private long retryIntervalMs = SINK_RETRY_INTERVAL.defaultValue().toMillis();
-        private DeliveryGuarantee deliveryGuarantee = DeliveryGuarantee.AT_LEAST_ONCE;
+        private DeliveryGuarantee deliveryGuarantee = DELIVERY_GUARANTEE.defaultValue();
 
         private MongoWriteOptionsBuilder() {}
 
