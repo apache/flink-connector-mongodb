@@ -94,12 +94,12 @@ class MongoE2ECase {
     private static MongoClient mongoClient;
 
     @BeforeAll
-    private static void setUp() throws Exception {
+    static void setUp() throws Exception {
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
     }
 
     @AfterAll
-    private static void teardown() {
+    static void teardown() {
         if (mongoClient != null) {
             mongoClient.close();
         }
