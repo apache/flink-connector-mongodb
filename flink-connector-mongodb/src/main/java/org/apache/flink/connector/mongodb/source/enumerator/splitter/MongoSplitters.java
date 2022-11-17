@@ -74,7 +74,7 @@ public class MongoSplitters implements Serializable, Closeable {
                 MongoSplitContext.of(readOptions, mongoClient, namespace, collStats);
 
         if (limitPushedDown) {
-            LOG.info("Limit {} is applied, using single splitter", limitPushedDown);
+            LOG.info("Limit {} is applied, using single split partition strategy.", limitPushedDown);
             return MongoSingleSplitter.INSTANCE.split(splitContext);
         }
 
