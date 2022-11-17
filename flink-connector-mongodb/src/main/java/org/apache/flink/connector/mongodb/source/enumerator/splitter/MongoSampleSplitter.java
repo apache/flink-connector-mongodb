@@ -102,18 +102,23 @@ public class MongoSampleSplitter implements MongoSplitters.MongoSplitter {
                         .into(new ArrayList<>());
 
         List<MongoScanSourceSplit> sourceSplits = new ArrayList<>();
-        BsonDocument min = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
+        BsonDocument partitionStart = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
         int splitNum = 0;
         for (int i = 0; i < samples.size(); i++) {
             if (i % samplesPerPartition == 0 || i == samples.size() - 1) {
-                sourceSplits.add(createSplit(namespace, splitNum++, min, samples.get(i)));
-                min = samples.get(i);
+                sourceSplits.add(
+                        createSplit(namespace, splitNum++, partitionStart, samples.get(i)));
+                partitionStart = samples.get(i);
             }
         }
 
         // Complete right bound: (upper of last, maxKey)
         sourceSplits.add(
-                createSplit(namespace, splitNum, min, new BsonDocument(ID_FIELD, BSON_MAX_KEY)));
+                createSplit(
+                        namespace,
+                        splitNum,
+                        partitionStart,
+                        new BsonDocument(ID_FIELD, BSON_MAX_KEY)));
 
         return sourceSplits;
     }
