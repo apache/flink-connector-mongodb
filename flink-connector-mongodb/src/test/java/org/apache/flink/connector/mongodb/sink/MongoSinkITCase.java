@@ -53,7 +53,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import javax.annotation.Nullable;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -66,7 +65,7 @@ public class MongoSinkITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
+            MongoTestUtil.createMongoDBContainer(LOG);
 
     @RegisterExtension
     static final MiniClusterExtension MINI_CLUSTER_RESOURCE =

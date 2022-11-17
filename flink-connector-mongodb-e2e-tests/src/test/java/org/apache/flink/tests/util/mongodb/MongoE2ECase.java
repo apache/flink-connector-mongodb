@@ -24,7 +24,6 @@ import org.apache.flink.connector.testframe.container.FlinkContainersSettings;
 import org.apache.flink.connector.testframe.container.TestcontainersSettings;
 import org.apache.flink.test.resources.ResourceTestUtils;
 import org.apache.flink.test.util.SQLJobSubmission;
-import org.apache.flink.util.TestLogger;
 import org.apache.flink.util.TestLoggerExtension;
 
 import com.mongodb.client.MongoClient;

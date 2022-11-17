@@ -68,7 +68,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreNotWritten;
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,7 +91,7 @@ public class MongoWriterITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
+            MongoTestUtil.createMongoDBContainer(LOG);
 
     private static MongoClient mongoClient;
     private static MetricListener metricListener;

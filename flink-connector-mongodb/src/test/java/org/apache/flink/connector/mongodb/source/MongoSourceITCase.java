@@ -61,7 +61,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for using Mongo Sink. */
@@ -73,7 +72,7 @@ public class MongoSourceITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
+            MongoTestUtil.createMongoDBContainer(LOG);
 
     @RegisterExtension
     static final MiniClusterExtension MINI_CLUSTER_RESOURCE =

@@ -67,7 +67,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -80,7 +79,7 @@ public class MongoDynamicTableSinkITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
+            MongoTestUtil.createMongoDBContainer(LOG);
 
     @RegisterExtension
     static final MiniClusterExtension MINI_CLUSTER_RESOURCE =

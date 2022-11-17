@@ -83,7 +83,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
@@ -103,7 +102,7 @@ public class MongoDynamicTableSourceITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(MONGO_4_0, LOG);
+            MongoTestUtil.createMongoDBContainer(LOG);
 
     public static final String DATABASE = "test";
     public static final String COLLECTION = "mongo_table_source";

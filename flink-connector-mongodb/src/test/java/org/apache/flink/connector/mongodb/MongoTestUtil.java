@@ -36,20 +36,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Internal
 public class MongoTestUtil {
 
-    public static final String MONGO_4_0 = "mongo:4.0.10";
+    private static final String MONGO_4_0 = "mongo:4.0.10";
 
     private MongoTestUtil() {}
 
     /**
      * Creates a preconfigured {@link MongoDBContainer}.
      *
-     * @param dockerImageVersion describing the MongoDB image
      * @param logger for test containers
      * @return configured MongoDB container
      */
-    public static MongoDBContainer createMongoDBContainer(
-            String dockerImageVersion, Logger logger) {
-        return new MongoDBContainer(DockerImageName.parse(dockerImageVersion))
+    public static MongoDBContainer createMongoDBContainer(Logger logger) {
+        return new MongoDBContainer(DockerImageName.parse(MONGO_4_0))
                 .withLogConsumer(new Slf4jLogConsumer(logger));
     }
 
