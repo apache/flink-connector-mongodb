@@ -58,7 +58,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** End-to-end test for the MongoDB connectors. */
 @Testcontainers
 @ExtendWith({TestLoggerExtension.class})
-public class MongoE2ECase extends TestLogger {
+class MongoE2ECase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoE2ECase.class);
 
