@@ -134,7 +134,7 @@ public class MongoShardedSplitterTest {
                 .append(SHARD_FIELD, new BsonString("shard-" + index));
     }
 
-    private BsonDocument mockCollStats() {
+    private static BsonDocument mockCollStats() {
         return new BsonDocument()
                 .append(SHARD_FIELD, BsonBoolean.TRUE)
                 .append(COUNT_FIELD, new BsonInt64(10000L))
