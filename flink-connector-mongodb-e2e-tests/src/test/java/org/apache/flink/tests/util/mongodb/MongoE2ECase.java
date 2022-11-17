@@ -71,7 +71,7 @@ public class MongoE2ECase extends TestLogger {
     private final Path sqlConnectorMongoDBJar = ResourceTestUtils.getResource(".*mongodb.jar");
 
     @Container
-    public static final MongoDBContainer MONGO_CONTAINER =
+    static final MongoDBContainer MONGO_CONTAINER =
             new MongoDBContainer(MONGO_4_0)
                     .withLogConsumer(new Slf4jLogConsumer(LOG))
                     .withNetwork(NETWORK)
