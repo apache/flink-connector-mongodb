@@ -77,7 +77,7 @@ class MongoE2ECase {
                     .withNetwork(NETWORK)
                     .withNetworkAliases(MONGODB_HOSTNAME);
 
-    public static final TestcontainersSettings TESTCONTAINERS_SETTINGS =
+    private static final TestcontainersSettings TESTCONTAINERS_SETTINGS =
             TestcontainersSettings.builder()
                     .logger(LOG)
                     .network(NETWORK)
