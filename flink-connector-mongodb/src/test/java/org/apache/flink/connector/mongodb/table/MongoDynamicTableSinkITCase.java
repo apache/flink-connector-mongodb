@@ -266,9 +266,9 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithReversedId() throws Exception {
+    public void testSinkWithReservedId() throws Exception {
         String database = "test";
-        String collection = "sink_with_reversed_id";
+        String collection = "sink_with_reserved_id";
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
@@ -348,7 +348,7 @@ public class MongoDynamicTableSinkITCase {
                                 now));
         List<String> primaryKeys = Collections.singletonList("a");
 
-        testSinkWithoutReversedId(database, collection, primaryKeys, testValues);
+        testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -390,7 +390,7 @@ public class MongoDynamicTableSinkITCase {
                                 now));
         List<String> primaryKeys = Arrays.asList("a", "c");
 
-        testSinkWithoutReversedId(database, collection, primaryKeys, testValues);
+        testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -415,7 +415,7 @@ public class MongoDynamicTableSinkITCase {
         assertThat(actual).isEqualTo(expected);
     }
 
-    private void testSinkWithoutReversedId(
+    private void testSinkWithoutReservedId(
             String database, String collection, List<String> primaryKeys, List<Expression> values)
             throws Exception {
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());

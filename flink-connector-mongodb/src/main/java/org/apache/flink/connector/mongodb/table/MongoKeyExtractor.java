@@ -82,13 +82,13 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
         Optional<UniqueConstraint> primaryKey = resolvedSchema.getPrimaryKey();
         int[] primaryKeyIndexes = resolvedSchema.getPrimaryKeyIndexes();
-        Optional<Column> reversedId = resolvedSchema.getColumn(RESERVED_ID);
+        Optional<Column> reservedId = resolvedSchema.getColumn(RESERVED_ID);
 
-        // It behaves as append-only when no primary key is declared and no reversed _id is present.
+        // It behaves as append-only when no primary key is declared and no reserved _id is present.
         // We use anonymous classes instead of lambdas for a reason here. It is
         // necessary because the maven shade plugin cannot relocate classes in SerializedLambdas
         // (MSHADE-260).
-        if (!primaryKey.isPresent() && !reversedId.isPresent()) {
+        if (!primaryKey.isPresent() && !reservedId.isPresent()) {
             return new SerializableFunction<RowData, BsonValue>() {
                 private static final long serialVersionUID = 1L;
 
@@ -99,13 +99,13 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
             };
         }
 
-        if (reversedId.isPresent()) {
-            // Primary key should be declared as (_id) when the mongo reversed _id is present.
+        if (reservedId.isPresent()) {
+            // Primary key should be declared as (_id) when the mongo reserved _id is present.
             if (!primaryKey.isPresent()
                     || isCompoundPrimaryKey(primaryKeyIndexes)
-                    || !primaryKeyContainsReversedId(primaryKey.get())) {
+                    || !primaryKeyContainsReservedId(primaryKey.get())) {
                 throw new IllegalArgumentException(
-                        "The primary key should be declared as (_id) when mongo reversed _id field is present");
+                        "The primary key should be declared as (_id) when mongo reserved _id field is present");
             }
         }
 
@@ -133,7 +133,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
         return primaryKeyIndexes.length > 1;
     }
 
-    private static boolean primaryKeyContainsReversedId(UniqueConstraint primaryKey) {
+    private static boolean primaryKeyContainsReservedId(UniqueConstraint primaryKey) {
         return primaryKey.getColumns().contains(RESERVED_ID);
     }
 }
