@@ -39,6 +39,7 @@ import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -72,7 +73,7 @@ public class MongoShardedSplitterTest {
     public void testShardedSplitter() {
         MongoNamespace namespace = new MongoNamespace("test_db.test_coll");
         BsonDocument mockCollectionMetadata = mockCollectionMetadata();
-        ArrayList<BsonDocument> mockChunksData = mockChunksData();
+        List<BsonDocument> mockChunksData = mockChunksData();
 
         MongoSplitContext splitContext =
                 MongoSplitContext.of(
@@ -116,12 +117,8 @@ public class MongoShardedSplitterTest {
                 .append(KEY_FIELD, ID_HINT);
     }
 
-    private ArrayList<BsonDocument> mockChunksData() {
-        ArrayList<BsonDocument> chunks = new ArrayList<>();
-        chunks.add(mockChunkData(1));
-        chunks.add(mockChunkData(2));
-        chunks.add(mockChunkData(3));
-        return chunks;
+    private List<BsonDocument> mockChunksData() {
+        return Arrays.asList(mockChunkData(1), mockChunkData(2), mockChunkData(3));
     }
 
     private BsonDocument mockChunkData(int index) {

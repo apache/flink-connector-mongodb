@@ -24,9 +24,8 @@ import org.bson.BsonInt32;
 import org.bson.BsonMaxKey;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -43,11 +42,11 @@ public class MongoSourceEnumStateSerializerTest {
         boolean initialized = false;
         List<String> remainingCollections = Arrays.asList("db.remains0", "db.remains1");
         List<String> alreadyProcessedCollections = Arrays.asList("db.processed0", "db.processed1");
-        List<MongoScanSourceSplit> remainingScanSplits = new ArrayList<>();
-        remainingScanSplits.add(createSourceSplit(0));
-        remainingScanSplits.add(createSourceSplit(1));
-        Map<String, MongoScanSourceSplit> assignedScanSplits = new HashMap<>();
-        assignedScanSplits.put("split2", createSourceSplit(2));
+        List<MongoScanSourceSplit> remainingScanSplits =
+                Arrays.asList(createSourceSplit(0), createSourceSplit(1));
+
+        Map<String, MongoScanSourceSplit> assignedScanSplits =
+                Collections.singletonMap("split2", createSourceSplit(2));
 
         MongoSourceEnumState state =
                 new MongoSourceEnumState(

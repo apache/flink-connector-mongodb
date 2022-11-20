@@ -68,7 +68,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -119,9 +118,7 @@ public class MongoDynamicTableSourceITCase {
                         .getCollection(COLLECTION)
                         .withDocumentClass(BsonDocument.class);
 
-        List<BsonDocument> testRecords = new ArrayList<>();
-        testRecords.add(createTestData(1));
-        testRecords.add(createTestData(2));
+        List<BsonDocument> testRecords = Arrays.asList(createTestData(1), createTestData(2));
         coll.insertMany(testRecords);
     }
 
@@ -248,10 +245,11 @@ public class MongoDynamicTableSourceITCase {
                             .map(Row::toString)
                             .sorted()
                             .collect(Collectors.toList());
-            List<String> expected = new ArrayList<>();
-            expected.add("+I[1, Alice, 1, 2, false]");
-            expected.add("+I[1, Alice, 1, 2, false]");
-            expected.add("+I[2, Bob, 2, 2, false]");
+            List<String> expected =
+                    Arrays.asList(
+                            "+I[1, Alice, 1, 2, false]",
+                            "+I[1, Alice, 1, 2, false]",
+                            "+I[2, Bob, 2, 2, false]");
 
             assertThat(result).hasSize(3);
             assertThat(result).isEqualTo(expected);
