@@ -56,7 +56,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.splitVe
  * <p>Requires splitVector privilege.
  */
 @Internal
-public class MongoSplitVectorSplitter implements MongoSplitters.MongoSplitter {
+public class MongoSplitVectorSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSplitVectorSplitter.class);
 
@@ -64,7 +64,6 @@ public class MongoSplitVectorSplitter implements MongoSplitters.MongoSplitter {
 
     private MongoSplitVectorSplitter() {}
 
-    @Override
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoClient mongoClient = splitContext.getMongoClient();
         MongoNamespace namespace = splitContext.getMongoNamespace();

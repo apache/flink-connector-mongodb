@@ -32,13 +32,12 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
 
 /** Mongo Splitter that splits MongoDB collection as a single split. */
 @Internal
-public class MongoSingleSplitter implements MongoSplitters.MongoSplitter {
+public class MongoSingleSplitter {
 
     public static final MongoSingleSplitter INSTANCE = new MongoSingleSplitter();
 
     private MongoSingleSplitter() {}
 
-    @Override
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoScanSourceSplit singleSplit =
                 new MongoScanSourceSplit(

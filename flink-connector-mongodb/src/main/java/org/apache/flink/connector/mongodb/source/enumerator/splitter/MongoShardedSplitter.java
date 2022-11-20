@@ -53,7 +53,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readCol
  * </ul>
  */
 @Internal
-public class MongoShardedSplitter implements MongoSplitters.MongoSplitter {
+public class MongoShardedSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoShardedSplitter.class);
 
@@ -61,7 +61,6 @@ public class MongoShardedSplitter implements MongoSplitters.MongoSplitter {
 
     private MongoShardedSplitter() {}
 
-    @Override
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoNamespace namespace = splitContext.getMongoNamespace();
         MongoClient mongoClient = splitContext.getMongoClient();

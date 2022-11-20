@@ -103,9 +103,4 @@ public class MongoSplitters implements Serializable, Closeable {
             mongoClient.close();
         }
     }
-
-    /** Mongo Splitter to split a collection into multiple splits. */
-    public interface MongoSplitter {
-        Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext);
-    }
 }

@@ -34,8 +34,8 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHA
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SIZE_FIELD;
 
 /**
- * The split context used by {@link MongoSplitters.MongoSplitter} to split collection into a set of
- * chunks for MongoDB data source.
+ * The split context used by {@link MongoSplitters} to split collection into a set of chunks for
+ * MongoDB data source.
  */
 @Internal
 public class MongoSplitContext {

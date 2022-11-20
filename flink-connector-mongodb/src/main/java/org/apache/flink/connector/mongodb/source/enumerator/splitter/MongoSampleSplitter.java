@@ -59,7 +59,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
  * </ul>
  */
 @Internal
-public class MongoSampleSplitter implements MongoSplitters.MongoSplitter {
+public class MongoSampleSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSampleSplitter.class);
 
@@ -67,7 +67,6 @@ public class MongoSampleSplitter implements MongoSplitters.MongoSplitter {
 
     private MongoSampleSplitter() {}
 
-    @Override
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoReadOptions readOptions = splitContext.getReadOptions();
         MongoNamespace namespace = splitContext.getMongoNamespace();
