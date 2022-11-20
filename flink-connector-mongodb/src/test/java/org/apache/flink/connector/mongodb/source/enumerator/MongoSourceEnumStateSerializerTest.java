@@ -18,13 +18,11 @@
 package org.apache.flink.connector.mongodb.source.enumerator;
 
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
-import org.apache.flink.util.TestLoggerExtension;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonMaxKey;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +36,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /** Unit tests for {@link MongoSourceEnumStateSerializer}. */
-@ExtendWith(TestLoggerExtension.class)
 public class MongoSourceEnumStateSerializerTest {
 
     @Test

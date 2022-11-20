@@ -22,7 +22,6 @@ import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.MongoShardedSplitter;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.MongoSplitContext;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
-import org.apache.flink.util.TestLoggerExtension;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
@@ -35,7 +34,6 @@ import org.bson.BsonObjectId;
 import org.bson.BsonString;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.MockitoAnnotations;
@@ -61,7 +59,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 
 /** Unit tests for {@link MongoShardedSplitter}. */
-@ExtendWith(TestLoggerExtension.class)
 public class MongoShardedSplitterTest {
 
     @Mock private MongoClient mongoClient;

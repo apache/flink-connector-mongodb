@@ -38,7 +38,6 @@ import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.CloseableIterator;
 import org.apache.flink.util.CollectionUtil;
-import org.apache.flink.util.TestLoggerExtension;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -59,7 +58,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -87,7 +85,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
 @Testcontainers
-@ExtendWith(TestLoggerExtension.class)
 public class MongoDynamicTableSourceITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSinkITCase.class);

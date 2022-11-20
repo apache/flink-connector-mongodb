@@ -25,7 +25,6 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
-import org.apache.flink.util.TestLoggerExtension;
 
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
@@ -47,7 +46,6 @@ import org.bson.BsonTimestamp;
 import org.bson.types.Decimal128;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -61,7 +59,6 @@ import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link BsonToRowDataConverters} and {@link RowDataToBsonConverters}. */
-@ExtendWith(TestLoggerExtension.class)
 public class MongoConvertersTest {
 
     @Test

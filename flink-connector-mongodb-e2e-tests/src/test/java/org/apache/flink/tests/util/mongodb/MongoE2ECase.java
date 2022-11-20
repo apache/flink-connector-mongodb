@@ -24,7 +24,6 @@ import org.apache.flink.connector.testframe.container.FlinkContainersSettings;
 import org.apache.flink.connector.testframe.container.TestcontainersSettings;
 import org.apache.flink.test.resources.ResourceTestUtils;
 import org.apache.flink.test.util.SQLJobSubmission;
-import org.apache.flink.util.TestLoggerExtension;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -34,7 +33,6 @@ import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +54,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** End-to-end test for the MongoDB connectors. */
 @Testcontainers
-@ExtendWith({TestLoggerExtension.class})
 class MongoE2ECase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoE2ECase.class);

@@ -17,10 +17,7 @@
 
 package org.apache.flink.connector.mongodb.common.utils;
 
-import org.apache.flink.util.TestLoggerExtension;
-
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -36,7 +33,6 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link MongoSerdeUtils}. */
-@ExtendWith(TestLoggerExtension.class)
 public class MongoSerdeUtilsTest {
 
     @Test
