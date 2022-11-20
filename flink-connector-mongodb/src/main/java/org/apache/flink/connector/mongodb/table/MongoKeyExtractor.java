@@ -36,13 +36,17 @@ import org.bson.types.ObjectId;
 
 import java.util.Optional;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** An extractor for a MongoDB key from a {@link RowData}. */
 @Internal
 public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValue> {
 
-    public static final String RESERVED_ID = "_id";
+    public static final String RESERVED_ID = ID_FIELD;
+
+    private static final AppendOnlyKeyExtractor APPEND_ONLY_KEY_EXTRACTOR =
+            new AppendOnlyKeyExtractor();
 
     private final LogicalType primaryKeyType;
 
@@ -84,19 +88,9 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
         int[] primaryKeyIndexes = resolvedSchema.getPrimaryKeyIndexes();
         Optional<Column> reservedId = resolvedSchema.getColumn(RESERVED_ID);
 
-        // It behaves as append-only when no primary key is declared and no reserved _id is present.
-        // We use anonymous classes instead of lambdas for a reason here. It is
-        // necessary because the maven shade plugin cannot relocate classes in SerializedLambdas
-        // (MSHADE-260).
+        // Primary key is not declared and reserved _id is not present.
         if (!primaryKey.isPresent() && !reservedId.isPresent()) {
-            return new SerializableFunction<RowData, BsonValue>() {
-                private static final long serialVersionUID = 1L;
-
-                @Override
-                public BsonValue apply(RowData rowData) {
-                    return null;
-                }
-            };
+            return APPEND_ONLY_KEY_EXTRACTOR;
         }
 
         if (reservedId.isPresent()) {
@@ -135,5 +129,20 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
     private static boolean primaryKeyContainsReservedId(UniqueConstraint primaryKey) {
         return primaryKey.getColumns().contains(RESERVED_ID);
+    }
+
+    /**
+     * It behaves as append-only when no primary key is declared and reserved _id is not present. We
+     * use static class instead of lambda for a reason here. It is necessary because the maven shade
+     * plugin cannot relocate classes in SerializedLambdas (MSHADE-260).
+     */
+    private static class AppendOnlyKeyExtractor
+            implements SerializableFunction<RowData, BsonValue> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public BsonValue apply(RowData rowData) {
+            return null;
+        }
     }
 }
