@@ -54,7 +54,6 @@ public interface MongoDeserializationSchema<T> extends Serializable, ResultTypeQ
      * @param document The BSON document to deserialize.
      * @param out The collector to put the resulting messages.
      */
-    @PublicEvolving
     default void deserialize(BsonDocument document, Collector<T> out) throws IOException {
         T deserialize = deserialize(document);
         if (deserialize != null) {
