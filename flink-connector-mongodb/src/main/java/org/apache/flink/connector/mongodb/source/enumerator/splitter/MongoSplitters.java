@@ -70,13 +70,13 @@ public class MongoSplitters implements Closeable {
         MongoSplitContext splitContext =
                 MongoSplitContext.of(readOptions, mongoClient, namespace, collStats);
 
+        PartitionStrategy strategy = readOptions.getPartitionStrategy();
         if (limitPushedDown) {
             LOG.info(
                     "Limit {} is applied, using single split partition strategy.", limitPushedDown);
-            return MongoSingleSplitter.INSTANCE.split(splitContext);
+            strategy = PartitionStrategy.SINGLE;
         }
 
-        PartitionStrategy strategy = readOptions.getPartitionStrategy();
         switch (strategy) {
             case SINGLE:
                 return MongoSingleSplitter.INSTANCE.split(splitContext);
