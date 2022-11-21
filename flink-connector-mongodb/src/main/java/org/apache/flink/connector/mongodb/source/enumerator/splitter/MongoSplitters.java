@@ -34,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Collection;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ERROR_MESSAGE_FIELD;
@@ -42,9 +41,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isComma
 
 /** To split collections of MongoDB to {@link MongoSourceSplit}s. */
 @Internal
-public class MongoSplitters implements Serializable, Closeable {
-
-    private static final long serialVersionUID = 1L;
+public class MongoSplitters implements Closeable {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSplitters.class);
 

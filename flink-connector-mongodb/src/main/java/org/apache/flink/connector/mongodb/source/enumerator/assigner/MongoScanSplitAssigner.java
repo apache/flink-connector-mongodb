@@ -45,13 +45,15 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
-    private final MongoSplitters mongoSplitters;
+    private final boolean limitPushedDown;
 
     private final LinkedList<String> remainingCollections;
     private final List<String> alreadyProcessedCollections;
     private final List<MongoScanSourceSplit> remainingScanSplits;
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
     private boolean initialized;
+
+    private transient MongoSplitters mongoSplitters;
 
     public MongoScanSplitAssigner(
             MongoConnectionOptions connectionOptions,
@@ -60,7 +62,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
             MongoSourceEnumState sourceEnumState) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
-        this.mongoSplitters = new MongoSplitters(connectionOptions, readOptions, limitPushedDown);
+        this.limitPushedDown = limitPushedDown;
         this.remainingCollections = new LinkedList<>(sourceEnumState.getRemainingCollections());
         this.alreadyProcessedCollections = sourceEnumState.getAlreadyProcessedCollections();
         this.remainingScanSplits = sourceEnumState.getRemainingScanSplits();
@@ -77,6 +79,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                             "%s.%s",
                             connectionOptions.getDatabase(), connectionOptions.getCollection());
             remainingCollections.add(collectionId);
+            mongoSplitters = new MongoSplitters(connectionOptions, readOptions, limitPushedDown);
             initialized = true;
         }
     }
@@ -135,7 +138,9 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
 
     @Override
     public void close() throws IOException {
-        mongoSplitters.close();
-        LOG.info("Mongo scan split assigner is closed.");
+        if (mongoSplitters != null) {
+            mongoSplitters.close();
+            LOG.info("Mongo scan split assigner is closed.");
+        }
     }
 }
