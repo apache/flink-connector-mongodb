@@ -31,11 +31,12 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MAX_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isValidShardedCollection;
+import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isShardedCollectionDropped;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readChunks;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readCollectionMetadata;
 
@@ -66,27 +67,36 @@ public class MongoShardedSplitter {
         MongoClient mongoClient = splitContext.getMongoClient();
 
         List<BsonDocument> chunks;
-        BsonDocument collectionMetadata;
+        Optional<BsonDocument> collectionMetadata;
         try {
             collectionMetadata = readCollectionMetadata(mongoClient, namespace);
-            if (!isValidShardedCollection(collectionMetadata)) {
-                LOG.warn(
-                        "Collection {} does not appear to be sharded, fallback to SampleSplitter.",
+            if (!collectionMetadata.isPresent()) {
+                LOG.error(
+                        "Do sharded split failed, collection {} does not appear to be sharded.",
                         namespace);
-                return MongoSampleSplitter.INSTANCE.split(splitContext);
+                throw new FlinkRuntimeException(
+                        String.format(
+                                "Do sharded split failed, %s is not a sharded collection.",
+                                namespace));
             }
-            chunks = readChunks(mongoClient, collectionMetadata);
+
+            if (isShardedCollectionDropped(collectionMetadata.get())) {
+                LOG.error("Do sharded split failed, collection {} was dropped.", namespace);
+                throw new FlinkRuntimeException(
+                        String.format("Do sharded split failed, %s was dropped.", namespace));
+            }
+
+            chunks = readChunks(mongoClient, collectionMetadata.get());
+            if (chunks.isEmpty()) {
+                LOG.error("Do sharded split failed, chunks of {} is empty.", namespace);
+                throw new FlinkRuntimeException(
+                        String.format(
+                                "Do sharded split failed, chunks of %s is empty.", namespace));
+            }
         } catch (MongoException e) {
             LOG.error(
                     "Read chunks from {} failed with error message: {}", namespace, e.getMessage());
             throw new FlinkRuntimeException(e);
-        }
-
-        if (chunks.isEmpty()) {
-            LOG.warn(
-                    "Collection {} does not appear to be sharded, fallback to SampleSplitter.",
-                    namespace);
-            return MongoSampleSplitter.INSTANCE.split(splitContext);
         }
 
         List<MongoScanSourceSplit> sourceSplits = new ArrayList<>(chunks.size());
@@ -99,7 +109,7 @@ public class MongoShardedSplitter {
                             namespace.getCollectionName(),
                             chunk.getDocument(MIN_FIELD),
                             chunk.getDocument(MAX_FIELD),
-                            collectionMetadata.getDocument(KEY_FIELD)));
+                            collectionMetadata.get().getDocument(KEY_FIELD)));
         }
 
         return sourceSplits;

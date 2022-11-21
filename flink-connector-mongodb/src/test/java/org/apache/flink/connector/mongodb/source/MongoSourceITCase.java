@@ -60,6 +60,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.EnumSource.Mode.EXCLUDE;
 
 /** IT cases for using Mongo Sink. */
 @Testcontainers
@@ -113,7 +114,10 @@ public class MongoSourceITCase {
     }
 
     @ParameterizedTest
-    @EnumSource(PartitionStrategy.class)
+    @EnumSource(
+            value = PartitionStrategy.class,
+            names = {"SHARDED"},
+            mode = EXCLUDE)
     public void testPartitionStrategy(PartitionStrategy partitionStrategy) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(2);

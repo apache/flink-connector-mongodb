@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.AVG_OBJ_SIZE_FIELD;
@@ -97,11 +98,11 @@ public class MongoShardedSplitterTest {
 
         try (MockedStatic<MongoUtils> util = mockStatic(MongoUtils.class)) {
             util.when(() -> MongoUtils.readCollectionMetadata(any(), any()))
-                    .thenReturn(mockCollectionMetadata);
+                    .thenReturn(Optional.of(mockCollectionMetadata));
 
             util.when(() -> MongoUtils.readChunks(any(), any())).thenReturn(mockChunksData);
 
-            util.when(() -> MongoUtils.isValidShardedCollection(any())).thenReturn(true);
+            util.when(() -> MongoUtils.isShardedCollectionDropped(any())).thenReturn(false);
 
             Collection<MongoScanSourceSplit> actual =
                     MongoShardedSplitter.INSTANCE.split(splitContext);

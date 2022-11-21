@@ -98,24 +98,23 @@ public class MongoUtils {
                 .runCommand(splitVectorCommand, BsonDocument.class);
     }
 
-    @Nullable
-    public static BsonDocument readCollectionMetadata(
+    public static Optional<BsonDocument> readCollectionMetadata(
             MongoClient mongoClient, MongoNamespace namespace) {
-        MongoCollection<BsonDocument> collection =
+        MongoCollection<BsonDocument> collections =
                 mongoClient
                         .getDatabase(CONFIG_DATABASE)
                         .getCollection(COLLECTIONS_COLLECTION)
                         .withDocumentClass(BsonDocument.class);
 
-        return collection
-                .find(eq(ID_FIELD, namespace.getFullName()))
-                .projection(include(ID_FIELD, UUID_FIELD, DROPPED_FIELD, KEY_FIELD))
-                .first();
+        return Optional.ofNullable(
+                collections
+                        .find(eq(ID_FIELD, namespace.getFullName()))
+                        .projection(include(ID_FIELD, UUID_FIELD, DROPPED_FIELD, KEY_FIELD))
+                        .first());
     }
 
-    public static boolean isValidShardedCollection(BsonDocument collectionMetadata) {
-        return collectionMetadata != null
-                && !collectionMetadata.getBoolean(DROPPED_FIELD, BsonBoolean.FALSE).getValue();
+    public static boolean isShardedCollectionDropped(BsonDocument collectionMetadata) {
+        return collectionMetadata.getBoolean(DROPPED_FIELD, BsonBoolean.FALSE).getValue();
     }
 
     public static List<BsonDocument> readChunks(
