@@ -46,7 +46,6 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MAX_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.NAMESPACE_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.OK_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHARD_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUID_FIELD;
 
@@ -139,12 +138,6 @@ public class MongoUtils {
                 .projection(include(MIN_FIELD, MAX_FIELD, SHARD_FIELD))
                 .sort(ascending(MIN_FIELD))
                 .into(new ArrayList<>());
-    }
-
-    public static boolean isCommandSucceed(BsonDocument commandResult) {
-        return commandResult != null
-                && commandResult.getDouble(OK_FIELD) != null
-                && commandResult.getDouble(OK_FIELD).doubleValue() > 0.0d;
     }
 
     public static Bson project(List<String> projectedFields) {

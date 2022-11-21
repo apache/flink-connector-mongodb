@@ -24,7 +24,9 @@ import org.apache.flink.connector.mongodb.common.utils.MongoUtils;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
+import org.apache.flink.util.FlinkRuntimeException;
 
+import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -35,9 +37,6 @@ import org.slf4j.LoggerFactory;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
-
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ERROR_MESSAGE_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isCommandSucceed;
 
 /** To split collections of MongoDB to {@link MongoSourceSplit}s. */
 @Internal
@@ -59,12 +58,12 @@ public class MongoSplitters implements Closeable {
     }
 
     public Collection<MongoScanSourceSplit> split(MongoNamespace namespace) {
-        BsonDocument collStats = MongoUtils.collStats(mongoClient, namespace);
-        if (!isCommandSucceed(collStats)) {
-            LOG.error(
-                    "Execute command collStats failed: {}",
-                    collStats.getString(ERROR_MESSAGE_FIELD));
-            throw new IllegalStateException(String.format("Collection not found %s", namespace));
+        BsonDocument collStats;
+        try {
+            collStats = MongoUtils.collStats(mongoClient, namespace);
+        } catch (MongoException e) {
+            LOG.error("Execute collStats command failed, with error message: {}", e.getMessage());
+            throw new FlinkRuntimeException(e);
         }
 
         MongoSplitContext splitContext =

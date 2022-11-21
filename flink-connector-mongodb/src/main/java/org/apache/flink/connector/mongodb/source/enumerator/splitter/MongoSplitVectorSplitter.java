@@ -21,8 +21,9 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
+import org.apache.flink.util.FlinkRuntimeException;
 
-import com.mongodb.MongoCommandException;
+import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
 import org.apache.commons.collections.CollectionUtils;
@@ -39,12 +40,9 @@ import java.util.List;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ERROR_MESSAGE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SPLIT_KEYS_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UNAUTHORIZED_ERROR;
-import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isCommandSucceed;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.splitVector;
 
 /**
@@ -78,24 +76,9 @@ public class MongoSplitVectorSplitter {
         BsonDocument splitResult;
         try {
             splitResult = splitVector(mongoClient, namespace, keyPattern, maxChunkSizeMB);
-        } catch (MongoCommandException e) {
-            if (e.getErrorCode() == UNAUTHORIZED_ERROR) {
-                LOG.warn(
-                        "Unauthorized to execute splitVector command: {}, fallback to SampleSplitter",
-                        e.getErrorMessage());
-            } else {
-                LOG.warn(
-                        "Execute splitVector command failed: {}, fallback to SampleSplitter",
-                        e.getErrorMessage());
-            }
-            return MongoSampleSplitter.INSTANCE.split(splitContext);
-        }
-
-        if (!isCommandSucceed(splitResult)) {
-            LOG.warn(
-                    "Could not calculate standalone splits: {}, fallback to SampleSplitter",
-                    splitResult.getString(ERROR_MESSAGE_FIELD));
-            return MongoSampleSplitter.INSTANCE.split(splitContext);
+        } catch (MongoException e) {
+            LOG.error("Execute splitVector command failed : {}", e.getMessage());
+            throw new FlinkRuntimeException(e);
         }
 
         BsonArray splitKeys = splitResult.getArray(SPLIT_KEYS_FIELD);

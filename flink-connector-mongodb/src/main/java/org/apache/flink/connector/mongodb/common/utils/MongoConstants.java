@@ -55,12 +55,6 @@ public class MongoConstants {
 
     public static final String DROPPED_FIELD = "dropped";
 
-    public static final String ERROR_MESSAGE_FIELD = "errmsg";
-
-    public static final String OK_FIELD = "ok";
-
-    public static final int UNAUTHORIZED_ERROR = 13;
-
     public static final BsonValue BSON_MIN_KEY = new BsonMinKey();
 
     public static final BsonValue BSON_MAX_KEY = new BsonMaxKey();

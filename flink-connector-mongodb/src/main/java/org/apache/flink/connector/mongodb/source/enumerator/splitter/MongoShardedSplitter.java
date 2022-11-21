@@ -19,9 +19,10 @@ package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
+import org.apache.flink.util.FlinkRuntimeException;
 
+import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
-import com.mongodb.MongoQueryException;
 import com.mongodb.client.MongoClient;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
@@ -34,7 +35,6 @@ import java.util.List;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MAX_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.MIN_FIELD;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UNAUTHORIZED_ERROR;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.isValidShardedCollection;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readChunks;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.readCollectionMetadata;
@@ -76,17 +76,10 @@ public class MongoShardedSplitter {
                 return MongoSampleSplitter.INSTANCE.split(splitContext);
             }
             chunks = readChunks(mongoClient, collectionMetadata);
-        } catch (MongoQueryException e) {
-            if (e.getErrorCode() == UNAUTHORIZED_ERROR) {
-                LOG.warn(
-                        "Unauthorized to read config.collections or config.chunks: {}, fallback to SampleSplitter.",
-                        e.getErrorMessage());
-            } else {
-                LOG.warn(
-                        "Read config.chunks collection failed: {}, fallback to SampleSplitter",
-                        e.getErrorMessage());
-            }
-            return MongoSampleSplitter.INSTANCE.split(splitContext);
+        } catch (MongoException e) {
+            LOG.error(
+                    "Read chunks from {} failed with error message: {}", namespace, e.getMessage());
+            throw new FlinkRuntimeException(e);
         }
 
         if (chunks.isEmpty()) {
