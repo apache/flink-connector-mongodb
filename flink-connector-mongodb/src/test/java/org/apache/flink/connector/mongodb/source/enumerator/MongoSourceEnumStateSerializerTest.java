@@ -17,11 +17,11 @@
 
 package org.apache.flink.connector.mongodb.source.enumerator;
 
+import org.apache.flink.connector.mongodb.common.utils.MongoConstants;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
-import org.bson.BsonMaxKey;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
@@ -69,7 +69,7 @@ public class MongoSourceEnumStateSerializerTest {
         assertNotSame(state, state1);
     }
 
-    private MongoScanSourceSplit createSourceSplit(int index) {
+    private static MongoScanSourceSplit createSourceSplit(int index) {
         return new MongoScanSourceSplit(
                 "split" + index,
                 "db",

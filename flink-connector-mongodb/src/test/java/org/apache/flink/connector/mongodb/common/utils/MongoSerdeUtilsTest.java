@@ -59,7 +59,7 @@ class MongoSerdeUtilsTest {
         assertThat(deserialized).isEqualTo(expected);
     }
 
-    private byte[] serializeList(List<String> list) throws IOException {
+    private static byte[] serializeList(List<String> list) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(baos)) {
             MongoSerdeUtils.serializeList(out, list, DataOutputStream::writeUTF);
@@ -67,14 +67,14 @@ class MongoSerdeUtilsTest {
         }
     }
 
-    private List<String> deserializeList(byte[] serialized) throws IOException {
+    private static List<String> deserializeList(byte[] serialized) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 DataInputStream in = new DataInputStream(bais)) {
             return MongoSerdeUtils.deserializeList(in, DataInput::readUTF);
         }
     }
 
-    private byte[] serializeMap(Map<String, String> map) throws IOException {
+    private static byte[] serializeMap(Map<String, String> map) throws IOException {
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(baos)) {
             MongoSerdeUtils.serializeMap(
@@ -83,7 +83,7 @@ class MongoSerdeUtilsTest {
         }
     }
 
-    private Map<String, String> deserializeMap(byte[] serialized) throws IOException {
+    private static Map<String, String> deserializeMap(byte[] serialized) throws IOException {
         try (ByteArrayInputStream bais = new ByteArrayInputStream(serialized);
                 DataInputStream in = new DataInputStream(bais)) {
             return MongoSerdeUtils.deserializeMap(in, DataInput::readUTF, DataInput::readUTF);
