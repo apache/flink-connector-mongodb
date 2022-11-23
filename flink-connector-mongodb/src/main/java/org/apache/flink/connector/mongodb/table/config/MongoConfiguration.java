@@ -17,7 +17,7 @@
 
 package org.apache.flink.connector.mongodb.table.config;
 
-import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.base.DeliveryGuarantee;
@@ -47,7 +47,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
 /** MongoDB configuration. */
-@PublicEvolving
+@Internal
 public class MongoConfiguration implements Serializable {
     private static final long serialVersionUID = 1L;
 
