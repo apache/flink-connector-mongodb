@@ -47,7 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -107,14 +106,14 @@ class MongoE2ECase {
         MongoDatabase db = mongoClient.getDatabase("test");
 
         int ordersCount = 5;
-        Document[] orders = mockOrders(ordersCount);
-        db.getCollection("orders").insertMany(Arrays.asList(orders));
+        List<Document> orders = mockOrders(ordersCount);
+        db.getCollection("orders").insertMany(orders);
 
         executeSqlStatements(readSqlFile("mongo_e2e.sql"));
 
         List<Document> ordersBackup = readAllBackupOrders(db, ordersCount);
 
-        assertThat(ordersBackup).containsExactlyInAnyOrder(orders);
+        assertThat(ordersBackup).containsExactlyInAnyOrderElementsOf(orders);
     }
 
     private List<Document> readAllBackupOrders(MongoDatabase db, int expect) throws Exception {
@@ -130,13 +129,13 @@ class MongoE2ECase {
         return backupOrders;
     }
 
-    private Document[] mockOrders(int ordersCount) {
-        Document[] orders = new Document[ordersCount];
+    private List<Document> mockOrders(int ordersCount) {
+        List<Document> orders = new ArrayList<>();
         for (int i = 1; i <= ordersCount; i++) {
-            orders[i] =
+            orders.add(
                     new Document("_id", new ObjectId())
                             .append("code", "ORDER_" + i)
-                            .append("quantity", ordersCount * 10L);
+                            .append("quantity", ordersCount * 10L));
         }
         return orders;
     }
