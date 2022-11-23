@@ -33,7 +33,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Unit tests for {@link MongoSerdeUtils}. */
-public class MongoSerdeUtilsTest {
+class MongoSerdeUtilsTest {
 
     @Test
     public void testSerializeList() throws IOException {
