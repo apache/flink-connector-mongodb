@@ -26,7 +26,6 @@ import org.apache.flink.table.connector.source.lookup.LookupOptions;
 
 import javax.annotation.Nullable;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
@@ -48,8 +47,7 @@ import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
 
 /** MongoDB configuration. */
 @Internal
-public class MongoConfiguration implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class MongoConfiguration {
 
     private final ReadableConfig config;
 
