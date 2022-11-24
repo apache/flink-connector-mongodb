@@ -95,12 +95,12 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
         }
 
         if (reservedId.isPresent()) {
-            // Primary key should be declared as (_id) when the mongo reserved _id is present.
+            // Ambiguous keys being used due to the presence of an _id field.
             if (!primaryKey.isPresent()
                     || isCompoundPrimaryKey(primaryKeyIndexes)
                     || !primaryKeyContainsReservedId(primaryKey.get())) {
                 throw new IllegalArgumentException(
-                        "The primary key should be declared as (_id) when mongo reserved _id field is present");
+                        "Ambiguous keys being used due to the presence of an _id field.");
             }
         }
 
