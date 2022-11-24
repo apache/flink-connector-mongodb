@@ -59,11 +59,12 @@ under the License.
 						<configuration>
 							<artifactSet>
 								<includes>
-									<include>org.apache.flink:flink-connector-mongodb</include>
-									<include>org.mongodb:bson</include>
-									<include>org.mongodb:mongodb-driver-sync</include>
-									<include>org.mongodb:mongodb-driver-core</include>
+									<include>*:*</include>
 								</includes>
+								<excludes>
+									<!-- This dependency is not required and will cause problems when shaded. -->
+									<exclude>org.mongodb:bson-record-codec</exclude>
+								</excludes>
 							</artifactSet>
 							<filters>
 								<filter>
