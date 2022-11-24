@@ -20,11 +20,13 @@ package org.apache.flink.connector.mongodb.table;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.common.utils.MongoValidationUtils;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
+import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters.RowDataToBsonConverter;
 import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.catalog.UniqueConstraint;
 import org.apache.flink.table.connector.Projection;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.data.RowData.FieldGetter;
 import org.apache.flink.table.data.utils.ProjectedRowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.LogicalType;
@@ -48,37 +50,36 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
     private static final AppendOnlyKeyExtractor APPEND_ONLY_KEY_EXTRACTOR =
             new AppendOnlyKeyExtractor();
 
-    private final LogicalType primaryKeyType;
-
     private final int[] primaryKeyIndexes;
 
-    private final RowDataToBsonConverters.RowDataToBsonConverter primaryKeyConverter;
+    private final RowDataToBsonConverter primaryKeyConverter;
+
+    private final FieldGetter primaryKeyGetter;
 
     private MongoKeyExtractor(LogicalType primaryKeyType, int[] primaryKeyIndexes) {
-        this.primaryKeyType = primaryKeyType;
         this.primaryKeyIndexes = primaryKeyIndexes;
         this.primaryKeyConverter = RowDataToBsonConverters.createNullableConverter(primaryKeyType);
+        if (isCompoundPrimaryKey(primaryKeyIndexes)) {
+            this.primaryKeyGetter =
+                    rowData -> ProjectedRowData.from(primaryKeyIndexes).replaceRow(rowData);
+        } else {
+            this.primaryKeyGetter = RowData.createFieldGetter(primaryKeyType, primaryKeyIndexes[0]);
+        }
     }
 
     @Override
     public BsonValue apply(RowData rowData) {
-        BsonValue keyValue;
-        if (isCompoundPrimaryKey(primaryKeyIndexes)) {
-            RowData keyRow = ProjectedRowData.from(primaryKeyIndexes).replaceRow(rowData);
-            keyValue = primaryKeyConverter.convert(keyRow);
-        } else {
-            RowData.FieldGetter fieldGetter =
-                    RowData.createFieldGetter(primaryKeyType, primaryKeyIndexes[0]);
-            keyValue = primaryKeyConverter.convert(fieldGetter.getFieldOrNull(rowData));
-            if (keyValue.isString()) {
-                String keyString = keyValue.asString().getValue();
-                // Try to restore MongoDB's ObjectId from string.
-                if (ObjectId.isValid(keyString)) {
-                    keyValue = new BsonObjectId(new ObjectId(keyString));
-                }
+        Object rowKeyValue = primaryKeyGetter.getFieldOrNull(rowData);
+        checkNotNull(rowKeyValue, "Primary key value is null of RowData: " + rowData);
+        BsonValue keyValue = primaryKeyConverter.convert(rowKeyValue);
+        if (!isCompoundPrimaryKey(primaryKeyIndexes) && keyValue.isString()) {
+            String keyString = keyValue.asString().getValue();
+            // Try to restore MongoDB's ObjectId from string.
+            if (ObjectId.isValid(keyString)) {
+                keyValue = new BsonObjectId(new ObjectId(keyString));
             }
         }
-        return checkNotNull(keyValue, "Primary key value is null of RowData: " + rowData);
+        return keyValue;
     }
 
     public static SerializableFunction<RowData, BsonValue> createKeyExtractor(
