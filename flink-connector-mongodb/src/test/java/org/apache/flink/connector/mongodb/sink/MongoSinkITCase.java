@@ -20,7 +20,6 @@ package org.apache.flink.connector.mongodb.sink;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.state.CheckpointListener;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
@@ -69,7 +68,6 @@ public class MongoSinkITCase {
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(1)
-                            .setConfiguration(new Configuration())
                             .build());
 
     private static final String TEST_DATABASE = "test_sink";

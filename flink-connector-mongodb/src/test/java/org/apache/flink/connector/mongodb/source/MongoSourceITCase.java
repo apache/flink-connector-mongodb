@@ -19,7 +19,6 @@ package org.apache.flink.connector.mongodb.source;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
@@ -77,7 +76,6 @@ public class MongoSourceITCase {
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(2)
-                            .setConfiguration(new Configuration())
                             .build());
 
     private static MongoClient mongoClient;
