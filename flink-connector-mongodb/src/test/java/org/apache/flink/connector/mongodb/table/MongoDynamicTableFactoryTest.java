@@ -262,8 +262,7 @@ public class MongoDynamicTableFactoryTest {
 
         Map<String, String> finalProperties3 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties3))
-                .hasStackTraceContaining(
-                        "The partition size must be larger than or equals to 1mb.");
+                .hasStackTraceContaining("The partition size must be larger than or equal to 1mb.");
 
         // samples per partition lower than 1
         properties = getRequiredOptions();
@@ -279,9 +278,9 @@ public class MongoDynamicTableFactoryTest {
         Map<String, String> finalProperties5 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties5))
                 .hasStackTraceContaining(
-                        "The 'lookup.max-retries' must be larger than or equals to 0.");
+                        "The 'lookup.max-retries' must be larger than or equal to 0.");
 
-        // lookup retry interval shouldn't be negative
+        // lookup retry interval shouldn't be 0
         properties = getRequiredOptions();
         properties.put("lookup.retry.interval", "0ms");
         Map<String, String> finalProperties6 = properties;
@@ -296,7 +295,7 @@ public class MongoDynamicTableFactoryTest {
                 .hasStackTraceContaining(
                         "The sink max retry times must be larger than or equal to 0.");
 
-        // sink retry interval shouldn't be negative
+        // sink retry interval shouldn't be 0
         properties = getRequiredOptions();
         properties.put("sink.retry.interval", "0ms");
         Map<String, String> finalProperties8 = properties;

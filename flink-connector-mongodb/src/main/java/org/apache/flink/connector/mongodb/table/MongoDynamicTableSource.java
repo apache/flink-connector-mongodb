@@ -79,7 +79,7 @@ public class MongoDynamicTableSource
         checkArgument(
                 lookupMaxRetries >= 0,
                 String.format(
-                        "The '%s' must be larger than or equals to 0.",
+                        "The '%s' must be larger than or equal to 0.",
                         LookupOptions.MAX_RETRIES.key()));
         checkArgument(
                 lookupRetryIntervalMs > 0,

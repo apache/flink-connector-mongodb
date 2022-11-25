@@ -206,7 +206,7 @@ public class MongoReadOptions implements Serializable {
             // {splitVector: "db.coll", keyPattern:{x:1}, min:{x:10}, max:{x:20}, maxChunkSize:200}
             checkArgument(
                     partitionSize.getMebiBytes() >= 1,
-                    "The partition size must be larger than or equals to 1mb.");
+                    "The partition size must be larger than or equal to 1mb.");
             this.partitionSize = partitionSize;
             return this;
         }
