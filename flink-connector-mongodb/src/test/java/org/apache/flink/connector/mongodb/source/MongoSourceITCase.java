@@ -81,8 +81,10 @@ public class MongoSourceITCase {
     private static MongoClient mongoClient;
 
     private static final String TEST_DATABASE = "test_source";
+    private static final String TEST_COLLECTION = "mongo_source";
 
-    public static final String TEST_COLLECTION = "mongo_source";
+    private static final int TEST_RECORD_SIZE = 30000;
+    private static final int TEST_RECORD_BATCH_SIZE = 10000;
 
     @BeforeAll
     static void beforeAll() {
@@ -95,9 +97,9 @@ public class MongoSourceITCase {
                         .withDocumentClass(BsonDocument.class);
 
         List<BsonDocument> testRecords = new ArrayList<>();
-        for (int i = 1; i <= 30000; i++) {
+        for (int i = 1; i <= TEST_RECORD_SIZE; i++) {
             testRecords.add(createTestData(i));
-            if (testRecords.size() >= 10000) {
+            if (testRecords.size() >= TEST_RECORD_BATCH_SIZE) {
                 coll.insertMany(testRecords);
                 testRecords.clear();
             }
@@ -118,7 +120,6 @@ public class MongoSourceITCase {
             mode = EXCLUDE)
     public void testPartitionStrategy(PartitionStrategy partitionStrategy) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(2);
 
         MongoSource<RowData> mongoSource =
                 defaultSourceBuilder()
@@ -135,15 +136,15 @@ public class MongoSourceITCase {
                                         "MongoDB-Source")
                                 .executeAndCollect());
 
-        assertThat(results).hasSize(30000);
+        assertThat(results).hasSize(TEST_RECORD_SIZE);
     }
 
     @Test
     public void testLimit() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(2);
 
-        MongoSource<RowData> mongoSource = defaultSourceBuilder().setLimit(100).build();
+        final int limitSize = 100;
+        MongoSource<RowData> mongoSource = defaultSourceBuilder().setLimit(limitSize).build();
 
         List<RowData> results =
                 CollectionUtil.iteratorToList(
@@ -153,13 +154,12 @@ public class MongoSourceITCase {
                                         "MongoDB-Source")
                                 .executeAndCollect());
 
-        assertThat(results).hasSize(100);
+        assertThat(results).hasSize(limitSize);
     }
 
     @Test
     public void testProject() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.setParallelism(2);
 
         MongoSource<String> mongoSource =
                 MongoSource.<String>builder()
@@ -178,7 +178,7 @@ public class MongoSourceITCase {
                                         "MongoDB-Source")
                                 .executeAndCollect());
 
-        assertThat(results).hasSize(30000);
+        assertThat(results).hasSize(TEST_RECORD_SIZE);
         assertThat(Document.parse(results.get(0))).containsOnlyKeys("f0");
     }
 
@@ -194,7 +194,7 @@ public class MongoSourceITCase {
                 .setDeserializationSchema(new MongoRowDataDeserializationSchema(rowType, typeInfo));
     }
 
-    private ResolvedSchema defaultSourceSchema() {
+    private static ResolvedSchema defaultSourceSchema() {
         return ResolvedSchema.of(
                 Column.physical("f0", DataTypes.INT()), Column.physical("f1", DataTypes.STRING()));
     }
