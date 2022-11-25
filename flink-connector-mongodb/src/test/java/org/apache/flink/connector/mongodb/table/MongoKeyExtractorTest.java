@@ -80,7 +80,7 @@ public class MongoKeyExtractorTest {
 
         assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema0))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Ambiguous keys being used due to the presence of an _id field.");
+                .hasMessageMatching("Ambiguous keys .*");
 
         ResolvedSchema schema1 =
                 new ResolvedSchema(
@@ -92,7 +92,7 @@ public class MongoKeyExtractorTest {
 
         assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema1))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Ambiguous keys being used due to the presence of an _id field.");
+                .hasMessageMatching("Ambiguous keys .*");
 
         ResolvedSchema schema2 =
                 new ResolvedSchema(
