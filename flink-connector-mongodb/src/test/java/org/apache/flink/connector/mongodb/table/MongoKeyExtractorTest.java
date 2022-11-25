@@ -53,7 +53,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class MongoKeyExtractorTest {
 
     @Test
-    public void testSimpleKey() {
+    public void testSinglePrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -69,7 +69,28 @@ public class MongoKeyExtractorTest {
     }
 
     @Test
-    public void testPrimaryKeyWithReservedId() {
+    public void testObjectIdPrimaryKey() {
+        ResolvedSchema schema =
+                new ResolvedSchema(
+                        Arrays.asList(
+                                Column.physical("_id", DataTypes.STRING().notNull()),
+                                Column.physical("b", DataTypes.STRING())),
+                        Collections.emptyList(),
+                        UniqueConstraint.primaryKey("pk", Collections.singletonList("_id")));
+
+        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+
+        ObjectId objectId = new ObjectId();
+        BsonValue key =
+                keyExtractor.apply(
+                        GenericRowData.of(
+                                StringData.fromString(objectId.toHexString()),
+                                StringData.fromString("ABCD")));
+        assertThat(key).isEqualTo(new BsonObjectId(objectId));
+    }
+
+    @Test
+    public void testAmbiguousPrimaryKey() {
         ResolvedSchema schema0 =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -93,24 +114,6 @@ public class MongoKeyExtractorTest {
         assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Ambiguous keys .*");
-
-        ResolvedSchema schema2 =
-                new ResolvedSchema(
-                        Arrays.asList(
-                                Column.physical("_id", DataTypes.STRING().notNull()),
-                                Column.physical("b", DataTypes.STRING())),
-                        Collections.emptyList(),
-                        UniqueConstraint.primaryKey("pk", Collections.singletonList("_id")));
-
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema2);
-
-        ObjectId objectId = new ObjectId();
-        BsonValue key =
-                keyExtractor.apply(
-                        GenericRowData.of(
-                                StringData.fromString(objectId.toHexString()),
-                                StringData.fromString("ABCD")));
-        assertThat(key).isEqualTo(new BsonObjectId(objectId));
     }
 
     @Test
@@ -130,7 +133,7 @@ public class MongoKeyExtractorTest {
     }
 
     @Test
-    public void testTwoFieldsKey() {
+    public void testCompoundPrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -158,7 +161,7 @@ public class MongoKeyExtractorTest {
     }
 
     @Test
-    public void testAllTypesKey() {
+    public void testPrimaryKeyWithSupportedTypes() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
