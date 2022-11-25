@@ -84,7 +84,7 @@ public class MongoDynamicTableSink implements DynamicTableSink {
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);
 
-        MongoSink<RowData> mongoSink =
+        final MongoSink<RowData> mongoSink =
                 MongoSink.<RowData>builder()
                         .setUri(connectionOptions.getUri())
                         .setDatabase(connectionOptions.getDatabase())
