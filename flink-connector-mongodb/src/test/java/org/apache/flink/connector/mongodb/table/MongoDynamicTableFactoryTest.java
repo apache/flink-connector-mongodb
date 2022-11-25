@@ -303,7 +303,7 @@ public class MongoDynamicTableFactoryTest {
                 .hasStackTraceContaining(
                         "The retry interval (in milliseconds) must be larger than 0.");
 
-        // sink buffered rows shouldn't be smaller than 1
+        // sink buffered rows should be larger than 0
         properties = getRequiredOptions();
         properties.put("sink.buffer-flush.max-rows", "0");
         Map<String, String> finalProperties9 = properties;
@@ -311,7 +311,7 @@ public class MongoDynamicTableFactoryTest {
                 .hasStackTraceContaining("Max number of batch size must be larger than 0.");
     }
 
-    private Map<String, String> getRequiredOptions() {
+    private static Map<String, String> getRequiredOptions() {
         Map<String, String> options = new HashMap<>();
         options.put("connector", "mongodb");
         options.put("uri", "mongodb://127.0.0.1:27017");
