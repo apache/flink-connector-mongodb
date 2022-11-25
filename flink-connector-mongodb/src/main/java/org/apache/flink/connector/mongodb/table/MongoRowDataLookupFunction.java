@@ -141,7 +141,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                 }
             } catch (MongoException e) {
                 LOG.debug("MongoDB lookup error, retry times = {}", retry, e);
-                if (retry >= maxRetries) {
+                if (retry == maxRetries) {
                     LOG.error("MongoDB lookup error", e);
                     throw new RuntimeException("Execution of MongoDB lookup failed.", e);
                 }
