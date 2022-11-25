@@ -41,7 +41,22 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
+import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSink;
 import static org.apache.flink.table.factories.utils.FactoryMocks.createTableSource;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,12 +120,12 @@ public class MongoDynamicTableFactoryTest {
     @Test
     public void testMongoReadProperties() {
         Map<String, String> properties = getRequiredOptions();
-        properties.put("scan.fetch-size", "1024");
-        properties.put("scan.cursor.batch-size", "2048");
-        properties.put("scan.cursor.no-timeout", "false");
-        properties.put("scan.partition.strategy", "split-vector");
-        properties.put("scan.partition.size", "128m");
-        properties.put("scan.partition.samples", "5");
+        properties.put(SCAN_FETCH_SIZE.key(), "1024");
+        properties.put(SCAN_CURSOR_BATCH_SIZE.key(), "2048");
+        properties.put(SCAN_CURSOR_NO_TIMEOUT.key(), "false");
+        properties.put(SCAN_PARTITION_STRATEGY.key(), "split-vector");
+        properties.put(SCAN_PARTITION_SIZE.key(), "128m");
+        properties.put(SCAN_PARTITION_SAMPLES.key(), "5");
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
@@ -145,13 +160,13 @@ public class MongoDynamicTableFactoryTest {
     @Test
     public void testMongoLookupProperties() {
         Map<String, String> properties = getRequiredOptions();
-        properties.put("lookup.cache", "PARTIAL");
-        properties.put("lookup.partial-cache.expire-after-write", "10s");
-        properties.put("lookup.partial-cache.expire-after-access", "20s");
-        properties.put("lookup.partial-cache.cache-missing-key", "false");
-        properties.put("lookup.partial-cache.max-rows", "15213");
-        properties.put("lookup.max-retries", "10");
-        properties.put("lookup.retry.interval", "20ms");
+        properties.put(LookupOptions.CACHE_TYPE.key(), "PARTIAL");
+        properties.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE.key(), "10s");
+        properties.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS.key(), "20s");
+        properties.put(LookupOptions.PARTIAL_CACHE_CACHE_MISSING_KEY.key(), "false");
+        properties.put(LookupOptions.PARTIAL_CACHE_MAX_ROWS.key(), "15213");
+        properties.put(LookupOptions.MAX_RETRIES.key(), "10");
+        properties.put(LOOKUP_RETRY_INTERVAL.key(), "20ms");
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
@@ -177,11 +192,11 @@ public class MongoDynamicTableFactoryTest {
     @Test
     public void testMongoSinkProperties() {
         Map<String, String> properties = getRequiredOptions();
-        properties.put("sink.buffer-flush.max-rows", "1001");
-        properties.put("sink.buffer-flush.interval", "2min");
-        properties.put("sink.delivery-guarantee", "at-least-once");
-        properties.put("sink.max-retries", "5");
-        properties.put("sink.retry.interval", "2s");
+        properties.put(BUFFER_FLUSH_MAX_ROWS.key(), "1001");
+        properties.put(BUFFER_FLUSH_INTERVAL.key(), "2min");
+        properties.put(DELIVERY_GUARANTEE.key(), "at-least-once");
+        properties.put(SINK_MAX_RETRIES.key(), "5");
+        properties.put(SINK_RETRY_INTERVAL.key(), "2s");
 
         DynamicTableSink actual = createTableSink(SCHEMA, properties);
 
@@ -242,7 +257,7 @@ public class MongoDynamicTableFactoryTest {
     public void testMongoValidation() {
         // fetch size lower than 1
         Map<String, String> properties = getRequiredOptions();
-        properties.put("scan.fetch-size", "0");
+        properties.put(SCAN_FETCH_SIZE.key(), "0");
 
         Map<String, String> finalProperties1 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties1))
@@ -250,7 +265,7 @@ public class MongoDynamicTableFactoryTest {
 
         // cursor batch size lower than 0
         properties = getRequiredOptions();
-        properties.put("scan.cursor.batch-size", "-1");
+        properties.put(SCAN_CURSOR_BATCH_SIZE.key(), "-1");
 
         Map<String, String> finalProperties2 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties2))
@@ -258,7 +273,7 @@ public class MongoDynamicTableFactoryTest {
 
         // partition memory size lower than 1mb
         properties = getRequiredOptions();
-        properties.put("scan.partition.size", "900kb");
+        properties.put(SCAN_PARTITION_SIZE.key(), "900kb");
 
         Map<String, String> finalProperties3 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties3))
@@ -266,7 +281,7 @@ public class MongoDynamicTableFactoryTest {
 
         // samples per partition lower than 1
         properties = getRequiredOptions();
-        properties.put("scan.partition.samples", "0");
+        properties.put(SCAN_PARTITION_SAMPLES.key(), "0");
 
         Map<String, String> finalProperties4 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties4))
@@ -274,7 +289,7 @@ public class MongoDynamicTableFactoryTest {
 
         // lookup retry times shouldn't be negative
         properties = getRequiredOptions();
-        properties.put("lookup.max-retries", "-1");
+        properties.put(LookupOptions.MAX_RETRIES.key(), "-1");
         Map<String, String> finalProperties5 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties5))
                 .hasStackTraceContaining(
@@ -282,14 +297,14 @@ public class MongoDynamicTableFactoryTest {
 
         // lookup retry interval shouldn't be 0
         properties = getRequiredOptions();
-        properties.put("lookup.retry.interval", "0ms");
+        properties.put(LOOKUP_RETRY_INTERVAL.key(), "0ms");
         Map<String, String> finalProperties6 = properties;
         assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties6))
                 .hasStackTraceContaining("The 'lookup.retry.interval' must be larger than 0.");
 
         // sink retries shouldn't be negative
         properties = getRequiredOptions();
-        properties.put("sink.max-retries", "-1");
+        properties.put(SINK_MAX_RETRIES.key(), "-1");
         Map<String, String> finalProperties7 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
                 .hasStackTraceContaining(
@@ -297,7 +312,7 @@ public class MongoDynamicTableFactoryTest {
 
         // sink retry interval shouldn't be 0
         properties = getRequiredOptions();
-        properties.put("sink.retry.interval", "0ms");
+        properties.put(SINK_RETRY_INTERVAL.key(), "0ms");
         Map<String, String> finalProperties8 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties8))
                 .hasStackTraceContaining(
@@ -305,7 +320,7 @@ public class MongoDynamicTableFactoryTest {
 
         // sink buffered rows should be larger than 0
         properties = getRequiredOptions();
-        properties.put("sink.buffer-flush.max-rows", "0");
+        properties.put(BUFFER_FLUSH_MAX_ROWS.key(), "0");
         Map<String, String> finalProperties9 = properties;
         assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties9))
                 .hasStackTraceContaining("Max number of batch size must be larger than 0.");
@@ -313,10 +328,10 @@ public class MongoDynamicTableFactoryTest {
 
     private static Map<String, String> getRequiredOptions() {
         Map<String, String> options = new HashMap<>();
-        options.put("connector", "mongodb");
-        options.put("uri", "mongodb://127.0.0.1:27017");
-        options.put("database", "test_db");
-        options.put("collection", "test_coll");
+        options.put(CONNECTOR.key(), "mongodb");
+        options.put(URI.key(), "mongodb://127.0.0.1:27017");
+        options.put(DATABASE.key(), "test_db");
+        options.put(COLLECTION.key(), "test_coll");
         return options;
     }
 }

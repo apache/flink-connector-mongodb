@@ -79,6 +79,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
+import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
@@ -98,8 +102,8 @@ public class MongoDynamicTableSourceITCase {
     private static final MongoDBContainer MONGO_CONTAINER =
             MongoTestUtil.createMongoDBContainer(LOG);
 
-    public static final String DATABASE = "test";
-    public static final String COLLECTION = "mongo_table_source";
+    public static final String TEST_DATABASE = "test";
+    public static final String TEST_COLLECTION = "mongo_table_source";
 
     private static MongoClient mongoClient;
 
@@ -112,8 +116,8 @@ public class MongoDynamicTableSourceITCase {
 
         MongoCollection<BsonDocument> coll =
                 mongoClient
-                        .getDatabase(DATABASE)
-                        .getCollection(COLLECTION)
+                        .getDatabase(TEST_DATABASE)
+                        .getCollection(TEST_COLLECTION)
                         .withDocumentClass(BsonDocument.class);
 
         List<BsonDocument> testRecords = Arrays.asList(createTestData(1), createTestData(2));
@@ -295,10 +299,10 @@ public class MongoDynamicTableSourceITCase {
 
     private static String createTestDDl(Map<String, String> extraOptions) {
         Map<String, String> options = new HashMap<>();
-        options.put("connector", "mongodb");
-        options.put("uri", MONGO_CONTAINER.getConnectionString());
-        options.put("database", DATABASE);
-        options.put("collection", COLLECTION);
+        options.put(CONNECTOR.key(), "mongodb");
+        options.put(URI.key(), MONGO_CONTAINER.getConnectionString());
+        options.put(DATABASE.key(), TEST_DATABASE);
+        options.put(COLLECTION.key(), TEST_COLLECTION);
         if (extraOptions != null) {
             options.putAll(extraOptions);
         }

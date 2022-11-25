@@ -32,6 +32,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.expressions.Expression;
+import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
@@ -441,7 +442,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     private static String getConnectorSql(String database, String collection) {
-        return String.format("'%s'='%s',\n", "connector", "mongodb")
+        return String.format("'%s'='%s',\n", FactoryUtil.CONNECTOR.key(), "mongodb")
                 + String.format(
                         "'%s'='%s',\n",
                         MongoConnectorOptions.URI.key(), MONGO_CONTAINER.getConnectionString())
