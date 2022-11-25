@@ -118,7 +118,7 @@ public class MongoConnectorOptions {
             ConfigOptions.key("sink.buffer-flush.interval")
                     .durationType()
                     .defaultValue(Duration.ofSeconds(1))
-                    .withDescription("Specifies the bulk flush interval.");
+                    .withDescription("Specifies the batch flush interval.");
 
     public static final ConfigOption<DeliveryGuarantee> DELIVERY_GUARANTEE =
             ConfigOptions.key("sink.delivery-guarantee")
