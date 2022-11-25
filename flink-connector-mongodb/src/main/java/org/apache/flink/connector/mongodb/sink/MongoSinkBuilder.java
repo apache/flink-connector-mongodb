@@ -93,7 +93,7 @@ public class MongoSinkBuilder<IN> {
     }
 
     /**
-     * Sets the bulk flush interval, in milliseconds. You can pass -1 to disable it.
+     * Sets the batch flush interval, in milliseconds. You can pass -1 to disable it.
      *
      * @param batchIntervalMs the batch flush interval, in milliseconds.
      * @return this builder
