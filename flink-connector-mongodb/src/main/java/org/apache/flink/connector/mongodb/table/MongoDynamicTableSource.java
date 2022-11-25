@@ -92,8 +92,7 @@ public class MongoDynamicTableSource
     @Override
     public LookupRuntimeProvider getLookupRuntimeProvider(LookupContext context) {
         final List<String> keyNames = new ArrayList<>(context.getKeys().length);
-        for (int i = 0; i < context.getKeys().length; i++) {
-            int[] innerKeyArr = context.getKeys()[i];
+        for (int[] innerKeyArr : context.getKeys()) {
             Preconditions.checkArgument(
                     innerKeyArr.length == 1, "MongoDB only support non-nested look up keys yet");
             keyNames.add(DataType.getFieldNames(physicalRowDataType).get(innerKeyArr[0]));
