@@ -171,7 +171,7 @@ public class MongoDynamicTableFactory
         return cache;
     }
 
-    private MongoConnectionOptions getConnectionOptions(MongoConfiguration configuration) {
+    private static MongoConnectionOptions getConnectionOptions(MongoConfiguration configuration) {
         return MongoConnectionOptions.builder()
                 .setUri(configuration.getUri())
                 .setDatabase(configuration.getDatabase())
@@ -179,7 +179,7 @@ public class MongoDynamicTableFactory
                 .build();
     }
 
-    private MongoReadOptions getReadOptions(MongoConfiguration configuration) {
+    private static MongoReadOptions getReadOptions(MongoConfiguration configuration) {
         return MongoReadOptions.builder()
                 .setFetchSize(configuration.getFetchSize())
                 .setCursorBatchSize(configuration.getCursorBatchSize())
@@ -190,7 +190,7 @@ public class MongoDynamicTableFactory
                 .build();
     }
 
-    private MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {
+    private static MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {
         return MongoWriteOptions.builder()
                 .setBatchSize(configuration.getBufferFlushMaxRows())
                 .setBatchIntervalMs(configuration.getBufferFlushIntervalMs())
