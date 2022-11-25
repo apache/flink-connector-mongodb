@@ -110,7 +110,7 @@ public class MongoShardedSplitterTest {
         }
     }
 
-    private BsonDocument mockCollectionMetadata() {
+    private static BsonDocument mockCollectionMetadata() {
         return new BsonDocument()
                 .append(ID_FIELD, new BsonObjectId())
                 .append(UUID_FIELD, new BsonBinary(UUID.randomUUID()))
@@ -118,11 +118,11 @@ public class MongoShardedSplitterTest {
                 .append(KEY_FIELD, ID_HINT);
     }
 
-    private List<BsonDocument> mockChunksData() {
+    private static List<BsonDocument> mockChunksData() {
         return Arrays.asList(mockChunkData(1), mockChunkData(2), mockChunkData(3));
     }
 
-    private BsonDocument mockChunkData(int index) {
+    private static BsonDocument mockChunkData(int index) {
         return new BsonDocument()
                 .append(MIN_FIELD, new BsonDocument(ID_FIELD, new BsonInt32(index * 100)))
                 .append(MAX_FIELD, new BsonDocument(ID_FIELD, new BsonInt32((index + 1) * 100)))
