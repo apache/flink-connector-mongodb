@@ -53,6 +53,6 @@ public interface MongoSplitAssigner extends Serializable {
     /** Snapshot the current assign state into checkpoint. */
     MongoSourceEnumState snapshotState(long checkpointId);
 
-    /** Return if there are no more splits. */
+    /** Return whether there are no more splits. */
     boolean noMoreSplits();
 }
