@@ -132,12 +132,11 @@ public class MongoRowDataLookupFunction extends LookupFunction {
 
                 try (MongoCursor<BsonDocument> cursor =
                         getMongoCollection().find(query).projection(projection).cursor()) {
-                    ArrayList<RowData> rows = new ArrayList<>();
+                    List<RowData> rows = new ArrayList<>();
                     while (cursor.hasNext()) {
                         RowData row = (RowData) mongoRowConverter.convert(cursor.next());
                         rows.add(row);
                     }
-                    rows.trimToSize();
                     return rows;
                 }
             } catch (MongoException e) {
@@ -149,6 +148,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                 try {
                     Thread.sleep(retryIntervalMs * (retry + 1));
                 } catch (InterruptedException e1) {
+                    Thread.currentThread().interrupt();
                     throw new RuntimeException(e1);
                 }
             }
