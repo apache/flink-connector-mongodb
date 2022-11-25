@@ -80,8 +80,7 @@ public class MongoKeyExtractorTest {
 
         assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema0))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "The primary key should be declared as (_id) when mongo reserved _id field is present");
+                .hasMessage("Ambiguous keys being used due to the presence of an _id field.");
 
         ResolvedSchema schema1 =
                 new ResolvedSchema(
@@ -93,8 +92,7 @@ public class MongoKeyExtractorTest {
 
         assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema1))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "The primary key should be declared as (_id) when mongo reserved _id field is present");
+                .hasMessage("Ambiguous keys being used due to the presence of an _id field.");
 
         ResolvedSchema schema2 =
                 new ResolvedSchema(
