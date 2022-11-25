@@ -61,10 +61,6 @@ under the License.
 								<includes>
 									<include>*:*</include>
 								</includes>
-								<excludes>
-									<!-- This dependency is not required and will cause problems when shaded. -->
-									<exclude>org.mongodb:bson-record-codec</exclude>
-								</excludes>
 							</artifactSet>
 							<filters>
 								<filter>

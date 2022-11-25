@@ -54,6 +54,13 @@ under the License.
 		<dependency>
 			<groupId>org.mongodb</groupId>
 			<artifactId>mongodb-driver-sync</artifactId>
+			<exclusions>
+				<exclusion>
+					<!-- This dependency is not required and will cause problems when shaded. -->
+					<groupId>org.mongodb</groupId>
+					<artifactId>bson-record-codec</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<!-- Table ecosystem -->
