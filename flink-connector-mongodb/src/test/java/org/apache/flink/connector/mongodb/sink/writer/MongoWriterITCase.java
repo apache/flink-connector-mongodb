@@ -209,7 +209,7 @@ public class MongoWriterITCase {
     @Test
     void testCurrentSendTime() throws Exception {
         final String collection = "test-current-send-time";
-        boolean flushOnCheckpoint = false;
+        final boolean flushOnCheckpoint = false;
         final int batchSize = 2;
         final int batchIntervalMs = -1;
 
@@ -231,7 +231,7 @@ public class MongoWriterITCase {
     @Test
     void testSinkContext() throws Exception {
         final String collection = "test-sink-context";
-        boolean flushOnCheckpoint = false;
+        final boolean flushOnCheckpoint = false;
         final int batchSize = 2;
         final int batchIntervalMs = -1;
 
