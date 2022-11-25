@@ -112,7 +112,7 @@ public class MongoConnectorOptions {
                     .intType()
                     .defaultValue(1000)
                     .withDescription(
-                            "Specifies the maximum number of buffered rows per bulk request.");
+                            "Specifies the maximum number of buffered rows per batch request.");
 
     public static final ConfigOption<Duration> BUFFER_FLUSH_INTERVAL =
             ConfigOptions.key("sink.buffer-flush.interval")
