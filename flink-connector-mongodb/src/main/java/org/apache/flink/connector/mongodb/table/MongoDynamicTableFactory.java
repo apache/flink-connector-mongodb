@@ -112,6 +112,9 @@ public class MongoDynamicTableFactory
     @Override
     public Set<ConfigOption<?>> forwardOptions() {
         final Set<ConfigOption<?>> forwardOptions = new HashSet<>();
+        forwardOptions.add(URI);
+        forwardOptions.add(DATABASE);
+        forwardOptions.add(COLLECTION);
         forwardOptions.add(SCAN_FETCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_BATCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_NO_TIMEOUT);
