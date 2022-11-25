@@ -63,7 +63,8 @@ class MongoE2ECase {
 
     private static final Network NETWORK = Network.newNetwork();
 
-    private final Path sqlConnectorMongoDBJar = ResourceTestUtils.getResource(".*mongodb.jar");
+    private static final Path SQL_CONNECTOR_MONGODB_JAR =
+            ResourceTestUtils.getResource(".*mongodb.jar");
 
     @Container
     static final MongoDBContainer MONGO_CONTAINER =
@@ -116,7 +117,8 @@ class MongoE2ECase {
         assertThat(ordersBackup).containsExactlyInAnyOrderElementsOf(orders);
     }
 
-    private List<Document> readAllBackupOrders(MongoDatabase db, int expect) throws Exception {
+    private static List<Document> readAllBackupOrders(MongoDatabase db, int expect)
+            throws Exception {
         Deadline deadline = Deadline.fromNow(Duration.ofSeconds(20));
         List<Document> backupOrders;
         do {
@@ -127,7 +129,7 @@ class MongoE2ECase {
         return backupOrders;
     }
 
-    private List<Document> mockOrders(int ordersCount) {
+    private static List<Document> mockOrders(int ordersCount) {
         List<Document> orders = new ArrayList<>();
         for (int i = 1; i <= ordersCount; i++) {
             orders.add(
@@ -138,14 +140,15 @@ class MongoE2ECase {
         return orders;
     }
 
-    private List<String> readSqlFile(final String resourceName) throws Exception {
-        return Files.readAllLines(Paths.get(getClass().getResource("/" + resourceName).toURI()));
+    private static List<String> readSqlFile(final String resourceName) throws Exception {
+        return Files.readAllLines(
+                Paths.get(MongoE2ECase.class.getResource("/" + resourceName).toURI()));
     }
 
-    private void executeSqlStatements(final List<String> sqlLines) throws Exception {
+    private static void executeSqlStatements(final List<String> sqlLines) throws Exception {
         FLINK.submitSQLJob(
                 new SQLJobSubmission.SQLJobSubmissionBuilder(sqlLines)
-                        .addJars(sqlConnectorMongoDBJar)
+                        .addJars(SQL_CONNECTOR_MONGODB_JAR)
                         .build());
     }
 }
