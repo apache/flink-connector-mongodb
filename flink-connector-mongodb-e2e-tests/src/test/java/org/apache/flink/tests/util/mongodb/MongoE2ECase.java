@@ -122,8 +122,6 @@ class MongoE2ECase {
         do {
             Thread.sleep(1000);
             backupOrders = db.getCollection("orders_bak").find().into(new ArrayList<>());
-
-            db.getCollection("orders_bak").find().into(new ArrayList<>());
         } while (deadline.hasTimeLeft() && backupOrders.size() < expect);
 
         return backupOrders;
