@@ -182,7 +182,7 @@ public class MongoSourceITCase {
         assertThat(Document.parse(results.get(0))).containsOnlyKeys("f0");
     }
 
-    private MongoSourceBuilder<RowData> defaultSourceBuilder() {
+    private static MongoSourceBuilder<RowData> defaultSourceBuilder() {
         ResolvedSchema schema = defaultSourceSchema();
         RowType rowType = (RowType) schema.toPhysicalRowDataType().getLogicalType();
         TypeInformation<RowData> typeInfo = InternalTypeInfo.of(rowType);

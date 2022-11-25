@@ -270,7 +270,7 @@ public class MongoDynamicTableSourceITCase {
         }
     }
 
-    private void validateCachedValues(LookupCache cache) {
+    private static void validateCachedValues(LookupCache cache) {
         // mongo does support project push down, the cached row has been projected
         RowData key1 = GenericRowData.of(1L);
         RowData value1 = GenericRowData.of(1L, StringData.fromString("2"), false);

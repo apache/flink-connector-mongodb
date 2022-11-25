@@ -436,11 +436,11 @@ public class MongoDynamicTableSinkITCase {
         tEnv.fromValues(values).executeInsert("mongo_sink").await();
     }
 
-    private String getPrimaryKeys(List<String> fieldNames) {
+    private static String getPrimaryKeys(List<String> fieldNames) {
         return String.join(",", fieldNames);
     }
 
-    private String getConnectorSql(String database, String collection) {
+    private static String getConnectorSql(String database, String collection) {
         return String.format("'%s'='%s',\n", "connector", "mongodb")
                 + String.format(
                         "'%s'='%s',\n",

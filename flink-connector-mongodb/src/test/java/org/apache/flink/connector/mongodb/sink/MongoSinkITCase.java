@@ -153,7 +153,7 @@ public class MongoSinkITCase {
         assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
     }
 
-    private MongoCollection<Document> collectionOf(String collection) {
+    private static MongoCollection<Document> collectionOf(String collection) {
         return mongoClient.getDatabase(TEST_DATABASE).getCollection(collection);
     }
 

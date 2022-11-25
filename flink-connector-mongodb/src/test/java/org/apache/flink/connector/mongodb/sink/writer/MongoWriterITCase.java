@@ -272,11 +272,11 @@ public class MongoWriterITCase {
         }
     }
 
-    private MongoCollection<Document> collectionOf(String collection) {
+    private static MongoCollection<Document> collectionOf(String collection) {
         return mongoClient.getDatabase(TEST_DATABASE).getCollection(collection);
     }
 
-    private MongoWriter<Document> createWriter(
+    private static MongoWriter<Document> createWriter(
             String collection, int batchSize, long batchIntervalMs, boolean flushOnCheckpoint) {
         return createWriter(
                 collection,
@@ -287,7 +287,7 @@ public class MongoWriterITCase {
                 new UpsertSerializationSchema());
     }
 
-    private MongoWriter<Document> createWriter(
+    private static MongoWriter<Document> createWriter(
             String collection,
             int batchSize,
             long batchIntervalMs,
@@ -317,11 +317,11 @@ public class MongoWriterITCase {
                 serializationSchema);
     }
 
-    private Document buildMessage(int id) {
+    private static Document buildMessage(int id) {
         return buildMessage(id, "i");
     }
 
-    private Document buildMessage(int id, String op) {
+    private static Document buildMessage(int id, String op) {
         return new Document("_id", id).append("op", op);
     }
 
