@@ -135,8 +135,7 @@ class MongoE2ECase {
         assertThat(removeIdField(ordersBackup)).containsExactlyInAnyOrderElementsOf(expected);
     }
 
-    private static List<Document> readAllBackupOrders(MongoDatabase db)
-            throws Exception {
+    private static List<Document> readAllBackupOrders(MongoDatabase db) throws Exception {
         Deadline deadline = Deadline.fromNow(Duration.ofSeconds(20));
         List<Document> backupOrders;
         do {
