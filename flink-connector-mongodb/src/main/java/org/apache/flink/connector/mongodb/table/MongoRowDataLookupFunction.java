@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.project;
-import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A lookup function for {@link MongoDynamicTableSource}. */
@@ -90,15 +89,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
         this.keyNames = keyNames;
         LogicalType[] keyTypes =
                 this.keyNames.stream()
-                        .map(
-                                s -> {
-                                    checkArgument(
-                                            fieldNames.contains(s),
-                                            "keyName %s can't find in fieldNames %s.",
-                                            s,
-                                            fieldNames);
-                                    return fieldTypes.get(fieldNames.indexOf(s)).getLogicalType();
-                                })
+                        .map(s -> fieldTypes.get(fieldNames.indexOf(s)).getLogicalType())
                         .toArray(LogicalType[]::new);
 
         this.lookupKeyRowConverter =
