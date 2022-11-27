@@ -22,13 +22,12 @@ import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumState
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.Collection;
 import java.util.Optional;
 
 /** The split assigner for {@link MongoSourceSplit}. */
 @Internal
-public interface MongoSplitAssigner extends Serializable {
+public interface MongoSplitAssigner {
 
     /**
      * Called to open the assigner to acquire any resources, like threads or network connections.
