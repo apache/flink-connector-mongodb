@@ -48,6 +48,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -65,6 +66,8 @@ class MongoE2ECase {
 
     private static final Path SQL_CONNECTOR_MONGODB_JAR =
             ResourceTestUtils.getResource(".*mongodb.jar");
+
+    private static final int TEST_ORDERS_COUNT = 5;
 
     @Container
     static final MongoDBContainer MONGO_CONTAINER =
@@ -91,7 +94,7 @@ class MongoE2ECase {
     private static MongoClient mongoClient;
 
     @BeforeAll
-    static void setUp() throws Exception {
+    static void setUp() {
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
     }
 
@@ -103,39 +106,58 @@ class MongoE2ECase {
     }
 
     @Test
-    public void testTableApiSourceAndSink() throws Exception {
-        MongoDatabase db = mongoClient.getDatabase("test");
+    public void testUpsertSink() throws Exception {
+        MongoDatabase db = mongoClient.getDatabase("test_upsert");
 
         int ordersCount = 5;
-        List<Document> orders = mockOrders(ordersCount);
+        List<Document> orders = mockOrders();
         db.getCollection("orders").insertMany(orders);
 
-        executeSqlStatements(readSqlFile("mongo_e2e.sql"));
+        executeSqlStatements(readSqlFile("e2e_upsert.sql"));
 
-        List<Document> ordersBackup = readAllBackupOrders(db, ordersCount);
+        List<Document> ordersBackup = readAllBackupOrders(db);
 
         assertThat(ordersBackup).containsExactlyInAnyOrderElementsOf(orders);
     }
 
-    private static List<Document> readAllBackupOrders(MongoDatabase db, int expect)
+    @Test
+    public void testAppendOnlySink() throws Exception {
+        MongoDatabase db = mongoClient.getDatabase("test_append_only");
+
+        List<Document> orders = mockOrders();
+        db.getCollection("orders").insertMany(orders);
+
+        executeSqlStatements(readSqlFile("e2e_append_only.sql"));
+
+        List<Document> ordersBackup = readAllBackupOrders(db);
+
+        List<Document> expected = removeIdField(orders);
+        assertThat(removeIdField(ordersBackup)).containsExactlyInAnyOrderElementsOf(expected);
+    }
+
+    private static List<Document> readAllBackupOrders(MongoDatabase db)
             throws Exception {
         Deadline deadline = Deadline.fromNow(Duration.ofSeconds(20));
         List<Document> backupOrders;
         do {
             Thread.sleep(1000);
             backupOrders = db.getCollection("orders_bak").find().into(new ArrayList<>());
-        } while (deadline.hasTimeLeft() && backupOrders.size() < expect);
+        } while (deadline.hasTimeLeft() && backupOrders.size() < TEST_ORDERS_COUNT);
 
         return backupOrders;
     }
 
-    private static List<Document> mockOrders(int ordersCount) {
+    private static List<Document> removeIdField(List<Document> documents) {
+        return documents.stream().peek(doc -> doc.remove("_id")).collect(Collectors.toList());
+    }
+
+    private static List<Document> mockOrders() {
         List<Document> orders = new ArrayList<>();
-        for (int i = 1; i <= ordersCount; i++) {
+        for (int i = 1; i <= TEST_ORDERS_COUNT; i++) {
             orders.add(
                     new Document("_id", new ObjectId())
                             .append("code", "ORDER_" + i)
-                            .append("quantity", ordersCount * 10L));
+                            .append("quantity", i * 10L));
         }
         return orders;
     }

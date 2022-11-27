@@ -16,6 +16,9 @@
 -- * limitations under the License.
 -- */
 
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS orders_bak;
+
 CREATE TABLE orders (
   `_id` STRING,
   `code` STRING,
@@ -24,20 +27,18 @@ CREATE TABLE orders (
 ) WITH (
   'connector' = 'mongodb',
   'uri' = 'mongodb://mongodb:27017',
-  'database' = 'test',
+  'database' = 'test_append_only',
   'collection' = 'orders'
 );
 
 CREATE TABLE orders_bak (
-  `_id` STRING,
   `code` STRING,
-  `quantity` BIGINT,
-  PRIMARY KEY (_id) NOT ENFORCED
+  `quantity` BIGINT
 ) WITH (
   'connector' = 'mongodb',
   'uri' = 'mongodb://mongodb:27017',
-  'database' = 'test',
+  'database' = 'test_append_only',
   'collection' = 'orders_bak'
 );
 
-INSERT INTO orders_bak SELECT * FROM orders;
+INSERT INTO orders_bak SELECT `code`, `quantity` FROM orders;
