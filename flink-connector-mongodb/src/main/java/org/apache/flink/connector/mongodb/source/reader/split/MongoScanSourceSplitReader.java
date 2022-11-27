@@ -109,7 +109,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
         } finally {
             if (finished) {
                 currentSplit = null;
-                releaseCursor();
+                closeCursor();
             }
         }
     }
@@ -138,13 +138,16 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
     }
 
     @Override
-    public void wakeUp() {}
+    public void wakeUp() {
+        // Close current cursor to cancel blocked hasNext(), next().
+        closeCursor();
+    }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         if (!closed) {
             closed = true;
-            releaseCursor();
+            closeCursor();
         }
     }
 
@@ -183,7 +186,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
         return currentCursor;
     }
 
-    private void releaseCursor() {
+    private void closeCursor() {
         if (currentCursor != null) {
             LOG.debug("Closing cursor for split: {}", currentSplit);
             try {
