@@ -50,6 +50,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGODB_HOSTNAME;
+import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** End-to-end test for the MongoDB connectors. */
@@ -57,10 +59,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoE2ECase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoE2ECase.class);
-
-    private static final String MONGODB_HOSTNAME = "mongodb";
-
-    private static final String MONGO_4_0 = "mongo:4.0.10";
 
     private static final Network NETWORK = Network.newNetwork();
 

@@ -36,7 +36,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Internal
 public class MongoTestUtil {
 
-    private static final String MONGO_4_0 = "mongo:4.0.10";
+    public static final String MONGODB_HOSTNAME = "mongodb";
+
+    public static final String MONGO_4_0 = "mongo:4.0.10";
 
     private MongoTestUtil() {}
 
