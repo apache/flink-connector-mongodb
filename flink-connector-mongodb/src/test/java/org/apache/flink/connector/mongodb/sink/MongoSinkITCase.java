@@ -25,7 +25,6 @@ import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 
@@ -47,8 +46,6 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-
-import javax.annotation.Nullable;
 
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -93,10 +90,18 @@ public class MongoSinkITCase {
     @EnumSource(DeliveryGuarantee.class)
     void testWriteToMongoWithDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)
             throws Exception {
-        final String index = "test-sink-with-delivery-" + deliveryGuarantee;
+        final String collection = "test-sink-with-delivery-" + deliveryGuarantee;
         boolean failure = false;
         try {
-            runTest(index, false, deliveryGuarantee, null);
+            final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
+            final StreamExecutionEnvironment env =
+                    StreamExecutionEnvironment.getExecutionEnvironment();
+            env.enableCheckpointing(100L);
+            env.setRestartStrategy(RestartStrategies.noRestart());
+
+            env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
+            env.execute();
+            assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
         } catch (IllegalArgumentException e) {
             failure = true;
             assertThat(deliveryGuarantee).isSameAs(DeliveryGuarantee.EXACTLY_ONCE);
@@ -107,50 +112,29 @@ public class MongoSinkITCase {
 
     @Test
     void testRecovery() throws Exception {
-        final String index = "test-recovery-mongo-sink";
-        runTest(index, true, new FailingMapper());
-        assertThat(failed).isTrue();
-    }
-
-    private void runTest(
-            String collection,
-            boolean allowRestarts,
-            @Nullable MapFunction<Long, Long> additionalMapper)
-            throws Exception {
-        runTest(collection, allowRestarts, DeliveryGuarantee.AT_LEAST_ONCE, additionalMapper);
-    }
-
-    private void runTest(
-            String collection,
-            boolean allowRestarts,
-            DeliveryGuarantee deliveryGuarantee,
-            @Nullable MapFunction<Long, Long> additionalMapper)
-            throws Exception {
-
-        final MongoSink<Document> sink =
-                MongoSink.<Document>builder()
-                        .setUri(MONGO_CONTAINER.getConnectionString())
-                        .setDatabase(TEST_DATABASE)
-                        .setCollection(collection)
-                        .setBatchSize(5)
-                        .setDeliveryGuarantee(deliveryGuarantee)
-                        .setSerializationSchema(new AppendOnlySerializationSchema())
-                        .build();
+        final String collection = "test-recovery-mongo-sink";
+        final MongoSink<Document> sink = createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE);
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(100L);
-        if (!allowRestarts) {
-            env.setRestartStrategy(RestartStrategies.noRestart());
-        }
-        DataStream<Long> stream = env.fromSequence(1, 5);
 
-        if (additionalMapper != null) {
-            stream = stream.map(additionalMapper);
-        }
+        env.fromSequence(1, 5).map(new FailingMapper()).map(new TestMapFunction()).sinkTo(sink);
 
-        stream.map(new TestMapFunction()).sinkTo(sink);
         env.execute();
         assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+        assertThat(failed).isTrue();
+    }
+
+    private static MongoSink<Document> createSink(
+            String collection, DeliveryGuarantee deliveryGuarantee) {
+        return MongoSink.<Document>builder()
+                .setUri(MONGO_CONTAINER.getConnectionString())
+                .setDatabase(TEST_DATABASE)
+                .setCollection(collection)
+                .setBatchSize(5)
+                .setDeliveryGuarantee(deliveryGuarantee)
+                .setSerializationSchema(new AppendOnlySerializationSchema())
+                .build();
     }
 
     private static MongoCollection<Document> collectionOf(String collection) {
