@@ -82,7 +82,13 @@ public class MongoConnectorOptions {
                     .enumType(PartitionStrategy.class)
                     .defaultValue(PartitionStrategy.DEFAULT)
                     .withDescription(
-                            "Specifies the partition strategy. Available strategies are single, sample, split-vector, sharded and default.");
+                            "Specifies the partition strategy. Available strategies are single, sample, split-vector, sharded and default."
+                                    + "The single partition strategy treats the entire collection as a single partition."
+                                    + "The sample partition strategy samples the collection and generate partitions which is fast but possibly uneven."
+                                    + "The split-vector partition strategy uses the splitVector command to generate partitions which is fast and even. The splitVector permission is required."
+                                    + "The sharded partition strategy reads config.chunks (MongoDB splits a sharded collection into chunks, and the range of the chunks are stored within the collection) as the partitions directly."
+                                    + "The sharded partition strategy is only used for sharded collection which is fast and even. Read permission of config database is required."
+                                    + "The default partition strategy uses sharded strategy for sharded collections otherwise using split vector strategy.");
 
     public static final ConfigOption<MemorySize> SCAN_PARTITION_SIZE =
             ConfigOptions.key("scan.partition.size")
