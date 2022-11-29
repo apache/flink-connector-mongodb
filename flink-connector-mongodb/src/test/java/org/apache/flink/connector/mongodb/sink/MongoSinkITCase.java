@@ -27,6 +27,8 @@ import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializat
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.junit5.MiniClusterExtension;
+import org.apache.flink.testutils.junit.SharedObjectsExtension;
+import org.apache.flink.testutils.junit.SharedReference;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -46,6 +48,8 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -67,15 +71,14 @@ public class MongoSinkITCase {
                             .setNumberTaskManagers(1)
                             .build());
 
-    private static final String TEST_DATABASE = "test_sink";
+    @RegisterExtension final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
 
-    private static boolean failed;
+    private static final String TEST_DATABASE = "test_sink";
 
     private static MongoClient mongoClient;
 
     @BeforeAll
     static void setUp() {
-        failed = false;
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
     }
 
@@ -118,11 +121,16 @@ public class MongoSinkITCase {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(100L);
 
-        env.fromSequence(1, 5).map(new FailingMapper()).map(new TestMapFunction()).sinkTo(sink);
+        final SharedReference<AtomicBoolean> failed = sharedObjects.add(new AtomicBoolean(false));
+
+        env.fromSequence(1, 5)
+                .map(new FailingMapper(failed))
+                .map(new TestMapFunction())
+                .sinkTo(sink);
 
         env.execute();
         assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
-        assertThat(failed).isTrue();
+        assertThat(failed.get()).isTrue();
     }
 
     private static MongoSink<Document> createSink(
@@ -162,7 +170,12 @@ public class MongoSinkITCase {
 
     private static class FailingMapper implements MapFunction<Long, Long>, CheckpointListener {
 
+        private final SharedReference<AtomicBoolean> failed;
         private int emittedRecords = 0;
+
+        private FailingMapper(SharedReference<AtomicBoolean> failed) {
+            this.failed = failed;
+        }
 
         @Override
         public Long map(Long value) throws Exception {
@@ -173,10 +186,10 @@ public class MongoSinkITCase {
 
         @Override
         public void notifyCheckpointComplete(long checkpointId) throws Exception {
-            if (failed || emittedRecords == 0) {
+            if (failed.get().get() || emittedRecords == 0) {
                 return;
             }
-            failed = true;
+            failed.get().set(true);
             throw new Exception("Expected failure");
         }
     }
