@@ -76,11 +76,16 @@ public class MongoSampleSplitter {
         int samplesPerPartition = readOptions.getSamplesPerPartition();
 
         long avgObjSizeInBytes = splitContext.getAvgObjSize();
-        long numDocumentsPerPartition = partitionSizeInBytes / avgObjSizeInBytes;
+        if (avgObjSizeInBytes == 0L) {
+            LOG.info(
+                    "{} seems to be an empty collection, Returning a single partition.", namespace);
+            return MongoSingleSplitter.INSTANCE.split(splitContext);
+        }
 
+        long numDocumentsPerPartition = partitionSizeInBytes / avgObjSizeInBytes;
         if (numDocumentsPerPartition >= count) {
             LOG.info(
-                    "Fewer documents ({}) than the number of documents per partition ({}), fallback a SingleSplitter.",
+                    "Fewer documents ({}) than the number of documents per partition ({}), Returning a single partition.",
                     count,
                     numDocumentsPerPartition);
             return MongoSingleSplitter.INSTANCE.split(splitContext);
