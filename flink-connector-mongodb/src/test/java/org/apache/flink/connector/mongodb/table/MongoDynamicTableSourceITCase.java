@@ -27,6 +27,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
+import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
 import org.apache.flink.table.data.GenericRowData;
 import org.apache.flink.table.data.RowData;
@@ -202,11 +203,11 @@ public class MongoDynamicTableSourceITCase {
         // Create MongoDB lookup table
         Map<String, String> lookupOptions = new HashMap<>();
         if (caching.equals(Caching.ENABLE_CACHE)) {
-            lookupOptions.put("lookup.cache", "PARTIAL");
-            lookupOptions.put("lookup.partial-cache.expire-after-write", "10min");
-            lookupOptions.put("lookup.partial-cache.expire-after-access", "10min");
-            lookupOptions.put("lookup.partial-cache.max-rows", "100");
-            lookupOptions.put("lookup.max-retries", "10");
+            lookupOptions.put(LookupOptions.CACHE_TYPE.key(), "PARTIAL");
+            lookupOptions.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE.key(), "10min");
+            lookupOptions.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS.key(), "10min");
+            lookupOptions.put(LookupOptions.PARTIAL_CACHE_MAX_ROWS.key(), "100");
+            lookupOptions.put(LookupOptions.MAX_RETRIES.key(), "10");
         }
 
         tEnv.executeSql(createTestDDl(lookupOptions));
