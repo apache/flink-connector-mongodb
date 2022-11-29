@@ -29,8 +29,8 @@ import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.context.DefaultMongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
+import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
-import org.apache.flink.runtime.operators.util.metrics.CountingCollector;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.FlinkRuntimeException;
 
@@ -66,6 +66,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     private final boolean flushOnCheckpoint;
     private final List<WriteModel<BsonDocument>> bulkRequests = new ArrayList<>();
     private final Collector<WriteModel<BsonDocument>> collector;
+    private final Counter numRecordsOut;
     private final MongoClient mongoClient;
 
     private boolean checkpointInProgress = false;
@@ -89,10 +90,8 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         SinkWriterMetricGroup metricGroup = checkNotNull(initContext.metricGroup());
         metricGroup.setCurrentSendTimeGauge(() -> ackTime - lastSendTime);
 
-        this.collector =
-                new CountingCollector<>(
-                        new ListCollector<>(this.bulkRequests),
-                        metricGroup.getNumRecordsSendCounter());
+        this.numRecordsOut = metricGroup.getNumRecordsSendCounter();
+        this.collector = new ListCollector<>(this.bulkRequests);
 
         // Initialize the serialization schema.
         this.sinkContext = new DefaultMongoSinkContext(initContext, writeOptions);
@@ -114,7 +113,9 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         while (checkpointInProgress) {
             mailboxExecutor.yield();
         }
-        collector.collect(serializationSchema.serialize(element, sinkContext));
+        WriteModel<BsonDocument> writeModel = serializationSchema.serialize(element, sinkContext);
+        numRecordsOut.inc();
+        collector.collect(writeModel);
         if (isOverMaxBatchSizeLimit() || isOverMaxBatchIntervalLimit()) {
             doBulkWrite();
         }
