@@ -23,7 +23,23 @@ import org.apache.flink.configuration.description.InlineElement;
 
 import static org.apache.flink.configuration.description.TextElement.text;
 
-/** MongoSplitStrategy that can be chosen. */
+/**
+ * Partition strategies that can be chosen. Available strategies are single, sample, split-vector,
+ * sharded and default.
+ *
+ * <ul>
+ *   <li>single: treats the entire collection as a single partition.
+ *   <li>sample: samples the collection and generate partitions which is fast but possibly uneven.
+ *   <li>split-vector: uses the splitVector command to generate partitions which is fast and even.
+ *       The splitVector permission is required.
+ *   <li>sharded: reads config.chunks (MongoDB splits a sharded collection into chunks, and the
+ *       range of the chunks are stored within the collection) as the partitions directly. The
+ *       sharded strategy only used for sharded collection which is fast and even. Read permission
+ *       of config database is required.
+ *   <li>default: uses sharded strategy for sharded collections otherwise using split vector
+ *       strategy.
+ * </ul>
+ */
 @PublicEvolving
 public enum PartitionStrategy implements DescribedEnum {
     SINGLE("single", text("Do not split, treat a collection as a single chunk.")),
