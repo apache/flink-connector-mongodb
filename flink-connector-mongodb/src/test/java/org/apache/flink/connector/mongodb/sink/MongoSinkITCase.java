@@ -21,9 +21,9 @@ import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.state.CheckpointListener;
 import org.apache.flink.connector.base.DeliveryGuarantee;
-import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
+import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.junit5.MiniClusterExtension;
@@ -51,7 +51,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for {@link MongoSink}. */

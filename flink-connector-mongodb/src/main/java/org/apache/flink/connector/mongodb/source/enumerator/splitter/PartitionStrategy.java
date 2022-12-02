@@ -30,8 +30,8 @@ import static org.apache.flink.configuration.description.TextElement.text;
  * <ul>
  *   <li>single: treats the entire collection as a single partition.
  *   <li>sample: samples the collection and generate partitions which is fast but possibly uneven.
- *   <li>split-vector: uses the splitVector command to generate partitions which is fast and even.
- *       The splitVector permission is required.
+ *   <li>split-vector: uses the splitVector command to generate partitions for non-sharded
+ *       collections which is fast and even. The splitVector permission is required.
  *   <li>sharded: reads config.chunks (MongoDB splits a sharded collection into chunks, and the
  *       range of the chunks are stored within the collection) as the partitions directly. The
  *       sharded strategy only used for sharded collection which is fast and even. Read permission
@@ -48,7 +48,7 @@ public enum PartitionStrategy implements DescribedEnum {
 
     SPLIT_VECTOR(
             "split-vector",
-            text("Uses the SplitVector command to generate chunks for a collection.")),
+            text("Uses the SplitVector command to generate chunks for non-sharded collections.")),
 
     SHARDED(
             "sharded",

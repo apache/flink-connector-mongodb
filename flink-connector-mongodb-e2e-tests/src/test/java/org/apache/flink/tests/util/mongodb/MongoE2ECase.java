@@ -50,8 +50,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGODB_HOSTNAME;
-import static org.apache.flink.connector.mongodb.MongoTestUtil.MONGO_4_0;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGODB_HOSTNAME;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGO_4_0;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** End-to-end test for the MongoDB connectors. */

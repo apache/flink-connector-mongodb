@@ -63,6 +63,10 @@ public class MongoSplitVectorSplitter {
     private MongoSplitVectorSplitter() {}
 
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+        if (splitContext.isSharded()) {
+            throw new FlinkRuntimeException("splitVector does not apply to sharded collections.");
+        }
+
         MongoClient mongoClient = splitContext.getMongoClient();
         MongoNamespace namespace = splitContext.getMongoNamespace();
         MongoReadOptions readOptions = splitContext.getReadOptions();

@@ -21,7 +21,7 @@ package org.apache.flink.connector.mongodb.table;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
-import org.apache.flink.connector.mongodb.MongoTestUtil;
+import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;

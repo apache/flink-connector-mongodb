@@ -21,11 +21,11 @@ import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.operators.ProcessingTimeService;
 import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink2.Sink;
-import org.apache.flink.connector.mongodb.MongoTestUtil;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
+import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Gauge;
 import org.apache.flink.metrics.MetricGroup;
@@ -65,8 +65,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.Optional;
 import java.util.OptionalLong;
 
-import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreNotWritten;
-import static org.apache.flink.connector.mongodb.MongoTestUtil.assertThatIdsAreWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Tests for {@link MongoWriter}. */
