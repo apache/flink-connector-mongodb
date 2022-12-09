@@ -25,7 +25,6 @@ import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataDeserializationSchema;
 import org.apache.flink.table.connector.ChangelogMode;
-import org.apache.flink.table.connector.Projection;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.LookupTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
@@ -63,7 +62,7 @@ public class MongoDynamicTableSource
     @Nullable private final LookupCache lookupCache;
     private final int lookupMaxRetries;
     private final long lookupRetryIntervalMs;
-    private DataType physicalRowDataType;
+    private DataType producedDataType;
     private int limit = -1;
 
     public MongoDynamicTableSource(
@@ -72,7 +71,7 @@ public class MongoDynamicTableSource
             @Nullable LookupCache lookupCache,
             int lookupMaxRetries,
             long lookupRetryIntervalMs,
-            DataType physicalRowDataType) {
+            DataType producedDataType) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.lookupCache = lookupCache;
@@ -86,7 +85,7 @@ public class MongoDynamicTableSource
                 String.format("The '%s' must be larger than 0.", LOOKUP_RETRY_INTERVAL.key()));
         this.lookupMaxRetries = lookupMaxRetries;
         this.lookupRetryIntervalMs = lookupRetryIntervalMs;
-        this.physicalRowDataType = physicalRowDataType;
+        this.producedDataType = producedDataType;
     }
 
     @Override
@@ -95,17 +94,17 @@ public class MongoDynamicTableSource
         for (int[] innerKeyArr : context.getKeys()) {
             Preconditions.checkArgument(
                     innerKeyArr.length == 1, "MongoDB only support non-nested look up keys yet");
-            keyNames.add(DataType.getFieldNames(physicalRowDataType).get(innerKeyArr[0]));
+            keyNames.add(DataType.getFieldNames(producedDataType).get(innerKeyArr[0]));
         }
-        final RowType rowType = (RowType) physicalRowDataType.getLogicalType();
+        final RowType rowType = (RowType) producedDataType.getLogicalType();
 
         MongoRowDataLookupFunction lookupFunction =
                 new MongoRowDataLookupFunction(
                         connectionOptions,
                         lookupMaxRetries,
                         lookupRetryIntervalMs,
-                        DataType.getFieldNames(physicalRowDataType),
-                        DataType.getFieldDataTypes(physicalRowDataType),
+                        DataType.getFieldNames(producedDataType),
+                        DataType.getFieldDataTypes(producedDataType),
                         keyNames,
                         rowType);
         if (lookupCache != null) {
@@ -117,9 +116,9 @@ public class MongoDynamicTableSource
 
     @Override
     public ScanRuntimeProvider getScanRuntimeProvider(ScanContext runtimeProviderContext) {
-        final RowType rowType = (RowType) physicalRowDataType.getLogicalType();
+        final RowType rowType = (RowType) producedDataType.getLogicalType();
         final TypeInformation<RowData> typeInfo =
-                runtimeProviderContext.createTypeInformation(physicalRowDataType);
+                runtimeProviderContext.createTypeInformation(producedDataType);
 
         final MongoDeserializationSchema<RowData> deserializationSchema =
                 new MongoRowDataDeserializationSchema(rowType, typeInfo);
@@ -136,7 +135,7 @@ public class MongoDynamicTableSource
                         .setPartitionSize(readOptions.getPartitionSize())
                         .setSamplesPerPartition(readOptions.getSamplesPerPartition())
                         .setLimit(limit)
-                        .setProjectedFields(DataType.getFieldNames(physicalRowDataType))
+                        .setProjectedFields(DataType.getFieldNames(producedDataType))
                         .setDeserializationSchema(deserializationSchema)
                         .build();
 
@@ -156,7 +155,7 @@ public class MongoDynamicTableSource
                 lookupCache,
                 lookupMaxRetries,
                 lookupRetryIntervalMs,
-                physicalRowDataType);
+                producedDataType);
     }
 
     @Override
@@ -177,7 +176,7 @@ public class MongoDynamicTableSource
 
     @Override
     public void applyProjection(int[][] projectedFields, DataType producedDataType) {
-        this.physicalRowDataType = Projection.of(projectedFields).project(physicalRowDataType);
+        this.producedDataType = producedDataType;
     }
 
     @Override
@@ -188,7 +187,7 @@ public class MongoDynamicTableSource
         MongoDynamicTableSource that = (MongoDynamicTableSource) o;
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(readOptions, that.readOptions)
-                && Objects.equals(physicalRowDataType, that.physicalRowDataType)
+                && Objects.equals(producedDataType, that.producedDataType)
                 && Objects.equals(limit, that.limit)
                 && Objects.equals(lookupCache, that.lookupCache)
                 && Objects.equals(lookupMaxRetries, that.lookupMaxRetries)
@@ -200,7 +199,7 @@ public class MongoDynamicTableSource
         return Objects.hash(
                 connectionOptions,
                 readOptions,
-                physicalRowDataType,
+                producedDataType,
                 limit,
                 lookupCache,
                 lookupMaxRetries,
