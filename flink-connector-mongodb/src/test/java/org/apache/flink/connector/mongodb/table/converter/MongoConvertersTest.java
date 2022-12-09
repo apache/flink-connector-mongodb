@@ -231,21 +231,11 @@ public class MongoConvertersTest {
 
     @Test
     public void testConvertBsonToSqlBoolean() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.BOOLEAN()),
-                        DataTypes.FIELD("f1", DataTypes.BOOLEAN()),
-                        DataTypes.FIELD("f2", DataTypes.BOOLEAN()),
-                        DataTypes.FIELD("f3", DataTypes.BOOLEAN()));
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.BOOLEAN()));
 
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(1L))
-                        .append("f3", new BsonString("true"));
+        BsonDocument document = new BsonDocument().append("f0", BsonBoolean.FALSE);
 
-        RowData expect = GenericRowData.of(false, false, true, true);
+        RowData expect = GenericRowData.of(false);
 
         // Test for compatible boolean sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =

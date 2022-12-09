@@ -355,15 +355,6 @@ public class BsonToRowDataConverters {
         if (bsonValue.isBoolean()) {
             return bsonValue.asBoolean().getValue();
         }
-        if (bsonValue.isInt32()) {
-            return bsonValue.asInt32().getValue() == 1;
-        }
-        if (bsonValue.isInt64()) {
-            return bsonValue.asInt64().getValue() == 1L;
-        }
-        if (bsonValue.isString()) {
-            return Boolean.parseBoolean(bsonValue.asString().getValue());
-        }
         throw new IllegalArgumentException(
                 "Unable to convert to boolean from unexpected value '"
                         + bsonValue
