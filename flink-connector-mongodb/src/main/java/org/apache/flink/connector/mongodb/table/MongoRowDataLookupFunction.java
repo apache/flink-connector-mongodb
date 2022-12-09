@@ -84,7 +84,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
         this.maxRetries = maxRetries;
         this.retryIntervalMs = retryIntervalMs;
         this.fieldNames = fieldNames;
-        this.mongoRowConverter = BsonToRowDataConverters.createNullableConverter(rowType);
+        this.mongoRowConverter = BsonToRowDataConverters.createConverter(rowType);
 
         this.keyNames = keyNames;
         LogicalType[] keyTypes =

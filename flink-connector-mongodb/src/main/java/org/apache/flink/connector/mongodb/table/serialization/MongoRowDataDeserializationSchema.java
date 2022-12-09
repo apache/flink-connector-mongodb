@@ -38,7 +38,7 @@ public class MongoRowDataDeserializationSchema implements MongoDeserializationSc
 
     public MongoRowDataDeserializationSchema(RowType rowType, TypeInformation<RowData> typeInfo) {
         this.typeInfo = typeInfo;
-        this.runtimeConverter = BsonToRowDataConverters.createNullableConverter(rowType);
+        this.runtimeConverter = BsonToRowDataConverters.createConverter(rowType);
     }
 
     @Override

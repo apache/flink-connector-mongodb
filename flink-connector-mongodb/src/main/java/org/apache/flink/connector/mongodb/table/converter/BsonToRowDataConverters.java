@@ -36,7 +36,7 @@ import org.bson.BsonBinary;
 import org.bson.BsonBinarySubType;
 import org.bson.BsonDocument;
 import org.bson.BsonRegularExpression;
-import org.bson.BsonUndefined;
+import org.bson.BsonType;
 import org.bson.BsonValue;
 import org.bson.codecs.BsonArrayCodec;
 import org.bson.codecs.EncoderContext;
@@ -83,9 +83,12 @@ public class BsonToRowDataConverters {
     // sql-connector uber jars.
     // --------------------------------------------------------------------------------
 
-    /** Creates a runtime converter which is null safe. */
-    public static BsonToRowDataConverter createNullableConverter(LogicalType type) {
-        return wrapIntoNullableInternalConverter(createConverter(type));
+    public static BsonToRowDataConverter createConverter(LogicalType type) {
+        if (type.isNullable()) {
+            return wrapIntoNullableInternalConverter(createInternalConverter(type));
+        } else {
+            return wrapIntoNonNullableInternalConverter(createInternalConverter(type));
+        }
     }
 
     private static BsonToRowDataConverter wrapIntoNullableInternalConverter(
@@ -95,10 +98,7 @@ public class BsonToRowDataConverters {
 
             @Override
             public Object convert(BsonValue bsonValue) {
-                if (bsonValue == null || bsonValue.isNull() || bsonValue instanceof BsonUndefined) {
-                    return null;
-                }
-                if (bsonValue.isDecimal128() && bsonValue.asDecimal128().getValue().isNaN()) {
+                if (isBsonValueNull(bsonValue) || isBsonDecimalNaN(bsonValue)) {
                     return null;
                 }
                 return bsonToRowDataConverter.convert(bsonValue);
@@ -106,8 +106,37 @@ public class BsonToRowDataConverters {
         };
     }
 
+    private static BsonToRowDataConverter wrapIntoNonNullableInternalConverter(
+            BsonToRowDataConverter bsonToRowDataConverter) {
+        return new BsonToRowDataConverter() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public Object convert(BsonValue bsonValue) {
+                if (isBsonValueNull(bsonValue) || isBsonDecimalNaN(bsonValue)) {
+                    throw new IllegalArgumentException(
+                            "Unable to convert to non-nullable type from unexpected value '"
+                                    + bsonValue
+                                    + "' of type "
+                                    + bsonValue.getBsonType());
+                }
+                return bsonToRowDataConverter.convert(bsonValue);
+            }
+        };
+    }
+
+    private static boolean isBsonValueNull(BsonValue bsonValue) {
+        return bsonValue == null
+                || bsonValue.isNull()
+                || bsonValue.getBsonType() == BsonType.UNDEFINED;
+    }
+
+    private static boolean isBsonDecimalNaN(BsonValue bsonValue) {
+        return bsonValue.isDecimal128() && bsonValue.asDecimal128().getValue().isNaN();
+    }
+
     /** Creates a runtime converter which assuming input object is not null. */
-    private static BsonToRowDataConverter createConverter(LogicalType type) {
+    private static BsonToRowDataConverter createInternalConverter(LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
                 return new BsonToRowDataConverter() {
@@ -250,7 +279,7 @@ public class BsonToRowDataConverters {
         final BsonToRowDataConverter[] fieldConverters =
                 rowType.getFields().stream()
                         .map(RowType.RowField::getType)
-                        .map(BsonToRowDataConverters::createNullableConverter)
+                        .map(BsonToRowDataConverters::createConverter)
                         .toArray(BsonToRowDataConverter[]::new);
         final int arity = rowType.getFieldCount();
         final String[] fieldNames = rowType.getFieldNames().toArray(new String[0]);
@@ -282,8 +311,7 @@ public class BsonToRowDataConverters {
     }
 
     private static BsonToRowDataConverter createArrayConverter(ArrayType arrayType) {
-        final BsonToRowDataConverter elementConverter =
-                createNullableConverter(arrayType.getElementType());
+        final BsonToRowDataConverter elementConverter = createConverter(arrayType.getElementType());
 
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;
@@ -313,7 +341,7 @@ public class BsonToRowDataConverters {
         checkArgument(keyType.supportsInputConversion(String.class));
 
         LogicalType valueType = mapType.getValueType();
-        BsonToRowDataConverter valueConverter = createNullableConverter(valueType);
+        BsonToRowDataConverter valueConverter = createConverter(valueType);
 
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;

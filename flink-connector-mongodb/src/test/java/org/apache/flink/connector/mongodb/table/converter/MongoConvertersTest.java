@@ -38,11 +38,13 @@ import org.bson.BsonInt32;
 import org.bson.BsonInt64;
 import org.bson.BsonJavaScript;
 import org.bson.BsonJavaScriptWithScope;
+import org.bson.BsonNull;
 import org.bson.BsonObjectId;
 import org.bson.BsonRegularExpression;
 import org.bson.BsonString;
 import org.bson.BsonSymbol;
 import org.bson.BsonTimestamp;
+import org.bson.BsonUndefined;
 import org.bson.types.Decimal128;
 import org.bson.types.ObjectId;
 import org.junit.jupiter.api.Test;
@@ -57,6 +59,7 @@ import java.util.regex.Pattern;
 
 import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link BsonToRowDataConverters} and {@link RowDataToBsonConverters}. */
 public class MongoConvertersTest {
@@ -65,30 +68,35 @@ public class MongoConvertersTest {
     public void testConvertBsonToRowData() {
         DataType rowType =
                 DataTypes.ROW(
-                        DataTypes.FIELD("_id", DataTypes.STRING()),
-                        DataTypes.FIELD("f0", DataTypes.STRING()),
-                        DataTypes.FIELD("f1", DataTypes.STRING()),
-                        DataTypes.FIELD("f2", DataTypes.INT()),
-                        DataTypes.FIELD("f3", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f4", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f5", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f6", DataTypes.BOOLEAN()),
-                        DataTypes.FIELD("f7", DataTypes.TIMESTAMP_LTZ(3)),
-                        DataTypes.FIELD("f8", DataTypes.STRING()),
-                        DataTypes.FIELD("f9", DataTypes.STRING()),
-                        DataTypes.FIELD("f10", DataTypes.STRING()),
-                        DataTypes.FIELD("f11", DataTypes.STRING()),
-                        DataTypes.FIELD("f12", DataTypes.STRING()),
-                        DataTypes.FIELD("f13", DataTypes.STRING()),
+                        DataTypes.FIELD("_id", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f0", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f1", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f2", DataTypes.INT().notNull()),
+                        DataTypes.FIELD("f3", DataTypes.BIGINT().notNull()),
+                        DataTypes.FIELD("f4", DataTypes.DOUBLE().notNull()),
+                        DataTypes.FIELD("f5", DataTypes.DECIMAL(10, 2).notNull()),
+                        DataTypes.FIELD("f6", DataTypes.BOOLEAN().notNull()),
+                        DataTypes.FIELD("f7", DataTypes.TIMESTAMP_LTZ(3).notNull()),
+                        DataTypes.FIELD("f8", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f9", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f10", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f11", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f12", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f13", DataTypes.STRING().notNull()),
                         DataTypes.FIELD(
                                 "f14", DataTypes.ROW(DataTypes.FIELD("f14_k", DataTypes.BIGINT()))),
-                        DataTypes.FIELD("f15", DataTypes.STRING()),
+                        DataTypes.FIELD("f15", DataTypes.STRING().notNull()),
                         DataTypes.FIELD(
                                 "f16",
                                 DataTypes.ARRAY(
-                                        DataTypes.ROW(
-                                                DataTypes.FIELD("f16_k", DataTypes.FLOAT())))),
-                        DataTypes.FIELD("f17", DataTypes.STRING()));
+                                                DataTypes.ROW(
+                                                        DataTypes.FIELD(
+                                                                "f16_k", DataTypes.FLOAT())))
+                                        .notNull()),
+                        DataTypes.FIELD("f17", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f18", DataTypes.NULL()),
+                        DataTypes.FIELD("f19", DataTypes.NULL()),
+                        DataTypes.FIELD("f20", DataTypes.DECIMAL(10, 2).nullable()));
 
         ObjectId oid = new ObjectId();
         UUID uuid = UUID.randomUUID();
@@ -129,7 +137,10 @@ public class MongoConvertersTest {
                                 new BsonArray(
                                         Arrays.asList(
                                                 new BsonDocument("f17_k", new BsonDouble(17.1d)),
-                                                new BsonDocument("f17_k", new BsonDouble(17.2d)))));
+                                                new BsonDocument("f17_k", new BsonDouble(17.2d)))))
+                        .append("f18", new BsonNull())
+                        .append("f19", new BsonUndefined())
+                        .append("f20", new BsonDecimal128(Decimal128.NaN));
 
         RowData expect =
                 GenericRowData.of(
@@ -159,13 +170,30 @@ public class MongoConvertersTest {
                                     GenericRowData.of((float) 16.1d),
                                     GenericRowData.of((float) 16.2d)
                                 }),
-                        StringData.fromString("[{\"f17_k\": 17.1}, {\"f17_k\": 17.2}]"));
+                        StringData.fromString("[{\"f17_k\": 17.1}, {\"f17_k\": 17.2}]"),
+                        null,
+                        null,
+                        null);
 
         // Test convert Bson to RowData
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(docWithFullTypes);
         assertThat(actual).isEqualTo(expect);
+    }
+
+    @Test
+    public void testConvertBsonToNonNullableConstraints() {
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.STRING().notNull()));
+
+        BsonDocument docWithNullValue = new BsonDocument("f0", new BsonNull());
+
+        BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+
+        assertThatThrownBy(() -> bsonToRowDataConverter.convert(docWithNullValue))
+                .hasStackTraceContaining(
+                        "Unable to convert to non-nullable type from unexpected value 'BsonNull' of type NULL");
     }
 
     @Test
@@ -196,7 +224,7 @@ public class MongoConvertersTest {
 
         // Test for compatible bson number and boolean to string sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -221,7 +249,7 @@ public class MongoConvertersTest {
 
         // Test for compatible boolean sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -246,7 +274,7 @@ public class MongoConvertersTest {
 
         // Test for compatible tinyint sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -271,7 +299,7 @@ public class MongoConvertersTest {
 
         // Test for compatible smallint sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -315,7 +343,7 @@ public class MongoConvertersTest {
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -359,7 +387,7 @@ public class MongoConvertersTest {
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -388,7 +416,7 @@ public class MongoConvertersTest {
 
         // Test for compatible double sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -417,7 +445,7 @@ public class MongoConvertersTest {
 
         // Test for compatible float sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -450,7 +478,7 @@ public class MongoConvertersTest {
 
         // Test for compatible float sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -495,7 +523,7 @@ public class MongoConvertersTest {
 
         // Test for compatible decimal sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createNullableConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
