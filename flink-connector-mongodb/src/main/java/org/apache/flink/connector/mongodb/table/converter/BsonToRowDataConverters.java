@@ -31,32 +31,22 @@ import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.table.types.logical.RowType;
 
-import com.mongodb.internal.HexUtils;
-import org.bson.BsonBinary;
-import org.bson.BsonBinarySubType;
 import org.bson.BsonDocument;
-import org.bson.BsonRegularExpression;
 import org.bson.BsonType;
 import org.bson.BsonValue;
-import org.bson.codecs.BsonArrayCodec;
-import org.bson.codecs.EncoderContext;
-import org.bson.json.JsonWriter;
 import org.bson.types.Decimal128;
 
 import java.io.Serializable;
-import java.io.StringWriter;
-import java.io.Writer;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ENCODE_VALUE_FIELD;
 import static org.apache.flink.util.Preconditions.checkArgument;
 
 /** Tool class used to convert from {@link BsonValue} to {@link RowData}. * */
@@ -410,84 +400,10 @@ public class BsonToRowDataConverters {
         if (bsonValue.isString()) {
             return bsonValue.asString().getValue();
         }
-        if (bsonValue.isBinary()) {
-            BsonBinary bsonBinary = bsonValue.asBinary();
-            if (BsonBinarySubType.isUuid(bsonBinary.getType())) {
-                return bsonBinary.asUuid().toString();
-            }
-            return HexUtils.toHex(bsonBinary.getData());
-        }
         if (bsonValue.isObjectId()) {
             return bsonValue.asObjectId().getValue().toHexString();
         }
-        if (bsonValue.isInt32()) {
-            return String.valueOf(bsonValue.asInt32().getValue());
-        }
-        if (bsonValue.isInt64()) {
-            return String.valueOf(bsonValue.asInt64().getValue());
-        }
-        if (bsonValue.isDouble()) {
-            return String.valueOf(bsonValue.asDouble().getValue());
-        }
-        if (bsonValue.isDecimal128()) {
-            return bsonValue.asDecimal128().getValue().toString();
-        }
-        if (bsonValue.isBoolean()) {
-            return String.valueOf(bsonValue.asBoolean().getValue());
-        }
-        if (bsonValue.isDateTime() || bsonValue.isTimestamp()) {
-            Instant instant = convertToInstant(bsonValue);
-            return OffsetDateTime.ofInstant(instant, ZoneOffset.UTC).format(ISO_OFFSET_DATE_TIME);
-        }
-        if (bsonValue.isRegularExpression()) {
-            BsonRegularExpression regex = bsonValue.asRegularExpression();
-            return String.format("/%s/%s", regex.getPattern(), regex.getOptions());
-        }
-        if (bsonValue.isJavaScript()) {
-            return bsonValue.asJavaScript().getCode();
-        }
-        if (bsonValue.isJavaScriptWithScope()) {
-            return bsonValue.asJavaScriptWithScope().getCode();
-        }
-        if (bsonValue.isSymbol()) {
-            return bsonValue.asSymbol().getSymbol();
-        }
-        if (bsonValue.isDBPointer()) {
-            return bsonValue.asDBPointer().getId().toHexString();
-        }
-        if (bsonValue.isDocument()) {
-            // convert document to json string
-            return bsonValue.asDocument().toJson();
-        }
-        if (bsonValue.isArray()) {
-            // convert bson array to json string
-            Writer writer = new StringWriter();
-            JsonWriter jsonArrayWriter =
-                    new JsonWriter(writer) {
-                        private static final long serialVersionUID = 1L;
-
-                        @Override
-                        public void writeStartArray() {
-                            doWriteStartArray();
-                            setState(State.VALUE);
-                        }
-
-                        @Override
-                        public void writeEndArray() {
-                            doWriteEndArray();
-                            setState(getNextState());
-                        }
-                    };
-
-            new BsonArrayCodec()
-                    .encode(jsonArrayWriter, bsonValue.asArray(), EncoderContext.builder().build());
-            return writer.toString();
-        }
-        throw new IllegalArgumentException(
-                "Unable to convert to string from unexpected value '"
-                        + bsonValue
-                        + "' of type "
-                        + bsonValue.getBsonType());
+        return new BsonDocument(ENCODE_VALUE_FIELD, bsonValue).toJson(DEFAULT_JSON_WRITER_SETTINGS);
     }
 
     private static BigDecimal convertToBigDecimal(BsonValue bsonValue) {

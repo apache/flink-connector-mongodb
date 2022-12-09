@@ -24,6 +24,8 @@ import org.bson.BsonInt32;
 import org.bson.BsonMaxKey;
 import org.bson.BsonMinKey;
 import org.bson.BsonValue;
+import org.bson.json.JsonMode;
+import org.bson.json.JsonWriterSettings;
 
 /** Constants for MongoDB. */
 @Internal
@@ -31,7 +33,7 @@ public class MongoConstants {
 
     public static final String ID_FIELD = "_id";
 
-    public static final String VALUE_FIELD = "value";
+    public static final String ENCODE_VALUE_FIELD = "_value";
 
     public static final String NAMESPACE_FIELD = "ns";
 
@@ -62,6 +64,9 @@ public class MongoConstants {
     public static final BsonValue BSON_MAX_KEY = new BsonMaxKey();
 
     public static final BsonDocument ID_HINT = new BsonDocument(ID_FIELD, new BsonInt32(1));
+
+    public static final JsonWriterSettings DEFAULT_JSON_WRITER_SETTINGS =
+            JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build();
 
     private MongoConstants() {}
 }
