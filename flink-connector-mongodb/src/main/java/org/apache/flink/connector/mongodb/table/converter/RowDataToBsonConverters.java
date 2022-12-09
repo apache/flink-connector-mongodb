@@ -120,24 +120,6 @@ public class RowDataToBsonConverters {
                         return new BsonBoolean((boolean) value);
                     }
                 };
-            case TINYINT:
-                return new RowDataToBsonConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public BsonValue convert(Object value) {
-                        return new BsonInt32(((Byte) value).intValue());
-                    }
-                };
-            case SMALLINT:
-                return new RowDataToBsonConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public BsonValue convert(Object value) {
-                        return new BsonInt32(((Short) value).intValue());
-                    }
-                };
             case INTEGER:
             case INTERVAL_YEAR_MONTH:
                 return new RowDataToBsonConverter() {
@@ -156,15 +138,6 @@ public class RowDataToBsonConverters {
                     @Override
                     public BsonValue convert(Object value) {
                         return new BsonInt64((long) value);
-                    }
-                };
-            case FLOAT:
-                return new RowDataToBsonConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public BsonValue convert(Object value) {
-                        return new BsonDouble(Float.valueOf((float) value).doubleValue());
                     }
                 };
             case DOUBLE:

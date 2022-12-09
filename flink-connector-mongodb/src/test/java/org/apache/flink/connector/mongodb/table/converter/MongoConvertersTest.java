@@ -84,14 +84,14 @@ public class MongoConvertersTest {
                         DataTypes.FIELD("f12", DataTypes.STRING().notNull()),
                         DataTypes.FIELD("f13", DataTypes.STRING().notNull()),
                         DataTypes.FIELD(
-                                "f14", DataTypes.ROW(DataTypes.FIELD("f14_k", DataTypes.BIGINT()))),
+                                "f14", DataTypes.ROW(DataTypes.FIELD("f14_k", DataTypes.INT()))),
                         DataTypes.FIELD("f15", DataTypes.STRING().notNull()),
                         DataTypes.FIELD(
                                 "f16",
                                 DataTypes.ARRAY(
                                                 DataTypes.ROW(
                                                         DataTypes.FIELD(
-                                                                "f16_k", DataTypes.FLOAT())))
+                                                                "f16_k", DataTypes.DOUBLE())))
                                         .notNull()),
                         DataTypes.FIELD("f17", DataTypes.STRING().notNull()),
                         DataTypes.FIELD("f18", DataTypes.NULL()),
@@ -163,13 +163,10 @@ public class MongoConvertersTest {
                         StringData.fromString("function() { return 11; }"),
                         StringData.fromString("12"),
                         StringData.fromString(oid.toHexString()),
-                        GenericRowData.of(14L),
+                        GenericRowData.of(14),
                         StringData.fromString("{\"f15_k\": 15}"),
                         new GenericArrayData(
-                                new RowData[] {
-                                    GenericRowData.of((float) 16.1d),
-                                    GenericRowData.of((float) 16.2d)
-                                }),
+                                new RowData[] {GenericRowData.of(16.1d), GenericRowData.of(16.2d)}),
                         StringData.fromString("[{\"f17_k\": 17.1}, {\"f17_k\": 17.2}]"),
                         null,
                         null,
@@ -233,7 +230,7 @@ public class MongoConvertersTest {
     public void testConvertBsonToSqlBoolean() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.BOOLEAN()));
 
-        BsonDocument document = new BsonDocument().append("f0", BsonBoolean.FALSE);
+        BsonDocument document = new BsonDocument("f0", BsonBoolean.FALSE);
 
         RowData expect = GenericRowData.of(false);
 
@@ -246,90 +243,29 @@ public class MongoConvertersTest {
 
     @Test
     public void testConvertBsonToSqlTinyInt() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.TINYINT()),
-                        DataTypes.FIELD("f1", DataTypes.TINYINT()),
-                        DataTypes.FIELD("f2", DataTypes.TINYINT()),
-                        DataTypes.FIELD("f3", DataTypes.TINYINT()));
-
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonString("127"));
-
-        RowData expect = GenericRowData.of((byte) 0, (byte) -1, (byte) 127L, (byte) 127);
-
-        // Test for compatible tinyint sql type conversions
-        BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual).isEqualTo(expect);
+        assertThatThrownBy(
+                        () ->
+                                BsonToRowDataConverters.createConverter(
+                                        DataTypes.TINYINT().getLogicalType()))
+                .hasStackTraceContaining("Unsupported type: TINYINT");
     }
 
     @Test
     public void testConvertBsonToSqlSmallInt() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.SMALLINT()),
-                        DataTypes.FIELD("f1", DataTypes.SMALLINT()),
-                        DataTypes.FIELD("f2", DataTypes.SMALLINT()),
-                        DataTypes.FIELD("f3", DataTypes.SMALLINT()));
-
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonString("127"));
-
-        RowData expect = GenericRowData.of((short) 0, (short) -1, (short) 127, (short) 127);
-
-        // Test for compatible smallint sql type conversions
-        BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual).isEqualTo(expect);
+        assertThatThrownBy(
+                        () ->
+                                BsonToRowDataConverters.createConverter(
+                                        DataTypes.SMALLINT().getLogicalType()))
+                .hasStackTraceContaining("Unsupported type: SMALLINT");
     }
 
     @Test
     public void testConvertBsonToSqlInt() {
-        Instant now = Instant.now();
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.INT()));
 
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.INT()),
-                        DataTypes.FIELD("f1", DataTypes.INT()),
-                        DataTypes.FIELD("f2", DataTypes.INT()),
-                        DataTypes.FIELD("f3", DataTypes.INT()),
-                        DataTypes.FIELD("f4", DataTypes.INT()),
-                        DataTypes.FIELD("f5", DataTypes.INT()),
-                        DataTypes.FIELD("f6", DataTypes.INT()),
-                        DataTypes.FIELD("f7", DataTypes.INT()));
+        BsonDocument document = new BsonDocument("f0", new BsonInt32(-1));
 
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonDouble(127.11d))
-                        .append("f4", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))))
-                        .append("f5", new BsonString("127"))
-                        .append("f6", new BsonDateTime(now.toEpochMilli()))
-                        .append("f7", new BsonTimestamp((int) now.getEpochSecond(), 0));
-
-        RowData expect =
-                GenericRowData.of(
-                        0,
-                        -1,
-                        127,
-                        127,
-                        127,
-                        127,
-                        (int) now.getEpochSecond(),
-                        (int) now.getEpochSecond());
+        RowData expect = GenericRowData.of(-1);
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
@@ -340,40 +276,11 @@ public class MongoConvertersTest {
 
     @Test
     public void testConvertBsonToSqlBigInt() {
-        Instant now = Instant.now();
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.BIGINT()));
 
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f1", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f2", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f3", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f4", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f5", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f6", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f7", DataTypes.BIGINT()));
+        BsonDocument document = new BsonDocument("f0", new BsonInt64(127L));
 
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonDouble(127.11d))
-                        .append("f4", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))))
-                        .append("f5", new BsonString("127"))
-                        .append("f6", new BsonDateTime(now.toEpochMilli()))
-                        .append("f7", new BsonTimestamp((int) now.getEpochSecond(), 0));
-
-        RowData expect =
-                GenericRowData.of(
-                        0L,
-                        -1L,
-                        127L,
-                        127L,
-                        127L,
-                        127L,
-                        now.toEpochMilli(),
-                        now.getEpochSecond() * 1000L);
+        RowData expect = GenericRowData.of(127L);
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
@@ -384,25 +291,11 @@ public class MongoConvertersTest {
 
     @Test
     public void testConvertBsonToSqlDouble() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f1", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f2", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f3", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f4", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f5", DataTypes.DOUBLE()));
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.DOUBLE()));
 
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonDouble(127.11d))
-                        .append("f4", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))))
-                        .append("f5", new BsonString("127.11"));
+        BsonDocument document = new BsonDocument("f0", new BsonDouble(127.11d));
 
-        RowData expect = GenericRowData.of(0d, -1d, 127d, 127.11d, 127.11d, 127.11d);
+        RowData expect = GenericRowData.of(127.11d);
 
         // Test for compatible double sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
@@ -413,58 +306,23 @@ public class MongoConvertersTest {
 
     @Test
     public void testConvertBsonToSqlFloat() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f1", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f2", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f3", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f4", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f5", DataTypes.FLOAT()));
-
-        BsonDocument document =
-                new BsonDocument()
-                        .append("f0", BsonBoolean.FALSE)
-                        .append("f1", new BsonInt32(-1))
-                        .append("f2", new BsonInt64(127L))
-                        .append("f3", new BsonDouble(127.11d))
-                        .append("f4", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))))
-                        .append("f5", new BsonString("127.11"));
-
-        RowData expect = GenericRowData.of(0f, -1f, 127f, 127.11f, 127.11f, 127.11f);
-
-        // Test for compatible float sql type conversions
-        BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual).isEqualTo(expect);
+        assertThatThrownBy(
+                        () ->
+                                BsonToRowDataConverters.createConverter(
+                                        DataTypes.FLOAT().getLogicalType()))
+                .hasStackTraceContaining("Unsupported type: FLOAT");
     }
 
     @Test
     public void testConvertBsonToSqlDecimal() {
-        DataType rowType =
-                DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f1", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f2", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f3", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f4", DataTypes.DECIMAL(10, 2)));
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.DECIMAL(10, 2)));
 
         BsonDocument document =
                 new BsonDocument()
-                        .append("f0", new BsonInt32(-1))
-                        .append("f1", new BsonInt64(127L))
-                        .append("f2", new BsonDouble(127.11d))
-                        .append("f3", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))))
-                        .append("f4", new BsonString("127.11"));
+                        .append("f0", new BsonDecimal128(new Decimal128(new BigDecimal("127.11"))));
 
         RowData expect =
-                GenericRowData.of(
-                        DecimalData.fromBigDecimal(new BigDecimal("-1"), 10, 2),
-                        DecimalData.fromBigDecimal(new BigDecimal("127"), 10, 2),
-                        DecimalData.fromBigDecimal(new BigDecimal("127.11"), 10, 2),
-                        DecimalData.fromBigDecimal(new BigDecimal("127.11"), 10, 2),
-                        DecimalData.fromBigDecimal(new BigDecimal("127.11"), 10, 2));
+                GenericRowData.of(DecimalData.fromBigDecimal(new BigDecimal("127.11"), 10, 2));
 
         // Test for compatible float sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
@@ -480,42 +338,19 @@ public class MongoConvertersTest {
 
         DataType rowType =
                 DataTypes.ROW(
-                        DataTypes.FIELD("f0", DataTypes.INT()),
-                        DataTypes.FIELD("f1", DataTypes.INT()),
-                        DataTypes.FIELD("f2", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f3", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f4", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f5", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f6", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f7", DataTypes.FLOAT()));
+                        DataTypes.FIELD("f0", DataTypes.DECIMAL(10, 2)),
+                        DataTypes.FIELD("f1", DataTypes.DECIMAL(10, 2)));
 
         BsonDocument document =
-                new BsonDocument()
-                        .append("f0", positiveInfinity)
-                        .append("f1", negativeInfinity)
-                        .append("f2", positiveInfinity)
-                        .append("f3", negativeInfinity)
-                        .append("f4", positiveInfinity)
-                        .append("f5", negativeInfinity)
-                        .append("f6", positiveInfinity)
-                        .append("f7", negativeInfinity);
-
-        RowData expect =
-                GenericRowData.of(
-                        Integer.MAX_VALUE,
-                        Integer.MIN_VALUE,
-                        Long.MAX_VALUE,
-                        Long.MIN_VALUE,
-                        Double.POSITIVE_INFINITY,
-                        Double.NEGATIVE_INFINITY,
-                        Float.POSITIVE_INFINITY,
-                        Float.NEGATIVE_INFINITY);
+                new BsonDocument().append("f0", positiveInfinity).append("f1", negativeInfinity);
 
         // Test for compatible decimal sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter(rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
-        assertThat(actual).isEqualTo(expect);
+
+        assertThatThrownBy(() -> bsonToRowDataConverter.convert(document))
+                .hasStackTraceContaining(
+                        "Unable to convert infinite bson decimal to Decimal type.");
     }
 
     @Test
@@ -524,24 +359,21 @@ public class MongoConvertersTest {
                 DataTypes.ROW(
                         DataTypes.FIELD("_id", DataTypes.STRING().notNull()),
                         DataTypes.FIELD("f0", DataTypes.BOOLEAN().notNull()),
-                        DataTypes.FIELD("f1", DataTypes.TINYINT().notNull()),
-                        DataTypes.FIELD("f2", DataTypes.SMALLINT().notNull()),
-                        DataTypes.FIELD("f3", DataTypes.INT().notNull()),
-                        DataTypes.FIELD("f4", DataTypes.BIGINT().notNull()),
-                        DataTypes.FIELD("f5", DataTypes.FLOAT().notNull()),
-                        DataTypes.FIELD("f6", DataTypes.DOUBLE().notNull()),
-                        DataTypes.FIELD("f7", DataTypes.DECIMAL(10, 2).notNull()),
-                        DataTypes.FIELD("f8", DataTypes.TIMESTAMP_LTZ(6).notNull()),
+                        DataTypes.FIELD("f1", DataTypes.INT().notNull()),
+                        DataTypes.FIELD("f2", DataTypes.BIGINT().notNull()),
+                        DataTypes.FIELD("f3", DataTypes.DOUBLE().notNull()),
+                        DataTypes.FIELD("f4", DataTypes.DECIMAL(10, 2).notNull()),
+                        DataTypes.FIELD("f5", DataTypes.TIMESTAMP_LTZ(6).notNull()),
                         DataTypes.FIELD(
-                                "f9",
-                                DataTypes.ROW(DataTypes.FIELD("f9_k", DataTypes.BIGINT()))
+                                "f6",
+                                DataTypes.ROW(DataTypes.FIELD("f6_k", DataTypes.BIGINT()))
                                         .notNull()),
                         DataTypes.FIELD(
-                                "f10",
+                                "f7",
                                 DataTypes.ARRAY(
                                                 DataTypes.ROW(
                                                         DataTypes.FIELD(
-                                                                "f10_k", DataTypes.FLOAT())))
+                                                                "f7_k", DataTypes.DOUBLE())))
                                         .notNull()));
 
         ObjectId oid = new ObjectId();
@@ -551,18 +383,15 @@ public class MongoConvertersTest {
                 GenericRowData.of(
                         StringData.fromString(oid.toHexString()),
                         false,
-                        (byte) 1,
-                        (short) 2,
-                        3,
+                        1,
                         4L,
-                        5.1f,
                         6.1d,
                         DecimalData.fromBigDecimal(new BigDecimal("7.1"), 10, 2),
                         TimestampData.fromEpochMillis(now.toEpochMilli()),
                         GenericRowData.of(9L),
                         new GenericArrayData(
                                 new RowData[] {
-                                    GenericRowData.of(10.1f), GenericRowData.of(10.2f)
+                                    GenericRowData.of(10.1d), GenericRowData.of(10.2d)
                                 }));
 
         BsonDocument expect =
@@ -570,20 +399,17 @@ public class MongoConvertersTest {
                         .append("_id", new BsonString(oid.toHexString()))
                         .append("f0", BsonBoolean.FALSE)
                         .append("f1", new BsonInt32(1))
-                        .append("f2", new BsonInt32(2))
-                        .append("f3", new BsonInt32(3))
-                        .append("f4", new BsonInt64(4))
-                        .append("f5", new BsonDouble(5.1f))
-                        .append("f6", new BsonDouble(6.1d))
-                        .append("f7", new BsonDecimal128(new Decimal128(new BigDecimal("7.10"))))
-                        .append("f8", new BsonDateTime(now.toEpochMilli()))
-                        .append("f9", new BsonDocument("f9_k", new BsonInt64(9L)))
+                        .append("f2", new BsonInt64(4))
+                        .append("f3", new BsonDouble(6.1d))
+                        .append("f4", new BsonDecimal128(new Decimal128(new BigDecimal("7.10"))))
+                        .append("f5", new BsonDateTime(now.toEpochMilli()))
+                        .append("f6", new BsonDocument("f6_k", new BsonInt64(9L)))
                         .append(
-                                "f10",
+                                "f7",
                                 new BsonArray(
                                         Arrays.asList(
-                                                new BsonDocument("f10_k", new BsonDouble(10.1f)),
-                                                new BsonDocument("f10_k", new BsonDouble(10.2f)))));
+                                                new BsonDocument("f7_k", new BsonDouble(10.1d)),
+                                                new BsonDocument("f7_k", new BsonDouble(10.2d)))));
 
         // Test convert RowData to Bson
         RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =

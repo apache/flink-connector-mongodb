@@ -116,18 +116,15 @@ public class MongoDynamicTableSinkITCase {
                                 "  f1 STRING,",
                                 "  f2 BOOLEAN,",
                                 "  f3 BINARY,",
-                                "  f4 TINYINT,",
-                                "  f5 SMALLINT,",
-                                "  f6 INTEGER,",
-                                "  f7 TIMESTAMP_LTZ(6),",
-                                "  f8 TIMESTAMP(3),",
-                                "  f9 FLOAT,",
-                                "  f10 DOUBLE,",
-                                "  f11 DECIMAL(10, 2),",
-                                "  f12 MAP<STRING, INTEGER>,",
-                                "  f13 ROW<k INTEGER>,",
-                                "  f14 ARRAY<STRING>,",
-                                "  f15 ARRAY<ROW<k STRING>>,",
+                                "  f4 INTEGER,",
+                                "  f5 TIMESTAMP_LTZ(6),",
+                                "  f6 TIMESTAMP(3),",
+                                "  f7 DOUBLE,",
+                                "  f8 DECIMAL(10, 2),",
+                                "  f9 MAP<STRING, INTEGER>,",
+                                "  f10 ROW<k INTEGER>,",
+                                "  f11 ARRAY<STRING>,",
+                                "  f12 ARRAY<ROW<k STRING>>,",
                                 "  PRIMARY KEY (_id) NOT ENFORCED",
                                 ") WITH (",
                                 getConnectorSql(database, collection),
@@ -140,22 +137,19 @@ public class MongoDynamicTableSinkITCase {
                                 DataTypes.FIELD("f1", DataTypes.STRING()),
                                 DataTypes.FIELD("f2", DataTypes.BOOLEAN()),
                                 DataTypes.FIELD("f3", DataTypes.BINARY(1)),
-                                DataTypes.FIELD("f4", DataTypes.TINYINT()),
-                                DataTypes.FIELD("f5", DataTypes.SMALLINT()),
-                                DataTypes.FIELD("f6", DataTypes.INT()),
-                                DataTypes.FIELD("f7", DataTypes.TIMESTAMP_LTZ(6)),
-                                DataTypes.FIELD("f8", DataTypes.TIMESTAMP(3)),
-                                DataTypes.FIELD("f9", DataTypes.FLOAT()),
-                                DataTypes.FIELD("f10", DataTypes.DOUBLE()),
-                                DataTypes.FIELD("f11", DataTypes.DECIMAL(10, 2)),
+                                DataTypes.FIELD("f4", DataTypes.INT()),
+                                DataTypes.FIELD("f5", DataTypes.TIMESTAMP_LTZ(6)),
+                                DataTypes.FIELD("f6", DataTypes.TIMESTAMP(3)),
+                                DataTypes.FIELD("f7", DataTypes.DOUBLE()),
+                                DataTypes.FIELD("f8", DataTypes.DECIMAL(10, 2)),
                                 DataTypes.FIELD(
-                                        "f12", DataTypes.MAP(DataTypes.STRING(), DataTypes.INT())),
+                                        "f9", DataTypes.MAP(DataTypes.STRING(), DataTypes.INT())),
                                 DataTypes.FIELD(
-                                        "f13",
+                                        "f10",
                                         DataTypes.ROW(DataTypes.FIELD("k", DataTypes.INT()))),
-                                DataTypes.FIELD("f14", DataTypes.ARRAY(DataTypes.STRING())),
+                                DataTypes.FIELD("f11", DataTypes.ARRAY(DataTypes.STRING())),
                                 DataTypes.FIELD(
-                                        "f15",
+                                        "f12",
                                         DataTypes.ARRAY(
                                                 DataTypes.ROW(
                                                         DataTypes.FIELD(
@@ -165,12 +159,9 @@ public class MongoDynamicTableSinkITCase {
                                 "ABCDE",
                                 true,
                                 new byte[] {(byte) 3},
-                                (byte) 4,
-                                (short) 5,
                                 6,
                                 now,
                                 Timestamp.from(now),
-                                9.9f,
                                 10.10d,
                                 new BigDecimal("11.11"),
                                 Collections.singletonMap("k", 12),
@@ -190,19 +181,16 @@ public class MongoDynamicTableSinkITCase {
                         .append("f1", "ABCDE")
                         .append("f2", true)
                         .append("f3", new Binary(new byte[] {(byte) 3}))
-                        .append("f4", 4)
-                        .append("f5", 5)
-                        .append("f6", 6)
-                        .append("f7", Date.from(now))
-                        .append("f8", Date.from(now))
-                        .append("f9", (double) 9.9f)
-                        .append("f10", 10.10d)
-                        .append("f11", new Decimal128(new BigDecimal("11.11")))
-                        .append("f12", new Document("k", 12))
-                        .append("f13", new Document("k", 13))
-                        .append("f14", Arrays.asList("14_1", "14_2"))
+                        .append("f4", 6)
+                        .append("f5", Date.from(now))
+                        .append("f6", Date.from(now))
+                        .append("f7", 10.10d)
+                        .append("f8", new Decimal128(new BigDecimal("11.11")))
+                        .append("f9", new Document("k", 12))
+                        .append("f10", new Document("k", 13))
+                        .append("f11", Arrays.asList("14_1", "14_2"))
                         .append(
-                                "f15",
+                                "f12",
                                 Arrays.asList(
                                         new Document("k", "15_1"), new Document("k", "15_2")));
 
@@ -331,17 +319,7 @@ public class MongoDynamicTableSinkITCase {
         Instant now = Instant.now();
         List<Expression> testValues =
                 Collections.singletonList(
-                        row(
-                                1L,
-                                true,
-                                "ABCDE",
-                                12.12d,
-                                24.24f,
-                                (byte) 2,
-                                (short) 3,
-                                4,
-                                Timestamp.from(now),
-                                now));
+                        row(1L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
         List<String> primaryKeys = Collections.singletonList("a");
 
         testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
@@ -356,12 +334,9 @@ public class MongoDynamicTableSinkITCase {
         expected.put("b", true);
         expected.put("c", "ABCDE");
         expected.put("d", 12.12d);
-        expected.put("e", (double) 24.24f);
-        expected.put("f", 2);
-        expected.put("g", 3);
-        expected.put("h", 4);
-        expected.put("i", Date.from(now));
-        expected.put("j", Date.from(now));
+        expected.put("e", 4);
+        expected.put("f", Date.from(now));
+        expected.put("g", Date.from(now));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -373,17 +348,7 @@ public class MongoDynamicTableSinkITCase {
         Instant now = Instant.now();
         List<Expression> testValues =
                 Collections.singletonList(
-                        row(
-                                1L,
-                                true,
-                                "ABCDE",
-                                12.12d,
-                                24.24f,
-                                (byte) 2,
-                                (short) 3,
-                                4,
-                                Timestamp.from(now),
-                                now));
+                        row(1L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
         List<String> primaryKeys = Arrays.asList("a", "c");
 
         testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
@@ -402,12 +367,9 @@ public class MongoDynamicTableSinkITCase {
         expected.put("b", true);
         expected.put("c", "ABCDE");
         expected.put("d", 12.12d);
-        expected.put("e", (double) 24.24f);
-        expected.put("f", 2);
-        expected.put("g", 3);
-        expected.put("h", 4);
-        expected.put("i", Date.from(now));
-        expected.put("j", Date.from(now));
+        expected.put("e", 4);
+        expected.put("f", Date.from(now));
+        expected.put("g", Date.from(now));
         assertThat(actual).isEqualTo(expected);
     }
 
@@ -423,12 +385,9 @@ public class MongoDynamicTableSinkITCase {
                                 + "b BOOLEAN,\n"
                                 + "c STRING NOT NULL,\n"
                                 + "d DOUBLE,\n"
-                                + "e FLOAT,\n"
-                                + "f TINYINT NOT NULL,\n"
-                                + "g SMALLINT NOT NULL,\n"
-                                + "h INT NOT NULL,\n"
-                                + "i TIMESTAMP NOT NULL,\n"
-                                + "j TIMESTAMP_LTZ NOT NULL,\n"
+                                + "e INT NOT NULL,\n"
+                                + "f TIMESTAMP NOT NULL,\n"
+                                + "g TIMESTAMP_LTZ NOT NULL,\n"
                                 + "PRIMARY KEY (%s) NOT ENFORCED\n"
                                 + ")\n"
                                 + "WITH (%s)",
