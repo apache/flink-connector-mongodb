@@ -70,8 +70,7 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         final RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createNullableConverter(
-                        physicalRowDataType.getLogicalType());
+                RowDataToBsonConverters.createConverter(physicalRowDataType.getLogicalType());
 
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);

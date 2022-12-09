@@ -58,7 +58,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
     private MongoKeyExtractor(LogicalType primaryKeyType, int[] primaryKeyIndexes) {
         this.primaryKeyIndexes = primaryKeyIndexes;
-        this.primaryKeyConverter = RowDataToBsonConverters.createNullableConverter(primaryKeyType);
+        this.primaryKeyConverter = RowDataToBsonConverters.createConverter(primaryKeyType);
         if (isCompoundPrimaryKey(primaryKeyIndexes)) {
             this.primaryKeyGetter =
                     rowData -> ProjectedRowData.from(primaryKeyIndexes).replaceRow(rowData);

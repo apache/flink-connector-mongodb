@@ -84,41 +84,26 @@ public class BsonToRowDataConverters {
     // --------------------------------------------------------------------------------
 
     public static BsonToRowDataConverter createConverter(LogicalType type) {
-        if (type.isNullable()) {
-            return wrapIntoNullableInternalConverter(createInternalConverter(type));
-        } else {
-            return wrapIntoNonNullableInternalConverter(createInternalConverter(type));
-        }
+        return wrapIntoNullSafeInternalConverter(createInternalConverter(type), type);
     }
 
-    private static BsonToRowDataConverter wrapIntoNullableInternalConverter(
-            BsonToRowDataConverter bsonToRowDataConverter) {
+    private static BsonToRowDataConverter wrapIntoNullSafeInternalConverter(
+            BsonToRowDataConverter bsonToRowDataConverter, LogicalType type) {
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public Object convert(BsonValue bsonValue) {
                 if (isBsonValueNull(bsonValue) || isBsonDecimalNaN(bsonValue)) {
-                    return null;
-                }
-                return bsonToRowDataConverter.convert(bsonValue);
-            }
-        };
-    }
-
-    private static BsonToRowDataConverter wrapIntoNonNullableInternalConverter(
-            BsonToRowDataConverter bsonToRowDataConverter) {
-        return new BsonToRowDataConverter() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public Object convert(BsonValue bsonValue) {
-                if (isBsonValueNull(bsonValue) || isBsonDecimalNaN(bsonValue)) {
-                    throw new IllegalArgumentException(
-                            "Unable to convert to non-nullable type from unexpected value '"
-                                    + bsonValue
-                                    + "' of type "
-                                    + bsonValue.getBsonType());
+                    if (type.isNullable()) {
+                        return null;
+                    } else {
+                        throw new IllegalArgumentException(
+                                "Unable to convert to <"
+                                        + type
+                                        + "> from nullable value "
+                                        + bsonValue);
+                    }
                 }
                 return bsonToRowDataConverter.convert(bsonValue);
             }
