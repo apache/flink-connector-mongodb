@@ -51,13 +51,10 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-import static java.time.format.DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -76,8 +73,8 @@ public class MongoConvertersTest {
                         DataTypes.FIELD("f4", DataTypes.DOUBLE().notNull()),
                         DataTypes.FIELD("f5", DataTypes.DECIMAL(10, 2).notNull()),
                         DataTypes.FIELD("f6", DataTypes.BOOLEAN().notNull()),
-                        DataTypes.FIELD("f7", DataTypes.TIMESTAMP_LTZ(3).notNull()),
-                        DataTypes.FIELD("f8", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f7", DataTypes.TIMESTAMP_LTZ(0).notNull()),
+                        DataTypes.FIELD("f8", DataTypes.TIMESTAMP_LTZ(3).notNull()),
                         DataTypes.FIELD("f9", DataTypes.STRING().notNull()),
                         DataTypes.FIELD("f10", DataTypes.STRING().notNull()),
                         DataTypes.FIELD("f11", DataTypes.STRING().notNull()),
@@ -99,7 +96,7 @@ public class MongoConvertersTest {
                         DataTypes.FIELD("f20", DataTypes.DECIMAL(10, 2).nullable()));
 
         ObjectId oid = new ObjectId();
-        UUID uuid = UUID.randomUUID();
+        UUID uuid = UUID.fromString("811faa5d-a984-46bf-8bd0-8cb1bcef5d69");
         Instant now = Instant.now();
 
         BsonDocument docWithFullTypes =
@@ -123,7 +120,10 @@ public class MongoConvertersTest {
                                 new BsonJavaScriptWithScope(
                                         "function() { return 11; }", new BsonDocument()))
                         .append("f12", new BsonSymbol("12"))
-                        .append("f13", new BsonDbPointer("db.coll", oid))
+                        .append(
+                                "f13",
+                                new BsonDbPointer(
+                                        "db.coll", new ObjectId("63932a00da01604af329e33c")))
                         .append("f14", new BsonDocument("f14_k", new BsonInt32(14)))
                         .append("f15", new BsonDocument("f15_k", new BsonInt32(15)))
                         .append(
@@ -146,28 +146,31 @@ public class MongoConvertersTest {
                 GenericRowData.of(
                         StringData.fromString(oid.toHexString()),
                         StringData.fromString("string"),
-                        StringData.fromString(uuid.toString()),
+                        StringData.fromString(
+                                "{\"_value\": {\"$binary\": {\"base64\": \"gR+qXamERr+L0IyxvO9daQ==\", \"subType\": \"04\"}}}"),
                         2,
                         3L,
                         4.1d,
                         DecimalData.fromBigDecimal(new BigDecimal("5.1"), 10, 2),
                         false,
                         TimestampData.fromEpochMillis(now.getEpochSecond() * 1000),
+                        TimestampData.fromEpochMillis(now.toEpochMilli()),
                         StringData.fromString(
-                                OffsetDateTime.ofInstant(
-                                                Instant.ofEpochMilli(now.toEpochMilli()),
-                                                ZoneOffset.UTC)
-                                        .format(ISO_OFFSET_DATE_TIME)),
-                        StringData.fromString("/^9$/i"),
-                        StringData.fromString("function() { return 10; }"),
-                        StringData.fromString("function() { return 11; }"),
-                        StringData.fromString("12"),
-                        StringData.fromString(oid.toHexString()),
+                                "{\"_value\": {\"$regularExpression\": {\"pattern\": \"^9$\", \"options\": \"i\"}}}"),
+                        StringData.fromString(
+                                "{\"_value\": {\"$code\": \"function() { return 10; }\"}}"),
+                        StringData.fromString(
+                                "{\"_value\": {\"$code\": \"function() { return 11; }\", \"$scope\": {}}}"),
+                        StringData.fromString("{\"_value\": {\"$symbol\": \"12\"}}"),
+                        StringData.fromString(
+                                "{\"_value\": {\"$dbPointer\": {\"$ref\": \"db.coll\", \"$id\": {\"$oid\": \"63932a00da01604af329e33c\"}}}}"),
                         GenericRowData.of(14),
-                        StringData.fromString("{\"f15_k\": 15}"),
+                        StringData.fromString(
+                                "{\"_value\": {\"f15_k\": {\"$numberInt\": \"15\"}}}"),
                         new GenericArrayData(
                                 new RowData[] {GenericRowData.of(16.1d), GenericRowData.of(16.2d)}),
-                        StringData.fromString("[{\"f17_k\": 17.1}, {\"f17_k\": 17.2}]"),
+                        StringData.fromString(
+                                "{\"_value\": [{\"f17_k\": {\"$numberDouble\": \"17.1\"}}, {\"f17_k\": {\"$numberDouble\": \"17.2\"}}]}"),
                         null,
                         null,
                         null);
@@ -213,11 +216,11 @@ public class MongoConvertersTest {
 
         RowData expect =
                 GenericRowData.of(
-                        StringData.fromString("false"),
-                        StringData.fromString(String.valueOf(-1)),
-                        StringData.fromString(String.valueOf(127L)),
-                        StringData.fromString(String.valueOf(127.11d)),
-                        StringData.fromString("127.11"));
+                        StringData.fromString("{\"_value\": false}"),
+                        StringData.fromString("{\"_value\": {\"$numberInt\": \"-1\"}}"),
+                        StringData.fromString("{\"_value\": {\"$numberLong\": \"127\"}}"),
+                        StringData.fromString("{\"_value\": {\"$numberDouble\": \"127.11\"}}"),
+                        StringData.fromString("{\"_value\": {\"$numberDecimal\": \"127.11\"}}"));
 
         // Test for compatible bson number and boolean to string sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =

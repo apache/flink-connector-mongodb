@@ -26,6 +26,8 @@ import org.bson.json.JsonMode;
 
 import java.util.Optional;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
+
 /**
  * A schema bridge for deserializing the MongoDB's {@code BsonDocument} to MongoDB's {@link
  * JsonMode}'s RELAXED Json string.
@@ -35,7 +37,9 @@ public class MongoJsonDeserializationSchema implements MongoDeserializationSchem
 
     @Override
     public String deserialize(BsonDocument document) {
-        return Optional.ofNullable(document).map(BsonDocument::toJson).orElse(null);
+        return Optional.ofNullable(document)
+                .map(doc -> doc.toJson(DEFAULT_JSON_WRITER_SETTINGS))
+                .orElse(null);
     }
 
     @Override
