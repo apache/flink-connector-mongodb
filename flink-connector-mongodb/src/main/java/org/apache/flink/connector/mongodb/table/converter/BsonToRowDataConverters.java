@@ -141,24 +141,6 @@ public class BsonToRowDataConverters {
                         return convertToBoolean(bsonValue);
                     }
                 };
-            case TINYINT:
-                return new BsonToRowDataConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public Object convert(BsonValue bsonValue) {
-                        return convertToTinyInt(bsonValue);
-                    }
-                };
-            case SMALLINT:
-                return new BsonToRowDataConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public Object convert(BsonValue bsonValue) {
-                        return convertToSmallInt(bsonValue);
-                    }
-                };
             case INTEGER:
             case INTERVAL_YEAR_MONTH:
                 return new BsonToRowDataConverter() {
@@ -195,15 +177,6 @@ public class BsonToRowDataConverters {
                     @Override
                     public Object convert(BsonValue bsonValue) {
                         return TimestampData.fromInstant(convertToInstant(bsonValue));
-                    }
-                };
-            case FLOAT:
-                return new BsonToRowDataConverter() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public Object convert(BsonValue bsonValue) {
-                        return convertToFloat(bsonValue);
                     }
                 };
             case DOUBLE:
@@ -362,71 +335,9 @@ public class BsonToRowDataConverters {
                         + bsonValue.getBsonType());
     }
 
-    private static byte convertToTinyInt(BsonValue bsonValue) {
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? (byte) 1 : (byte) 0;
-        }
-        if (bsonValue.isInt32()) {
-            return (byte) bsonValue.asInt32().getValue();
-        }
-        if (bsonValue.isInt64()) {
-            return (byte) bsonValue.asInt64().getValue();
-        }
-        if (bsonValue.isString()) {
-            return Byte.parseByte(bsonValue.asString().getValue());
-        }
-        throw new IllegalArgumentException(
-                "Unable to convert to tinyint from unexpected value '"
-                        + bsonValue
-                        + "' of type "
-                        + bsonValue.getBsonType());
-    }
-
-    private static short convertToSmallInt(BsonValue bsonValue) {
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? (short) 1 : (short) 0;
-        }
-        if (bsonValue.isInt32()) {
-            return (short) bsonValue.asInt32().getValue();
-        }
-        if (bsonValue.isInt64()) {
-            return (short) bsonValue.asInt64().getValue();
-        }
-        if (bsonValue.isString()) {
-            return Short.parseShort(bsonValue.asString().getValue());
-        }
-        throw new IllegalArgumentException(
-                "Unable to convert to smallint from unexpected value '"
-                        + bsonValue
-                        + "' of type "
-                        + bsonValue.getBsonType());
-    }
-
     private static int convertToInt(BsonValue bsonValue) {
-        if (bsonValue.isNumber()) {
+        if (bsonValue.isInt32()) {
             return bsonValue.asNumber().intValue();
-        }
-        if (bsonValue.isDecimal128()) {
-            Decimal128 decimal128Value = bsonValue.asDecimal128().decimal128Value();
-            if (decimal128Value.isFinite()) {
-                return decimal128Value.intValue();
-            } else if (decimal128Value.isNegative()) {
-                return Integer.MIN_VALUE;
-            } else {
-                return Integer.MAX_VALUE;
-            }
-        }
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? 1 : 0;
-        }
-        if (bsonValue.isDateTime()) {
-            return (int) Instant.ofEpochMilli(bsonValue.asDateTime().getValue()).getEpochSecond();
-        }
-        if (bsonValue.isTimestamp()) {
-            return bsonValue.asTimestamp().getTime();
-        }
-        if (bsonValue.isString()) {
-            return Integer.parseInt(bsonValue.asString().getValue());
         }
         throw new IllegalArgumentException(
                 "Unable to convert to integer from unexpected value '"
@@ -436,30 +347,8 @@ public class BsonToRowDataConverters {
     }
 
     private static long convertToLong(BsonValue bsonValue) {
-        if (bsonValue.isNumber()) {
+        if (bsonValue.isInt64()) {
             return bsonValue.asNumber().longValue();
-        }
-        if (bsonValue.isDecimal128()) {
-            Decimal128 decimal128Value = bsonValue.asDecimal128().decimal128Value();
-            if (decimal128Value.isFinite()) {
-                return decimal128Value.longValue();
-            } else if (decimal128Value.isNegative()) {
-                return Long.MIN_VALUE;
-            } else {
-                return Long.MAX_VALUE;
-            }
-        }
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? 1L : 0L;
-        }
-        if (bsonValue.isDateTime()) {
-            return bsonValue.asDateTime().getValue();
-        }
-        if (bsonValue.isTimestamp()) {
-            return bsonValue.asTimestamp().getTime() * 1000L;
-        }
-        if (bsonValue.isString()) {
-            return Long.parseLong(bsonValue.asString().getValue());
         }
         throw new IllegalArgumentException(
                 "Unable to convert to long from unexpected value '"
@@ -469,60 +358,11 @@ public class BsonToRowDataConverters {
     }
 
     private static double convertToDouble(BsonValue bsonValue) {
-        if (bsonValue.isNumber()) {
+        if (bsonValue.isDouble()) {
             return bsonValue.asNumber().doubleValue();
-        }
-        if (bsonValue.isDecimal128()) {
-            Decimal128 decimal128Value = bsonValue.asDecimal128().decimal128Value();
-            if (decimal128Value.isFinite()) {
-                return decimal128Value.doubleValue();
-            } else if (decimal128Value.isNegative()) {
-                return Double.NEGATIVE_INFINITY;
-            } else {
-                return Double.POSITIVE_INFINITY;
-            }
-        }
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? 1 : 0;
-        }
-        if (bsonValue.isString()) {
-            return Double.parseDouble(bsonValue.asString().getValue());
         }
         throw new IllegalArgumentException(
                 "Unable to convert to double from unexpected value '"
-                        + bsonValue
-                        + "' of type "
-                        + bsonValue.getBsonType());
-    }
-
-    private static float convertToFloat(BsonValue bsonValue) {
-        if (bsonValue.isInt32()) {
-            return bsonValue.asInt32().getValue();
-        }
-        if (bsonValue.isInt64()) {
-            return bsonValue.asInt64().getValue();
-        }
-        if (bsonValue.isDouble()) {
-            return ((Double) bsonValue.asDouble().getValue()).floatValue();
-        }
-        if (bsonValue.isDecimal128()) {
-            Decimal128 decimal128Value = bsonValue.asDecimal128().decimal128Value();
-            if (decimal128Value.isFinite()) {
-                return decimal128Value.floatValue();
-            } else if (decimal128Value.isNegative()) {
-                return Float.NEGATIVE_INFINITY;
-            } else {
-                return Float.POSITIVE_INFINITY;
-            }
-        }
-        if (bsonValue.isBoolean()) {
-            return bsonValue.asBoolean().getValue() ? 1f : 0f;
-        }
-        if (bsonValue.isString()) {
-            return Float.parseFloat(bsonValue.asString().getValue());
-        }
-        throw new IllegalArgumentException(
-                "Unable to convert to float from unexpected value '"
                         + bsonValue
                         + "' of type "
                         + bsonValue.getBsonType());
@@ -651,31 +491,20 @@ public class BsonToRowDataConverters {
     }
 
     private static BigDecimal convertToBigDecimal(BsonValue bsonValue) {
-        BigDecimal decimalValue;
-        if (bsonValue.isString()) {
-            decimalValue = new BigDecimal(bsonValue.asString().getValue());
-        } else if (bsonValue.isDecimal128()) {
+        if (bsonValue.isDecimal128()) {
             Decimal128 decimal128Value = bsonValue.asDecimal128().decimal128Value();
             if (decimal128Value.isFinite()) {
-                decimalValue = bsonValue.asDecimal128().decimal128Value().bigDecimalValue();
+                return bsonValue.asDecimal128().decimal128Value().bigDecimalValue();
             } else {
                 // DecimalData doesn't have the concept of infinity.
                 throw new IllegalArgumentException(
                         "Unable to convert infinite bson decimal to Decimal type.");
             }
-        } else if (bsonValue.isDouble()) {
-            decimalValue = BigDecimal.valueOf(bsonValue.asDouble().doubleValue());
-        } else if (bsonValue.isInt32()) {
-            decimalValue = BigDecimal.valueOf(bsonValue.asInt32().getValue());
-        } else if (bsonValue.isInt64()) {
-            decimalValue = BigDecimal.valueOf(bsonValue.asInt64().getValue());
-        } else {
-            throw new IllegalArgumentException(
-                    "Unable to convert to decimal from unexpected value '"
-                            + bsonValue
-                            + "' of type "
-                            + bsonValue.getBsonType());
         }
-        return decimalValue;
+        throw new IllegalArgumentException(
+                "Unable to convert to decimal from unexpected value '"
+                        + bsonValue
+                        + "' of type "
+                        + bsonValue.getBsonType());
     }
 }

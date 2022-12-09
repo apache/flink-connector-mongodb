@@ -151,8 +151,8 @@ public class MongoDynamicTableSourceITCase {
 
         List<String> expected =
                 Stream.of(
-                                "+I[1, 2, false, [3], 4, 5, 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.0, 1.10, {k=12}, +I[13], [14_1, 14_2], [+I[15_1], +I[15_2]]]",
-                                "+I[2, 2, false, [3], 4, 5, 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.0, 1.10, {k=12}, +I[13], [14_1, 14_2], [+I[15_1], +I[15_2]]]")
+                                "+I[1, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                                "+I[2, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]")
                         .sorted()
                         .collect(Collectors.toList());
 
@@ -163,7 +163,7 @@ public class MongoDynamicTableSourceITCase {
     public void testProject() {
         tEnv.executeSql(createTestDDl(null));
 
-        Iterator<Row> collected = tEnv.executeSql("SELECT f1, f13 FROM mongo_source").collect();
+        Iterator<Row> collected = tEnv.executeSql("SELECT f1, f10 FROM mongo_source").collect();
         List<String> result =
                 CollectionUtil.iteratorToList(collected).stream()
                         .map(Row::toString)
@@ -189,9 +189,9 @@ public class MongoDynamicTableSourceITCase {
 
         Set<String> expected = new HashSet<>();
         expected.add(
-                "+I[1, 2, false, [3], 4, 5, 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.0, 1.10, {k=12}, +I[13], [14_1, 14_2], [+I[15_1], +I[15_2]]]");
+                "+I[1, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
         expected.add(
-                "+I[2, 2, false, [3], 4, 5, 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.0, 1.10, {k=12}, +I[13], [14_1, 14_2], [+I[15_1], +I[15_2]]]");
+                "+I[2, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
 
         assertThat(result).hasSize(1);
         assertThat(result).containsAnyElementsOf(expected);
@@ -322,18 +322,15 @@ public class MongoDynamicTableSourceITCase {
                         "  f1 STRING,",
                         "  f2 BOOLEAN,",
                         "  f3 BINARY,",
-                        "  f4 TINYINT,",
-                        "  f5 SMALLINT,",
-                        "  f6 INTEGER,",
-                        "  f7 TIMESTAMP_LTZ(6),",
-                        "  f8 TIMESTAMP_LTZ(3),",
-                        "  f9 FLOAT,",
-                        "  f10 DOUBLE,",
-                        "  f11 DECIMAL(10, 2),",
-                        "  f12 MAP<STRING, INTEGER>,",
-                        "  f13 ROW<k INTEGER>,",
-                        "  f14 ARRAY<STRING>,",
-                        "  f15 ARRAY<ROW<k STRING>>",
+                        "  f4 INTEGER,",
+                        "  f5 TIMESTAMP_LTZ(6),",
+                        "  f6 TIMESTAMP_LTZ(3),",
+                        "  f7 DOUBLE,",
+                        "  f8 DECIMAL(10, 2),",
+                        "  f9 MAP<STRING, INTEGER>,",
+                        "  f10 ROW<k INTEGER>,",
+                        "  f11 ARRAY<STRING>,",
+                        "  f12 ARRAY<ROW<k STRING>>",
                         ") WITH (",
                         optionString,
                         ")"));
@@ -345,26 +342,23 @@ public class MongoDynamicTableSourceITCase {
                 .append("f1", new BsonString("2"))
                 .append("f2", BsonBoolean.FALSE)
                 .append("f3", new BsonBinary(new byte[] {(byte) 3}))
-                .append("f4", new BsonInt32(4))
-                .append("f5", new BsonInt32(5))
-                .append("f6", new BsonInt32(6))
+                .append("f4", new BsonInt32(6))
                 // 2022-09-07T10:25:28.127Z
-                .append("f7", new BsonDateTime(1662546328127L))
-                .append("f8", new BsonTimestamp(1662546328, 0))
-                .append("f9", new BsonDouble(0.9d))
-                .append("f10", new BsonDouble(1.0d))
-                .append("f11", new BsonDecimal128(new Decimal128(new BigDecimal("1.10"))))
-                .append("f12", new BsonDocument("k", new BsonInt32(12)))
-                .append("f13", new BsonDocument("k", new BsonInt32(13)))
+                .append("f5", new BsonDateTime(1662546328127L))
+                .append("f6", new BsonTimestamp(1662546328, 0))
+                .append("f7", new BsonDouble(0.9d))
+                .append("f8", new BsonDecimal128(new Decimal128(new BigDecimal("1.10"))))
+                .append("f9", new BsonDocument("k", new BsonInt32(12)))
+                .append("f10", new BsonDocument("k", new BsonInt32(13)))
                 .append(
-                        "f14",
+                        "f11",
                         new BsonArray(
-                                Arrays.asList(new BsonString("14_1"), new BsonString("14_2"))))
+                                Arrays.asList(new BsonString("11_1"), new BsonString("11_2"))))
                 .append(
-                        "f15",
+                        "f12",
                         new BsonArray(
                                 Arrays.asList(
-                                        new BsonDocument("k", new BsonString("15_1")),
-                                        new BsonDocument("k", new BsonString("15_2")))));
+                                        new BsonDocument("k", new BsonString("12_1")),
+                                        new BsonDocument("k", new BsonString("12_2")))));
     }
 }

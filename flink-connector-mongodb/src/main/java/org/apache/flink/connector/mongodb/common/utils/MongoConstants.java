@@ -31,6 +31,8 @@ public class MongoConstants {
 
     public static final String ID_FIELD = "_id";
 
+    public static final String VALUE_FIELD = "value";
+
     public static final String NAMESPACE_FIELD = "ns";
 
     public static final String KEY_FIELD = "key";

@@ -165,33 +165,26 @@ public class MongoKeyExtractorTest {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
-                                Column.physical("a", DataTypes.TINYINT().notNull()),
-                                Column.physical("b", DataTypes.SMALLINT().notNull()),
-                                Column.physical("c", DataTypes.INT().notNull()),
-                                Column.physical("d", DataTypes.BIGINT().notNull()),
-                                Column.physical("e", DataTypes.BOOLEAN().notNull()),
-                                Column.physical("f", DataTypes.FLOAT().notNull()),
-                                Column.physical("g", DataTypes.DOUBLE().notNull()),
-                                Column.physical("h", DataTypes.STRING().notNull()),
-                                Column.physical("i", DataTypes.TIMESTAMP().notNull()),
+                                Column.physical("a", DataTypes.INT().notNull()),
+                                Column.physical("b", DataTypes.BIGINT().notNull()),
+                                Column.physical("c", DataTypes.BOOLEAN().notNull()),
+                                Column.physical("d", DataTypes.DOUBLE().notNull()),
+                                Column.physical("e", DataTypes.STRING().notNull()),
+                                Column.physical("f", DataTypes.TIMESTAMP().notNull()),
                                 Column.physical(
-                                        "j", DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE().notNull())),
+                                        "g", DataTypes.TIMESTAMP_WITH_LOCAL_TIME_ZONE().notNull())),
                         Collections.emptyList(),
                         UniqueConstraint.primaryKey(
-                                "pk",
-                                Arrays.asList("a", "b", "c", "d", "e", "f", "g", "h", "i", "j")));
+                                "pk", Arrays.asList("a", "b", "c", "d", "e", "f", "g")));
 
         Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
 
         BsonValue key =
                 keyExtractor.apply(
                         GenericRowData.of(
-                                (byte) 1,
-                                (short) 2,
                                 3,
                                 (long) 4,
                                 true,
-                                1.0f,
                                 2.0d,
                                 StringData.fromString("ABCD"),
                                 TimestampData.fromLocalDateTime(
@@ -199,22 +192,19 @@ public class MongoKeyExtractorTest {
                                 TimestampData.fromInstant(Instant.parse("2013-01-13T13:13:13Z"))));
 
         BsonDocument expect = new BsonDocument();
-        expect.append("a", new BsonInt32(1));
-        expect.append("b", new BsonInt32(2));
-        expect.append("c", new BsonInt32(3));
-        expect.append("d", new BsonInt64(4L));
-        expect.append("e", new BsonBoolean(true));
-        expect.append("f", new BsonDouble(Float.valueOf("1.0f").doubleValue()));
-        expect.append("g", new BsonDouble(2.0d));
-        expect.append("h", new BsonString("ABCD"));
+        expect.append("a", new BsonInt32(3));
+        expect.append("b", new BsonInt64(4L));
+        expect.append("c", new BsonBoolean(true));
+        expect.append("d", new BsonDouble(2.0d));
+        expect.append("e", new BsonString("ABCD"));
         expect.append(
-                "i",
+                "f",
                 new BsonDateTime(
                         LocalDateTime.parse("2012-12-12T12:12:12")
                                 .atZone(ZoneId.systemDefault())
                                 .toInstant()
                                 .toEpochMilli()));
-        expect.append("j", new BsonDateTime(Instant.parse("2013-01-13T13:13:13Z").toEpochMilli()));
+        expect.append("g", new BsonDateTime(Instant.parse("2013-01-13T13:13:13Z").toEpochMilli()));
 
         assertThat(key).isEqualTo(expect);
     }
