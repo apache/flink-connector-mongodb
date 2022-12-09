@@ -93,7 +93,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                         .toArray(LogicalType[]::new);
 
         this.lookupKeyRowConverter =
-                RowDataToBsonConverters.createNullableConverter(
+                RowDataToBsonConverters.createConverter(
                         RowType.of(keyTypes, keyNames.toArray(new String[0])));
     }
 

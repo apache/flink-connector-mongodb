@@ -183,7 +183,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToNonNullableConstraints() {
+    public void testConvertBsonNullToRowDataWithNonNullableConstraints() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.STRING().notNull()));
 
         BsonDocument docWithNullValue = new BsonDocument("f0", new BsonNull());
@@ -193,7 +193,7 @@ public class MongoConvertersTest {
 
         assertThatThrownBy(() -> bsonToRowDataConverter.convert(docWithNullValue))
                 .hasStackTraceContaining(
-                        "Unable to convert to non-nullable type from unexpected value 'BsonNull' of type NULL");
+                        "Unable to convert to <STRING NOT NULL> from nullable value BsonNull");
     }
 
     @Test
@@ -532,23 +532,27 @@ public class MongoConvertersTest {
     public void testConvertRowDataToBson() {
         DataType rowType =
                 DataTypes.ROW(
-                        DataTypes.FIELD("_id", DataTypes.STRING()),
-                        DataTypes.FIELD("f0", DataTypes.BOOLEAN()),
-                        DataTypes.FIELD("f1", DataTypes.TINYINT()),
-                        DataTypes.FIELD("f2", DataTypes.SMALLINT()),
-                        DataTypes.FIELD("f3", DataTypes.INT()),
-                        DataTypes.FIELD("f4", DataTypes.BIGINT()),
-                        DataTypes.FIELD("f5", DataTypes.FLOAT()),
-                        DataTypes.FIELD("f6", DataTypes.DOUBLE()),
-                        DataTypes.FIELD("f7", DataTypes.DECIMAL(10, 2)),
-                        DataTypes.FIELD("f8", DataTypes.TIMESTAMP_LTZ(6)),
+                        DataTypes.FIELD("_id", DataTypes.STRING().notNull()),
+                        DataTypes.FIELD("f0", DataTypes.BOOLEAN().notNull()),
+                        DataTypes.FIELD("f1", DataTypes.TINYINT().notNull()),
+                        DataTypes.FIELD("f2", DataTypes.SMALLINT().notNull()),
+                        DataTypes.FIELD("f3", DataTypes.INT().notNull()),
+                        DataTypes.FIELD("f4", DataTypes.BIGINT().notNull()),
+                        DataTypes.FIELD("f5", DataTypes.FLOAT().notNull()),
+                        DataTypes.FIELD("f6", DataTypes.DOUBLE().notNull()),
+                        DataTypes.FIELD("f7", DataTypes.DECIMAL(10, 2).notNull()),
+                        DataTypes.FIELD("f8", DataTypes.TIMESTAMP_LTZ(6).notNull()),
                         DataTypes.FIELD(
-                                "f9", DataTypes.ROW(DataTypes.FIELD("f9_k", DataTypes.BIGINT()))),
+                                "f9",
+                                DataTypes.ROW(DataTypes.FIELD("f9_k", DataTypes.BIGINT()))
+                                        .notNull()),
                         DataTypes.FIELD(
                                 "f10",
                                 DataTypes.ARRAY(
-                                        DataTypes.ROW(
-                                                DataTypes.FIELD("f10_k", DataTypes.FLOAT())))));
+                                                DataTypes.ROW(
+                                                        DataTypes.FIELD(
+                                                                "f10_k", DataTypes.FLOAT())))
+                                        .notNull()));
 
         ObjectId oid = new ObjectId();
         Instant now = Instant.now();
@@ -593,8 +597,22 @@ public class MongoConvertersTest {
 
         // Test convert RowData to Bson
         RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createNullableConverter(rowType.getLogicalType());
+                RowDataToBsonConverters.createConverter(rowType.getLogicalType());
         BsonDocument actual = (BsonDocument) rowDataToBsonConverter.convert(rowData);
         assertThat(actual).isEqualTo(expect);
+    }
+
+    @Test
+    public void testConvertRowDataNullValueToBsonWithNonNullableConstraints() {
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.STRING().notNull()));
+
+        RowData rowData = GenericRowData.of((StringData) null);
+
+        RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =
+                RowDataToBsonConverters.createConverter(rowType.getLogicalType());
+
+        assertThatThrownBy(() -> rowDataToBsonConverter.convert(rowData))
+                .hasStackTraceContaining(
+                        "The column type is <STRING NOT NULL>, but a null value is being written into it");
     }
 }

@@ -73,12 +73,11 @@ public class RowDataToBsonConverters {
     // sql-connector uber jars.
     // --------------------------------------------------------------------------------
 
-    /** Create a nullable MongoDB {@link RowDataToBsonConverter} from given sql type. */
-    public static RowDataToBsonConverter createNullableConverter(LogicalType type) {
-        return wrapIntoNullableConverter(createConverter(type), type);
+    public static RowDataToBsonConverter createConverter(LogicalType type) {
+        return wrapIntoNullSafeInternalConverter(createInternalConverter(type), type);
     }
 
-    private static RowDataToBsonConverter wrapIntoNullableConverter(
+    private static RowDataToBsonConverter wrapIntoNullSafeInternalConverter(
             RowDataToBsonConverter rowDataToBsonConverter, LogicalType type) {
         return new RowDataToBsonConverter() {
             private static final long serialVersionUID = 1L;
@@ -86,7 +85,14 @@ public class RowDataToBsonConverters {
             @Override
             public BsonValue convert(Object value) {
                 if (value == null || LogicalTypeRoot.NULL.equals(type.getTypeRoot())) {
-                    return BsonNull.VALUE;
+                    if (type.isNullable()) {
+                        return BsonNull.VALUE;
+                    } else {
+                        throw new IllegalArgumentException(
+                                "The column type is <"
+                                        + type
+                                        + ">, but a null value is being written into it");
+                    }
                 } else {
                     return rowDataToBsonConverter.convert(value);
                 }
@@ -94,7 +100,7 @@ public class RowDataToBsonConverters {
         };
     }
 
-    private static RowDataToBsonConverter createConverter(LogicalType type) {
+    private static RowDataToBsonConverter createInternalConverter(LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
                 return new RowDataToBsonConverter() {
@@ -234,7 +240,7 @@ public class RowDataToBsonConverters {
     private static RowDataToBsonConverter createRowConverter(RowType rowType) {
         final RowDataToBsonConverter[] fieldConverters =
                 rowType.getChildren().stream()
-                        .map(RowDataToBsonConverters::createNullableConverter)
+                        .map(RowDataToBsonConverters::createConverter)
                         .toArray(RowDataToBsonConverter[]::new);
         final LogicalType[] fieldTypes =
                 rowType.getFields().stream()
@@ -267,7 +273,7 @@ public class RowDataToBsonConverters {
     private static RowDataToBsonConverter createArrayConverter(ArrayType arrayType) {
         final LogicalType elementType = arrayType.getElementType();
         final ArrayData.ElementGetter elementGetter = ArrayData.createElementGetter(elementType);
-        final RowDataToBsonConverter elementConverter = createNullableConverter(elementType);
+        final RowDataToBsonConverter elementConverter = createConverter(elementType);
 
         return new RowDataToBsonConverter() {
             private static final long serialVersionUID = 1L;
@@ -295,7 +301,7 @@ public class RowDataToBsonConverters {
                             + "The type is: "
                             + keyType.asSummaryString());
         }
-        final RowDataToBsonConverter valueConverter = createNullableConverter(valueType);
+        final RowDataToBsonConverter valueConverter = createConverter(valueType);
         final ArrayData.ElementGetter valueGetter = ArrayData.createElementGetter(valueType);
 
         return new RowDataToBsonConverter() {
