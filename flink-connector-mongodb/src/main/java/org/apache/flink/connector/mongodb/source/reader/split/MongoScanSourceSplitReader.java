@@ -18,7 +18,6 @@
 package org.apache.flink.connector.mongodb.source.reader.split;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.connector.base.source.reader.RecordsBySplits;
 import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
@@ -26,6 +25,7 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsAddition;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceReaderContext;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.apache.flink.util.CollectionUtil;
@@ -54,9 +54,8 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
-    private final SourceReaderContext readerContext;
+    private final MongoSourceReaderContext readerContext;
     @Nullable private final List<String> projectedFields;
-    private final int limit;
 
     private boolean closed = false;
     private boolean finished = false;
@@ -68,13 +67,11 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
             @Nullable List<String> projectedFields,
-            int limit,
-            SourceReaderContext context) {
+            MongoSourceReaderContext readerContext) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.projectedFields = projectedFields;
-        this.limit = limit;
-        this.readerContext = context;
+        this.readerContext = readerContext;
     }
 
     @Override
@@ -90,6 +87,14 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             return builder.build();
         }
 
+        // Return when current read count is over limit.
+        if (readerContext.isOverLimit()) {
+            builder.addFinishedSplit(currentSplit.splitId());
+            currentSplit = null;
+            finished = true;
+            return builder.build();
+        }
+
         currentCursor = getOrCreateCursor();
         int fetchSize = readOptions.getFetchSize();
 
@@ -97,6 +102,12 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             for (int recordNum = 0; recordNum < fetchSize; recordNum++) {
                 if (currentCursor.hasNext()) {
                     builder.add(currentSplit, currentCursor.next());
+                    readerContext.getReadCount().incrementAndGet();
+                    if (readerContext.isOverLimit()) {
+                        builder.addFinishedSplit(currentSplit.splitId());
+                        finished = true;
+                        break;
+                    }
                 } else {
                     builder.addFinishedSplit(currentSplit.splitId());
                     finished = true;
@@ -172,8 +183,8 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             .noCursorTimeout(readOptions.isNoCursorTimeout());
 
             // Push limit down
-            if (limit > 0) {
-                findIterable.limit(limit);
+            if (readerContext.isLimitPushedDown()) {
+                findIterable.limit(readerContext.getLimit());
             }
 
             // Push projection down

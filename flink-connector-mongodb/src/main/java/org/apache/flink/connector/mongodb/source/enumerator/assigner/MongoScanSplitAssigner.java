@@ -45,7 +45,6 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
-    private final boolean limitPushedDown;
 
     private final LinkedList<String> remainingCollections;
     private final List<String> alreadyProcessedCollections;
@@ -58,11 +57,9 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     public MongoScanSplitAssigner(
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
-            boolean limitPushedDown,
             MongoSourceEnumState sourceEnumState) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
-        this.limitPushedDown = limitPushedDown;
         this.remainingCollections = new LinkedList<>(sourceEnumState.getRemainingCollections());
         this.alreadyProcessedCollections = sourceEnumState.getAlreadyProcessedCollections();
         this.remainingScanSplits = sourceEnumState.getRemainingScanSplits();
@@ -79,7 +76,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                             "%s.%s",
                             connectionOptions.getDatabase(), connectionOptions.getCollection());
             remainingCollections.add(collectionId);
-            mongoSplitters = new MongoSplitters(connectionOptions, readOptions, limitPushedDown);
+            mongoSplitters = new MongoSplitters(connectionOptions, readOptions);
             initialized = true;
         }
     }
