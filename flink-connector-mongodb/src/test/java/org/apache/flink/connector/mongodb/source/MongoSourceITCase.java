@@ -68,11 +68,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Testcontainers
 public class MongoSourceITCase {
 
+    private static final int PARALLELISM = 2;
+
     @RegisterExtension
     static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
-                            .setNumberTaskManagers(2)
+                            .setNumberTaskManagers(PARALLELISM)
                             .build());
 
     @RegisterExtension
@@ -168,7 +170,10 @@ public class MongoSourceITCase {
 
         final int limitSize = 100;
         MongoSource<RowData> mongoSource =
-                defaultSourceBuilder(TEST_COLLECTION).setLimit(limitSize).build();
+                defaultSourceBuilder(TEST_COLLECTION)
+                        .setLimit(limitSize)
+                        .setPartitionSize(MemorySize.parse("1mb"))
+                        .build();
 
         List<RowData> results =
                 CollectionUtil.iteratorToList(
@@ -178,7 +183,7 @@ public class MongoSourceITCase {
                                         "MongoDB-Source")
                                 .executeAndCollect());
 
-        assertThat(results).hasSize(limitSize);
+        assertThat(results).hasSize(limitSize * PARALLELISM);
     }
 
     @Test

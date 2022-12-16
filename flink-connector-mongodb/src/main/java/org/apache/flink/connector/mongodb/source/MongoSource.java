@@ -37,6 +37,7 @@ import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumerato
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoScanSplitAssigner;
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoSplitAssigner;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReader;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceReaderContext;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.source.reader.emitter.MongoRecordEmitter;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
@@ -130,20 +131,22 @@ public class MongoSource<OUT>
         FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementsQueue =
                 new FutureCompletingBlockingQueue<>();
 
+        MongoSourceReaderContext mongoReaderContext =
+                new MongoSourceReaderContext(readerContext, limit);
+
         Supplier<SplitReader<BsonDocument, MongoSourceSplit>> splitReaderSupplier =
                 () ->
                         new MongoScanSourceSplitReader(
                                 connectionOptions,
                                 readOptions,
                                 projectedFields,
-                                limit,
-                                readerContext);
+                                mongoReaderContext);
 
         return new MongoSourceReader<>(
                 elementsQueue,
                 splitReaderSupplier,
                 new MongoRecordEmitter<>(deserializationSchema),
-                readerContext);
+                mongoReaderContext);
     }
 
     @Override
@@ -151,8 +154,7 @@ public class MongoSource<OUT>
             SplitEnumeratorContext<MongoSourceSplit> enumContext) {
         MongoSourceEnumState initialState = MongoSourceEnumState.initialState();
         MongoSplitAssigner splitAssigner =
-                new MongoScanSplitAssigner(
-                        connectionOptions, readOptions, isLimitPushedDown(), initialState);
+                new MongoScanSplitAssigner(connectionOptions, readOptions, initialState);
         return new MongoSourceEnumerator(boundedness, enumContext, splitAssigner);
     }
 
@@ -160,8 +162,7 @@ public class MongoSource<OUT>
     public SplitEnumerator<MongoSourceSplit, MongoSourceEnumState> restoreEnumerator(
             SplitEnumeratorContext<MongoSourceSplit> enumContext, MongoSourceEnumState checkpoint) {
         MongoSplitAssigner splitAssigner =
-                new MongoScanSplitAssigner(
-                        connectionOptions, readOptions, isLimitPushedDown(), checkpoint);
+                new MongoScanSplitAssigner(connectionOptions, readOptions, checkpoint);
         return new MongoSourceEnumerator(boundedness, enumContext, splitAssigner);
     }
 
@@ -178,9 +179,5 @@ public class MongoSource<OUT>
     @Override
     public TypeInformation<OUT> getProducedType() {
         return deserializationSchema.getProducedType();
-    }
-
-    private boolean isLimitPushedDown() {
-        return limit > 0;
     }
 }
