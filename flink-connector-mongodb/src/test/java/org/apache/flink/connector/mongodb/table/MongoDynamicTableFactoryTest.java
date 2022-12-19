@@ -108,7 +108,13 @@ public class MongoDynamicTableFactoryTest {
 
         MongoWriteOptions writeOptions = MongoWriteOptions.builder().build();
         MongoDynamicTableSink expectedSink =
-                new MongoDynamicTableSink(connectionOptions, writeOptions, null, SCHEMA);
+                new MongoDynamicTableSink(
+                        connectionOptions,
+                        writeOptions,
+                        null,
+                        SCHEMA.getPrimaryKey().isPresent(),
+                        SCHEMA.toPhysicalRowDataType(),
+                        MongoKeyExtractor.createKeyExtractor(SCHEMA));
         assertThat(actualSink).isEqualTo(expectedSink);
     }
 
@@ -211,7 +217,13 @@ public class MongoDynamicTableFactoryTest {
                         .build();
 
         MongoDynamicTableSink expected =
-                new MongoDynamicTableSink(connectionOptions, writeOptions, null, SCHEMA);
+                new MongoDynamicTableSink(
+                        connectionOptions,
+                        writeOptions,
+                        null,
+                        SCHEMA.getPrimaryKey().isPresent(),
+                        SCHEMA.toPhysicalRowDataType(),
+                        MongoKeyExtractor.createKeyExtractor(SCHEMA));
 
         assertThat(actual).isEqualTo(expected);
     }
@@ -233,7 +245,13 @@ public class MongoDynamicTableFactoryTest {
         MongoWriteOptions writeOptions = MongoWriteOptions.builder().build();
 
         MongoDynamicTableSink expected =
-                new MongoDynamicTableSink(connectionOptions, writeOptions, 2, SCHEMA);
+                new MongoDynamicTableSink(
+                        connectionOptions,
+                        writeOptions,
+                        2,
+                        SCHEMA.getPrimaryKey().isPresent(),
+                        SCHEMA.toPhysicalRowDataType(),
+                        MongoKeyExtractor.createKeyExtractor(SCHEMA));
 
         assertThat(actual).isEqualTo(expected);
     }

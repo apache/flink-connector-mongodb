@@ -24,11 +24,11 @@ import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters.RowDataToBsonConverter;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataSerializationSchema;
-import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkV2Provider;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.types.DataType;
 import org.apache.flink.util.function.SerializableFunction;
 
 import org.bson.BsonValue;
@@ -46,24 +46,28 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
     @Nullable private final Integer parallelism;
-    private final ResolvedSchema schema;
+    private final boolean isUpsert;
+    private final DataType physicalRowDataType;
     private final SerializableFunction<RowData, BsonValue> keyExtractor;
 
     public MongoDynamicTableSink(
             MongoConnectionOptions connectionOptions,
             MongoWriteOptions writeOptions,
             @Nullable Integer parallelism,
-            ResolvedSchema schema) {
+            boolean isUpsert,
+            DataType physicalRowDataType,
+            SerializableFunction<RowData, BsonValue> keyExtractor) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);
         this.parallelism = parallelism;
-        this.schema = checkNotNull(schema);
-        this.keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        this.isUpsert = isUpsert;
+        this.physicalRowDataType = checkNotNull(physicalRowDataType);
+        this.keyExtractor = checkNotNull(keyExtractor);
     }
 
     @Override
     public ChangelogMode getChangelogMode(ChangelogMode requestedMode) {
-        if (schema.getPrimaryKey().isPresent()) {
+        if (isUpsert) {
             return ChangelogMode.upsert();
         } else {
             return ChangelogMode.insertOnly();
@@ -73,8 +77,7 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         final RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createConverter(
-                        schema.toPhysicalRowDataType().getLogicalType());
+                RowDataToBsonConverters.createConverter(physicalRowDataType.getLogicalType());
 
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);
@@ -96,7 +99,13 @@ public class MongoDynamicTableSink implements DynamicTableSink {
 
     @Override
     public MongoDynamicTableSink copy() {
-        return new MongoDynamicTableSink(connectionOptions, writeOptions, parallelism, schema);
+        return new MongoDynamicTableSink(
+                connectionOptions,
+                writeOptions,
+                parallelism,
+                isUpsert,
+                physicalRowDataType,
+                keyExtractor);
     }
 
     @Override
@@ -116,11 +125,13 @@ public class MongoDynamicTableSink implements DynamicTableSink {
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(writeOptions, that.writeOptions)
                 && Objects.equals(parallelism, that.parallelism)
-                && Objects.equals(schema, that.schema);
+                && Objects.equals(isUpsert, that.isUpsert)
+                && Objects.equals(physicalRowDataType, that.physicalRowDataType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionOptions, writeOptions, parallelism, schema);
+        return Objects.hash(
+                connectionOptions, writeOptions, parallelism, isUpsert, physicalRowDataType);
     }
 }
