@@ -60,6 +60,7 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
                                 "--port",
                                 String.valueOf(MONGODB_INTERNAL_PORT))
                         .withNetwork(network)
+                        .withNetworkAliases(CONFIG_HOSTNAME)
                         .withLogConsumer(logConsumer);
         this.shardSrv =
                 new MongoDBContainer(dockerImageName)
@@ -71,12 +72,14 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
                                 "--port",
                                 String.valueOf(MONGODB_INTERNAL_PORT))
                         .withNetwork(network)
+                        .withNetworkAliases(SHARD_HOSTNAME)
                         .withLogConsumer(logConsumer);
         this.router =
                 new MongoRouterContainer(dockerImageName)
                         .withCreateContainerCmdModifier(it -> it.withHostName(ROUTER_HOSTNAME))
-                        .withNetwork(network)
                         .dependsOn(configSrv, shardSrv)
+                        .withNetwork(network)
+                        .withNetworkAliases(ROUTER_HOSTNAME)
                         .withLogConsumer(logConsumer);
     }
 
