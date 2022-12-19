@@ -24,19 +24,14 @@ import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.table.config.MongoConfiguration;
-import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.connector.source.lookup.cache.DefaultLookupCache;
 import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
-import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.factories.DynamicTableSinkFactory;
 import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
-import org.apache.flink.util.function.SerializableFunction;
-
-import org.bson.BsonValue;
 
 import javax.annotation.Nullable;
 
@@ -151,16 +146,11 @@ public class MongoDynamicTableFactory
         MongoConfiguration config = new MongoConfiguration(helper.getOptions());
         helper.validate();
 
-        ResolvedSchema schema = context.getCatalogTable().getResolvedSchema();
-        SerializableFunction<RowData, BsonValue> keyExtractor =
-                MongoKeyExtractor.createKeyExtractor(schema);
-
         return new MongoDynamicTableSink(
                 getConnectionOptions(config),
                 getWriteOptions(config),
                 config.getSinkParallelism(),
-                context.getPhysicalRowDataType(),
-                keyExtractor);
+                context.getCatalogTable().getResolvedSchema());
     }
 
     @Nullable

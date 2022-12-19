@@ -24,11 +24,11 @@ import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters.RowDataToBsonConverter;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataSerializationSchema;
+import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkV2Provider;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.types.DataType;
 import org.apache.flink.util.function.SerializableFunction;
 
 import org.bson.BsonValue;
@@ -46,31 +46,35 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
     @Nullable private final Integer parallelism;
-    private final DataType physicalRowDataType;
+    private final ResolvedSchema schema;
     private final SerializableFunction<RowData, BsonValue> keyExtractor;
 
     public MongoDynamicTableSink(
             MongoConnectionOptions connectionOptions,
             MongoWriteOptions writeOptions,
             @Nullable Integer parallelism,
-            DataType physicalRowDataType,
-            SerializableFunction<RowData, BsonValue> keyExtractor) {
+            ResolvedSchema schema) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);
         this.parallelism = parallelism;
-        this.physicalRowDataType = checkNotNull(physicalRowDataType);
-        this.keyExtractor = checkNotNull(keyExtractor);
+        this.schema = checkNotNull(schema);
+        this.keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
     }
 
     @Override
     public ChangelogMode getChangelogMode(ChangelogMode requestedMode) {
-        return ChangelogMode.upsert();
+        if (schema.getPrimaryKey().isPresent()) {
+            return ChangelogMode.upsert();
+        } else {
+            return ChangelogMode.insertOnly();
+        }
     }
 
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         final RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createConverter(physicalRowDataType.getLogicalType());
+                RowDataToBsonConverters.createConverter(
+                        schema.toPhysicalRowDataType().getLogicalType());
 
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);
@@ -92,8 +96,7 @@ public class MongoDynamicTableSink implements DynamicTableSink {
 
     @Override
     public MongoDynamicTableSink copy() {
-        return new MongoDynamicTableSink(
-                connectionOptions, writeOptions, parallelism, physicalRowDataType, keyExtractor);
+        return new MongoDynamicTableSink(connectionOptions, writeOptions, parallelism, schema);
     }
 
     @Override
@@ -113,11 +116,11 @@ public class MongoDynamicTableSink implements DynamicTableSink {
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(writeOptions, that.writeOptions)
                 && Objects.equals(parallelism, that.parallelism)
-                && Objects.equals(physicalRowDataType, that.physicalRowDataType);
+                && Objects.equals(schema, that.schema);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(connectionOptions, writeOptions, parallelism, physicalRowDataType);
+        return Objects.hash(connectionOptions, writeOptions, parallelism, schema);
     }
 }
