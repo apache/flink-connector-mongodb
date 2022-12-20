@@ -41,6 +41,22 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Filters;
+import org.bson.BsonArray;
+import org.bson.BsonBinary;
+import org.bson.BsonBoolean;
+import org.bson.BsonDateTime;
+import org.bson.BsonDbPointer;
+import org.bson.BsonDecimal128;
+import org.bson.BsonDocument;
+import org.bson.BsonDouble;
+import org.bson.BsonInt32;
+import org.bson.BsonInt64;
+import org.bson.BsonJavaScript;
+import org.bson.BsonJavaScriptWithScope;
+import org.bson.BsonRegularExpression;
+import org.bson.BsonString;
+import org.bson.BsonSymbol;
+import org.bson.BsonTimestamp;
 import org.bson.Document;
 import org.bson.types.Binary;
 import org.bson.types.Decimal128;
@@ -64,6 +80,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -195,6 +212,88 @@ public class MongoDynamicTableSinkITCase {
                                         new Document("k", "15_1"), new Document("k", "15_2")));
 
         assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void testRoundTripReadAndSink() throws ExecutionException, InterruptedException {
+        String database = "test";
+        String sourceCollection = "test_round_trip_source";
+        String sinkCollection = "test_round_trip_sink";
+
+        BsonDocument testData =
+                new BsonDocument("f1", new BsonString("ABCDE"))
+                        .append("f2", new BsonBoolean(true))
+                        .append("f3", new BsonBinary(new byte[] {(byte) 3}))
+                        .append("f4", new BsonInt32(32))
+                        .append("f5", new BsonInt64(64L))
+                        .append("f6", new BsonDouble(128.128d))
+                        .append("f7", new BsonDecimal128(new Decimal128(new BigDecimal("256.256"))))
+                        .append("f8", new BsonDateTime(Instant.now().toEpochMilli()))
+                        .append("f9", new BsonTimestamp((int) Instant.now().getEpochSecond(), 100))
+                        .append(
+                                "f10",
+                                new BsonRegularExpression(Pattern.compile("^9$").pattern(), "i"))
+                        .append("f11", new BsonJavaScript("function() { return 10; }"))
+                        .append(
+                                "f12",
+                                new BsonJavaScriptWithScope(
+                                        "function() { return 11; }", new BsonDocument()))
+                        .append("f13", new BsonDbPointer("test.test", new ObjectId()))
+                        .append("f14", new BsonSymbol("symbol"))
+                        .append(
+                                "f15",
+                                new BsonArray(Arrays.asList(new BsonInt32(1), new BsonInt32(2))))
+                        .append("f16", new BsonDocument("k", new BsonInt32(32)));
+
+        MongoCollection<BsonDocument> sourceColl =
+                mongoClient
+                        .getDatabase(database)
+                        .getCollection(sourceCollection)
+                        .withDocumentClass(BsonDocument.class);
+        sourceColl.insertOne(testData);
+
+        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+
+        tEnv.executeSql(
+                String.format(
+                        "CREATE TABLE mongo_source (\n"
+                                + "`_id` STRING,\n"
+                                + "`f1` STRING,\n"
+                                + "`f2` BOOLEAN,\n"
+                                + "`f3` BINARY,\n"
+                                + "`f4` INTEGER,\n"
+                                + "`f5` BIGINT,\n"
+                                + "`f6` DOUBLE,\n"
+                                + "`f7` DECIMAL(10, 3),\n"
+                                + "`f8` TIMESTAMP_LTZ(3),\n"
+                                + "`f9` STRING,\n"
+                                + "`f10` STRING,\n"
+                                + "`f11` STRING,\n"
+                                + "`f12` STRING,\n"
+                                + "`f13` STRING,\n"
+                                + "`f14` STRING,\n"
+                                + "`f15` ARRAY<INTEGER>,\n"
+                                + "`f16` ROW<k INTEGER>,\n"
+                                + " PRIMARY KEY (_id) NOT ENFORCED\n"
+                                + ") WITH ( %s )",
+                        getConnectorSql(database, sourceCollection)));
+
+        tEnv.executeSql(
+                String.format(
+                        "CREATE TABLE mongo_sink WITH ( %s ) LIKE mongo_source",
+                        getConnectorSql(database, sinkCollection)));
+
+        tEnv.executeSql("insert into mongo_sink select * from mongo_source").await();
+
+        MongoCollection<BsonDocument> sinkColl =
+                mongoClient
+                        .getDatabase(database)
+                        .getCollection(sinkCollection)
+                        .withDocumentClass(BsonDocument.class);
+
+        BsonDocument actual = sinkColl.find().first();
+
+        assertThat(actual).isEqualTo(testData);
     }
 
     @Test

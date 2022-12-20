@@ -42,12 +42,15 @@ import org.bson.BsonInt64;
 import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.BsonValue;
+import org.bson.json.JsonParseException;
 import org.bson.types.Decimal128;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ENCODE_VALUE_FIELD;
 
 /** Tool class used to convert from {@link RowData} to {@link BsonValue}. */
 @Internal
@@ -166,6 +169,21 @@ public class RowDataToBsonConverters {
 
                     @Override
                     public BsonValue convert(Object value) {
+                        String val = value.toString();
+                        // try to parse out the mongodb specific data type from extend-json.
+                        if (val.startsWith("{")
+                                && val.endsWith("}")
+                                && val.contains(ENCODE_VALUE_FIELD)) {
+                            try {
+                                BsonDocument doc = BsonDocument.parse(val);
+                                if (doc.containsKey(ENCODE_VALUE_FIELD)) {
+                                    return doc.get(ENCODE_VALUE_FIELD);
+                                }
+                            } catch (JsonParseException e) {
+                                // invalid json format, fallback to store as a bson string.
+                                return new BsonString(value.toString());
+                            }
+                        }
                         return new BsonString(value.toString());
                     }
                 };

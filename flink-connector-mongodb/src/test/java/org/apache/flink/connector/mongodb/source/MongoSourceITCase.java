@@ -43,7 +43,6 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
@@ -105,13 +104,11 @@ public class MongoSourceITCase {
                         .getCollection(SETTINGS_COLLECTION)
                         .withDocumentClass(BsonDocument.class);
         // decrease chunk size to 1mb to make splitter test easier.
-        UpdateResult result =
-                settings.updateOne(
-                        Filters.eq(ID_FIELD, CHUNK_SIZE_FIELD),
-                        Updates.combine(
-                                Updates.set(ID_FIELD, CHUNK_SIZE_FIELD),
-                                Updates.set(VALUE_FIELD, 1)),
-                        new UpdateOptions().upsert(true));
+        settings.updateOne(
+                Filters.eq(ID_FIELD, CHUNK_SIZE_FIELD),
+                Updates.combine(
+                        Updates.set(ID_FIELD, CHUNK_SIZE_FIELD), Updates.set(VALUE_FIELD, 1)),
+                new UpdateOptions().upsert(true));
 
         // make test data for non-sharded collection.
         initTestData(TEST_COLLECTION);
