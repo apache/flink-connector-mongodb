@@ -39,6 +39,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.flink.util.Preconditions.checkState;
+
 /** The split assigner for {@link MongoScanSourceSplit}. */
 @Internal
 public class MongoScanSplitAssigner implements MongoSplitAssigner {
@@ -133,7 +135,8 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
 
     @Override
     public boolean noMoreSplits() {
-        return initialized && remainingCollections.isEmpty() && remainingScanSplits.isEmpty();
+        checkState(initialized, "The noMoreSplits method was called but not initialized.");
+        return remainingCollections.isEmpty() && remainingScanSplits.isEmpty();
     }
 
     @Override
