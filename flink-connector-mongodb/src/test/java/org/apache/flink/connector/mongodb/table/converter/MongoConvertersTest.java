@@ -25,6 +25,7 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.data.StringData;
 import org.apache.flink.table.data.TimestampData;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.RowType;
 
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
@@ -177,7 +178,7 @@ public class MongoConvertersTest {
 
         // Test convert Bson to RowData
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(docWithFullTypes);
         assertThat(actual).isEqualTo(expect);
     }
@@ -189,7 +190,7 @@ public class MongoConvertersTest {
         BsonDocument docWithNullValue = new BsonDocument("f0", new BsonNull());
 
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
 
         assertThatThrownBy(() -> bsonToRowDataConverter.convert(docWithNullValue))
                 .hasStackTraceContaining(
@@ -224,7 +225,7 @@ public class MongoConvertersTest {
 
         // Test for compatible bson number and boolean to string sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -239,26 +240,28 @@ public class MongoConvertersTest {
 
         // Test for compatible boolean sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
     @Test
     public void testConvertBsonToSqlTinyInt() {
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.TINYINT()));
         assertThatThrownBy(
                         () ->
                                 BsonToRowDataConverters.createConverter(
-                                        DataTypes.TINYINT().getLogicalType()))
+                                        (RowType) rowType.getLogicalType()))
                 .hasStackTraceContaining("Unsupported type: TINYINT");
     }
 
     @Test
     public void testConvertBsonToSqlSmallInt() {
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.SMALLINT()));
         assertThatThrownBy(
                         () ->
                                 BsonToRowDataConverters.createConverter(
-                                        DataTypes.SMALLINT().getLogicalType()))
+                                        (RowType) rowType.getLogicalType()))
                 .hasStackTraceContaining("Unsupported type: SMALLINT");
     }
 
@@ -272,7 +275,7 @@ public class MongoConvertersTest {
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -287,7 +290,7 @@ public class MongoConvertersTest {
 
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -302,17 +305,18 @@ public class MongoConvertersTest {
 
         // Test for compatible double sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
     @Test
     public void testConvertBsonToSqlFloat() {
+        DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.FLOAT()));
         assertThatThrownBy(
                         () ->
                                 BsonToRowDataConverters.createConverter(
-                                        DataTypes.FLOAT().getLogicalType()))
+                                        (RowType) rowType.getLogicalType()))
                 .hasStackTraceContaining("Unsupported type: FLOAT");
     }
 
@@ -329,7 +333,7 @@ public class MongoConvertersTest {
 
         // Test for compatible float sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
         RowData actual = (RowData) bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
@@ -349,7 +353,7 @@ public class MongoConvertersTest {
 
         // Test for compatible decimal sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
-                BsonToRowDataConverters.createConverter(rowType.getLogicalType());
+                BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
 
         assertThatThrownBy(() -> bsonToRowDataConverter.convert(document))
                 .hasStackTraceContaining(

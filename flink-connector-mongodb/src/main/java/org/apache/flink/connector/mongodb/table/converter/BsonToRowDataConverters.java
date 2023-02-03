@@ -73,7 +73,11 @@ public class BsonToRowDataConverters {
     // sql-connector uber jars.
     // --------------------------------------------------------------------------------
 
-    public static BsonToRowDataConverter createConverter(LogicalType type) {
+    public static BsonToRowDataConverter createConverter(RowType rowType) {
+        return createNullSafeInternalConverter(rowType);
+    }
+
+    private static BsonToRowDataConverter createNullSafeInternalConverter(LogicalType type) {
         return wrapIntoNullSafeInternalConverter(createInternalConverter(type), type);
     }
 
@@ -227,7 +231,7 @@ public class BsonToRowDataConverters {
         final BsonToRowDataConverter[] fieldConverters =
                 rowType.getFields().stream()
                         .map(RowType.RowField::getType)
-                        .map(BsonToRowDataConverters::createConverter)
+                        .map(BsonToRowDataConverters::createNullSafeInternalConverter)
                         .toArray(BsonToRowDataConverter[]::new);
         final int arity = rowType.getFieldCount();
         final String[] fieldNames = rowType.getFieldNames().toArray(new String[0]);
@@ -259,8 +263,8 @@ public class BsonToRowDataConverters {
     }
 
     private static BsonToRowDataConverter createArrayConverter(ArrayType arrayType) {
-        final BsonToRowDataConverter elementConverter = createConverter(arrayType.getElementType());
-
+        final BsonToRowDataConverter elementConverter =
+                createNullSafeInternalConverter(arrayType.getElementType());
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;
 
@@ -289,7 +293,7 @@ public class BsonToRowDataConverters {
         checkArgument(keyType.supportsInputConversion(String.class));
 
         LogicalType valueType = mapType.getValueType();
-        BsonToRowDataConverter valueConverter = createConverter(valueType);
+        BsonToRowDataConverter valueConverter = createNullSafeInternalConverter(valueType);
 
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;
