@@ -26,7 +26,7 @@ import org.apache.flink.table.types.logical.RowType;
 
 import org.bson.BsonDocument;
 
-/** Deserializer that {@link BsonDocument} to flink internal {@link RowData}. */
+/** Deserializer that maps {@link BsonDocument} to {@link RowData}. */
 @Internal
 public class MongoRowDataDeserializationSchema implements MongoDeserializationSchema<RowData> {
 
