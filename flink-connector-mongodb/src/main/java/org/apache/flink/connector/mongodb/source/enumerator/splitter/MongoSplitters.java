@@ -19,7 +19,6 @@
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.common.utils.MongoUtils;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
@@ -29,30 +28,22 @@ import org.apache.flink.util.FlinkRuntimeException;
 import com.mongodb.MongoException;
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collection;
 
 /** To split collections of MongoDB to {@link MongoSourceSplit}s. */
 @Internal
-public class MongoSplitters implements Closeable {
+public class MongoSplitters {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSplitters.class);
 
-    private final MongoReadOptions readOptions;
-    private final MongoClient mongoClient;
+    private MongoSplitters() {}
 
-    public MongoSplitters(MongoConnectionOptions connectionOptions, MongoReadOptions readOptions) {
-        this.readOptions = readOptions;
-        this.mongoClient = MongoClients.create(connectionOptions.getUri());
-    }
-
-    public Collection<MongoScanSourceSplit> split(MongoNamespace namespace) {
+    public static Collection<MongoScanSourceSplit> split(
+            MongoClient mongoClient, MongoReadOptions readOptions, MongoNamespace namespace) {
         BsonDocument collStats;
         try {
             collStats = MongoUtils.collStats(mongoClient, namespace);
@@ -78,13 +69,6 @@ public class MongoSplitters implements Closeable {
                 return splitContext.isSharded()
                         ? MongoShardedSplitter.INSTANCE.split(splitContext)
                         : MongoSplitVectorSplitter.INSTANCE.split(splitContext);
-        }
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (mongoClient != null) {
-            mongoClient.close();
         }
     }
 }

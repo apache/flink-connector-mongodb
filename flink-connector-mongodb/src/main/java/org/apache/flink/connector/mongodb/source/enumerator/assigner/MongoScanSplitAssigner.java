@@ -26,6 +26,8 @@ import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
 import com.mongodb.MongoNamespace;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +54,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
     private boolean initialized;
 
-    private transient MongoSplitters mongoSplitters;
+    private MongoClient mongoClient;
 
     public MongoScanSplitAssigner(
             MongoConnectionOptions connectionOptions,
@@ -76,7 +78,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                             "%s.%s",
                             connectionOptions.getDatabase(), connectionOptions.getCollection());
             remainingCollections.add(collectionId);
-            mongoSplitters = new MongoSplitters(connectionOptions, readOptions);
+            mongoClient = MongoClients.create(connectionOptions.getUri());
             initialized = true;
         }
     }
@@ -96,7 +98,8 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
             if (nextCollection != null) {
                 // split the given collection into chunks (scan splits)
                 Collection<MongoScanSourceSplit> splits =
-                        mongoSplitters.split(new MongoNamespace(nextCollection));
+                        MongoSplitters.split(
+                                mongoClient, readOptions, new MongoNamespace(nextCollection));
                 remainingScanSplits.addAll(splits);
                 alreadyProcessedCollections.add(nextCollection);
                 return getNext();
@@ -135,8 +138,8 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
 
     @Override
     public void close() throws IOException {
-        if (mongoSplitters != null) {
-            mongoSplitters.close();
+        if (mongoClient != null) {
+            mongoClient.close();
             LOG.info("Mongo scan split assigner is closed.");
         }
     }
