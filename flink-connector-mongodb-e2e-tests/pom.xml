@@ -144,17 +144,6 @@ under the License.
 							</artifactItems>
 						</configuration>
 					</execution>
-					<execution>
-						<id>store-classpath-in-target-for-tests</id>
-						<phase>package</phase>
-						<goals>
-							<goal>build-classpath</goal>
-						</goals>
-						<configuration>
-							<outputFile>${project.build.directory}/hadoop.classpath</outputFile>
-							<excludeGroupIds>org.apache.flink</excludeGroupIds>
-						</configuration>
-					</execution>
 				</executions>
 			</plugin>
 		</plugins>
