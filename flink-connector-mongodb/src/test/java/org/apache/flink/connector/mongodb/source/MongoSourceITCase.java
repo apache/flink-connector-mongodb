@@ -18,10 +18,11 @@
 package org.apache.flink.connector.mongodb.source;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
-import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoJsonDeserializationSchema;
+import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataDeserializationSchema;
 import org.apache.flink.connector.mongodb.testutils.MongoShardedContainers;
 import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
@@ -59,7 +60,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -245,5 +248,21 @@ public class MongoSourceITCase {
     private static BsonDocument createTestData(int id) {
         return new BsonDocument("f0", new BsonInt32(id))
                 .append("f1", new BsonString(RandomStringUtils.randomAlphabetic(32)));
+    }
+
+    private static class MongoJsonDeserializationSchema
+            implements MongoDeserializationSchema<String> {
+
+        @Override
+        public String deserialize(BsonDocument document) {
+            return Optional.ofNullable(document)
+                    .map(doc -> doc.toJson(DEFAULT_JSON_WRITER_SETTINGS))
+                    .orElse(null);
+        }
+
+        @Override
+        public TypeInformation<String> getProducedType() {
+            return BasicTypeInfo.STRING_TYPE_INFO;
+        }
     }
 }
