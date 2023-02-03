@@ -45,6 +45,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 @Internal
 public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValue> {
 
+    private static final long serialVersionUID = 1L;
+
     public static final String RESERVED_ID = ID_FIELD;
 
     private static final AppendOnlyKeyExtractor APPEND_ONLY_KEY_EXTRACTOR =
@@ -100,7 +102,8 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
                     || isCompoundPrimaryKey(primaryKeyIndexes)
                     || !primaryKeyContainsReservedId(primaryKey.get())) {
                 throw new IllegalArgumentException(
-                        "Ambiguous keys being used due to the presence of an _id field.");
+                        "Ambiguous keys being used due to the presence of an _id field. "
+                                + "Either use the _id column as the key, or rename the _id column.");
             }
         }
 
@@ -134,8 +137,8 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
     /**
      * It behaves as append-only when no primary key is declared and reserved _id is not present. We
-     * use static class instead of lambda for a reason here. It is necessary because the maven shade
-     * plugin cannot relocate classes in SerializedLambdas (MSHADE-260).
+     * use static class instead of lambda because the maven shade plugin cannot relocate classes in
+     * SerializedLambdas (MSHADE-260).
      */
     private static class AppendOnlyKeyExtractor
             implements SerializableFunction<RowData, BsonValue> {
