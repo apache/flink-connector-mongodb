@@ -83,7 +83,8 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
                         .withLogConsumer(logConsumer);
     }
 
-    public void start() {
+    @Override
+    public void beforeAll(ExtensionContext context) {
         LOG.info("Starting ConfigSrv container");
         configSrv.start();
         LOG.info("Starting ShardSrv container");
@@ -92,20 +93,11 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
         router.start();
     }
 
-    public void close() {
+    @Override
+    public void afterAll(ExtensionContext context) {
         router.stop();
         shardSrv.stop();
         configSrv.stop();
-    }
-
-    @Override
-    public void beforeAll(ExtensionContext context) {
-        start();
-    }
-
-    @Override
-    public void afterAll(ExtensionContext context) {
-        close();
     }
 
     public String getConnectionString() {
