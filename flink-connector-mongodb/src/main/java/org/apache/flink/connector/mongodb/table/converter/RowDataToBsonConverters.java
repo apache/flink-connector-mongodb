@@ -111,7 +111,7 @@ public class RowDataToBsonConverters {
 
                     @Override
                     public BsonValue convert(Object value) {
-                        return null;
+                        return BsonNull.VALUE;
                     }
                 };
             case BOOLEAN:
