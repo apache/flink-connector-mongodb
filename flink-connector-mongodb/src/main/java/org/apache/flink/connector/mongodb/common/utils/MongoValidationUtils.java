@@ -118,7 +118,8 @@ public class MongoValidationUtils {
                 illegalTypes.add(fieldType);
                 if (!DENIED_PRIMARY_KEY_TYPES.contains(typeRoot)) {
                     LOG.warn(
-                            "Detected newly added root type {} that should to be explicitly accepted or rejected.",
+                            "Detected newly added root type {} that should to be explicitly accepted"
+                                    + " or rejected. Please reach out to the Flink maintainers.",
                             fieldType);
                 }
             }
