@@ -80,37 +80,28 @@ public class MongoDynamicTableFactoryTest {
                     UniqueConstraint.primaryKey("name", Arrays.asList("bbb", "aaa")));
 
     @Test
-    public void testMongoCommonProperties() {
-        Map<String, String> properties = getRequiredOptions();
-
-        // validation for source
-        DynamicTableSource actualSource = createTableSource(SCHEMA, properties);
-
-        MongoConnectionOptions connectionOptions =
-                MongoConnectionOptions.builder()
-                        .setUri("mongodb://127.0.0.1:27017")
-                        .setDatabase("test_db")
-                        .setCollection("test_coll")
-                        .build();
+    public void testMongoSourceCommonProperties() {
+        DynamicTableSource actualSource = createTableSource(SCHEMA, getRequiredOptions());
 
         MongoDynamicTableSource expectedSource =
                 new MongoDynamicTableSource(
-                        connectionOptions,
+                        getConnectionOptions(),
                         MongoReadOptions.builder().build(),
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
                         LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
                         SCHEMA.toPhysicalRowDataType());
         assertThat(actualSource).isEqualTo(expectedSource);
+    }
 
-        // validation for sink
-        DynamicTableSink actualSink = createTableSink(SCHEMA, properties);
+    @Test
+    public void testMongoSinkCommonProperties() {
+        DynamicTableSink actualSink = createTableSink(SCHEMA, getRequiredOptions());
 
-        MongoWriteOptions writeOptions = MongoWriteOptions.builder().build();
         MongoDynamicTableSink expectedSink =
                 new MongoDynamicTableSink(
-                        connectionOptions,
-                        writeOptions,
+                        getConnectionOptions(),
+                        MongoWriteOptions.builder().build(),
                         null,
                         SCHEMA.getPrimaryKey().isPresent(),
                         SCHEMA.toPhysicalRowDataType(),
@@ -130,12 +121,7 @@ public class MongoDynamicTableFactoryTest {
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
-        MongoConnectionOptions connectionOptions =
-                MongoConnectionOptions.builder()
-                        .setUri("mongodb://127.0.0.1:27017")
-                        .setDatabase("test_db")
-                        .setCollection("test_coll")
-                        .build();
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
         MongoReadOptions readOptions =
                 MongoReadOptions.builder()
                         .setFetchSize(1024)
@@ -171,12 +157,7 @@ public class MongoDynamicTableFactoryTest {
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
-        MongoConnectionOptions connectionOptions =
-                MongoConnectionOptions.builder()
-                        .setUri("mongodb://127.0.0.1:27017")
-                        .setDatabase("test_db")
-                        .setCollection("test_coll")
-                        .build();
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
 
         MongoDynamicTableSource expected =
                 new MongoDynamicTableSource(
@@ -201,12 +182,7 @@ public class MongoDynamicTableFactoryTest {
 
         DynamicTableSink actual = createTableSink(SCHEMA, properties);
 
-        MongoConnectionOptions connectionOptions =
-                MongoConnectionOptions.builder()
-                        .setUri("mongodb://127.0.0.1:27017")
-                        .setDatabase("test_db")
-                        .setCollection("test_coll")
-                        .build();
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
         MongoWriteOptions writeOptions =
                 MongoWriteOptions.builder()
                         .setBatchSize(1001)
@@ -235,12 +211,7 @@ public class MongoDynamicTableFactoryTest {
 
         DynamicTableSink actual = createTableSink(SCHEMA, properties);
 
-        MongoConnectionOptions connectionOptions =
-                MongoConnectionOptions.builder()
-                        .setUri("mongodb://127.0.0.1:27017")
-                        .setDatabase("test_db")
-                        .setCollection("test_coll")
-                        .build();
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
 
         MongoWriteOptions writeOptions = MongoWriteOptions.builder().build();
 
@@ -335,5 +306,13 @@ public class MongoDynamicTableFactoryTest {
         options.put(DATABASE.key(), "test_db");
         options.put(COLLECTION.key(), "test_coll");
         return options;
+    }
+
+    private static MongoConnectionOptions getConnectionOptions() {
+        return MongoConnectionOptions.builder()
+                .setUri("mongodb://127.0.0.1:27017")
+                .setDatabase("test_db")
+                .setCollection("test_coll")
+                .build();
     }
 }
