@@ -418,7 +418,7 @@ public class MongoDynamicTableSinkITCase {
         Instant now = Instant.now();
         List<Expression> testValues =
                 Collections.singletonList(
-                        row(1L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
+                        row(2L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
         List<String> primaryKeys = Collections.singletonList("a");
 
         testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
@@ -426,10 +426,10 @@ public class MongoDynamicTableSinkITCase {
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
 
-        Document actual = coll.find(Filters.eq("_id", 1L)).first();
+        Document actual = coll.find(Filters.eq("_id", 2L)).first();
         Document expected = new Document();
-        expected.put("_id", 1L);
-        expected.put("a", 1L);
+        expected.put("_id", 2L);
+        expected.put("a", 2L);
         expected.put("b", true);
         expected.put("c", "ABCDE");
         expected.put("d", 12.12d);
