@@ -259,74 +259,73 @@ public class MongoDynamicTableFactoryTest {
     @Test
     public void testMongoValidation() {
         // fetch size lower than 1
-        Map<String, String> properties = getRequiredOptions();
-        properties.put(SCAN_FETCH_SIZE.key(), "0");
-
-        Map<String, String> finalProperties1 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties1))
-                .hasStackTraceContaining("The fetch size must be larger than 0.");
+        assertSourceValidationRejects(
+                SCAN_FETCH_SIZE.key(), "0", "The fetch size must be larger than 0.");
 
         // cursor batch size lower than 0
-        properties = getRequiredOptions();
-        properties.put(SCAN_CURSOR_BATCH_SIZE.key(), "-1");
-
-        Map<String, String> finalProperties2 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties2))
-                .hasStackTraceContaining("The cursor batch size must be larger than or equal to 0");
+        assertSourceValidationRejects(
+                SCAN_CURSOR_BATCH_SIZE.key(),
+                "-1",
+                "The cursor batch size must be larger than or equal to 0");
 
         // partition memory size lower than 1mb
-        properties = getRequiredOptions();
-        properties.put(SCAN_PARTITION_SIZE.key(), "900kb");
-
-        Map<String, String> finalProperties3 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties3))
-                .hasStackTraceContaining("The partition size must be larger than or equal to 1mb.");
+        assertSourceValidationRejects(
+                SCAN_PARTITION_SIZE.key(),
+                "900kb",
+                "The partition size must be larger than or equal to 1mb.");
 
         // samples per partition lower than 1
-        properties = getRequiredOptions();
-        properties.put(SCAN_PARTITION_SAMPLES.key(), "0");
-
-        Map<String, String> finalProperties4 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties4))
-                .hasStackTraceContaining("The samples per partition must be larger than 0.");
+        assertSourceValidationRejects(
+                SCAN_PARTITION_SAMPLES.key(),
+                "0",
+                "The samples per partition must be larger than 0.");
 
         // lookup retry times shouldn't be negative
-        properties = getRequiredOptions();
-        properties.put(LookupOptions.MAX_RETRIES.key(), "-1");
-        Map<String, String> finalProperties5 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties5))
-                .hasStackTraceContaining(
-                        "The 'lookup.max-retries' must be larger than or equal to 0.");
+        assertSourceValidationRejects(
+                LookupOptions.MAX_RETRIES.key(),
+                "-1",
+                "The 'lookup.max-retries' must be larger than or equal to 0.");
 
         // lookup retry interval shouldn't be 0
-        properties = getRequiredOptions();
-        properties.put(LOOKUP_RETRY_INTERVAL.key(), "0ms");
-        Map<String, String> finalProperties6 = properties;
-        assertThatThrownBy(() -> createTableSource(SCHEMA, finalProperties6))
-                .hasStackTraceContaining("The 'lookup.retry.interval' must be larger than 0.");
+        assertSourceValidationRejects(
+                LOOKUP_RETRY_INTERVAL.key(),
+                "0ms",
+                "The 'lookup.retry.interval' must be larger than 0.");
 
         // sink retries shouldn't be negative
-        properties = getRequiredOptions();
-        properties.put(SINK_MAX_RETRIES.key(), "-1");
-        Map<String, String> finalProperties7 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties7))
-                .hasStackTraceContaining(
-                        "The sink max retry times must be larger than or equal to 0.");
+        assertSinkValidationRejects(
+                SINK_MAX_RETRIES.key(),
+                "-1",
+                "The sink max retry times must be larger than or equal to 0.");
 
         // sink retry interval shouldn't be 0
-        properties = getRequiredOptions();
-        properties.put(SINK_RETRY_INTERVAL.key(), "0ms");
-        Map<String, String> finalProperties8 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties8))
-                .hasStackTraceContaining(
-                        "The retry interval (in milliseconds) must be larger than 0.");
+        assertSinkValidationRejects(
+                SINK_RETRY_INTERVAL.key(),
+                "0ms",
+                "The retry interval (in milliseconds) must be larger than 0.");
 
         // sink buffered rows should be larger than 0
-        properties = getRequiredOptions();
-        properties.put(BUFFER_FLUSH_MAX_ROWS.key(), "0");
-        Map<String, String> finalProperties9 = properties;
-        assertThatThrownBy(() -> createTableSink(SCHEMA, finalProperties9))
-                .hasStackTraceContaining("Max number of batch size must be larger than 0.");
+        assertSinkValidationRejects(
+                BUFFER_FLUSH_MAX_ROWS.key(),
+                "0",
+                "Max number of batch size must be larger than 0.");
+    }
+
+    private void assertSourceValidationRejects(String key, String value, String errorMessage) {
+        assertThatThrownBy(
+                        () -> createTableSource(SCHEMA, getRequiredOptionsWithSetting(key, value)))
+                .hasStackTraceContaining(errorMessage);
+    }
+
+    private void assertSinkValidationRejects(String key, String value, String errorMessage) {
+        assertThatThrownBy(() -> createTableSink(SCHEMA, getRequiredOptionsWithSetting(key, value)))
+                .hasStackTraceContaining(errorMessage);
+    }
+
+    private static Map<String, String> getRequiredOptionsWithSetting(String key, String value) {
+        Map<String, String> requiredOptions = getRequiredOptions();
+        requiredOptions.put(key, value);
+        return requiredOptions;
     }
 
     private static Map<String, String> getRequiredOptions() {
