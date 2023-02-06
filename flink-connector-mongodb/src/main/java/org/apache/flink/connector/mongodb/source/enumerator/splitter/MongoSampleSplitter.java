@@ -71,7 +71,7 @@ public class MongoSampleSplitter {
         MongoReadOptions readOptions = splitContext.getReadOptions();
         MongoNamespace namespace = splitContext.getMongoNamespace();
 
-        long count = splitContext.getCount();
+        long totalNumDocuments = splitContext.getCount();
         long partitionSizeInBytes = readOptions.getPartitionSize().getBytes();
         int samplesPerPartition = readOptions.getSamplesPerPartition();
 
@@ -83,16 +83,17 @@ public class MongoSampleSplitter {
         }
 
         long numDocumentsPerPartition = partitionSizeInBytes / avgObjSizeInBytes;
-        if (numDocumentsPerPartition >= count) {
+        if (numDocumentsPerPartition >= totalNumDocuments) {
             LOG.info(
                     "Fewer documents ({}) than the number of documents per partition ({}), Returning a single partition.",
-                    count,
+                    totalNumDocuments,
                     numDocumentsPerPartition);
             return MongoSingleSplitter.INSTANCE.split(splitContext);
         }
 
-        int numberOfSamples =
-                (int) Math.ceil((samplesPerPartition * count * 1.0d) / numDocumentsPerPartition);
+        int numberOfPartitions =
+                (int) Math.ceil(totalNumDocuments * 1.0d / numDocumentsPerPartition);
+        int numberOfSamples = samplesPerPartition * numberOfPartitions;
 
         List<BsonDocument> samples =
                 splitContext
@@ -105,24 +106,20 @@ public class MongoSampleSplitter {
                         .allowDiskUse(true)
                         .into(new ArrayList<>());
 
-        List<MongoScanSourceSplit> sourceSplits = new ArrayList<>();
-        BsonDocument partitionStart = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
-        int splitNum = 0;
-        for (int i = 0; i < samples.size(); i++) {
-            if (i % samplesPerPartition == 0 || i == samples.size() - 1) {
-                sourceSplits.add(
-                        createSplit(namespace, splitNum++, partitionStart, samples.get(i)));
-                partitionStart = samples.get(i);
-            }
-        }
+        // Use minKey to replace the first sample and maxKey to replace the last sample
+        // to ensure that the partition boundaries can include the entire collection.
+        // It is safe to set the value here, because numberOfPartitions >= 2
+        // and samplesPerPartition >= 1, so numberOfSamples >= 2.
+        samples.set(0, new BsonDocument(ID_FIELD, BSON_MIN_KEY));
+        samples.set(samples.size() - 1, new BsonDocument(ID_FIELD, BSON_MAX_KEY));
 
-        // Complete right bound: (upper of last, maxKey)
-        sourceSplits.add(
-                createSplit(
-                        namespace,
-                        splitNum,
-                        partitionStart,
-                        new BsonDocument(ID_FIELD, BSON_MAX_KEY)));
+        List<MongoScanSourceSplit> sourceSplits = new ArrayList<>();
+        BsonDocument partitionStart = samples.get(0);
+        int splitNum = 0;
+        for (int i = samplesPerPartition - 1; i < samples.size(); i += samplesPerPartition) {
+            sourceSplits.add(createSplit(namespace, splitNum++, partitionStart, samples.get(i)));
+            partitionStart = samples.get(i);
+        }
 
         return sourceSplits;
     }
