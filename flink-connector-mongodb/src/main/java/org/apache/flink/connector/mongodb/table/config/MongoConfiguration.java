@@ -34,7 +34,6 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
@@ -71,10 +70,6 @@ public class MongoConfiguration {
     // -----------------------------------Read Config----------------------------------------
     public int getFetchSize() {
         return config.get(SCAN_FETCH_SIZE);
-    }
-
-    public int getCursorBatchSize() {
-        return config.get(SCAN_CURSOR_BATCH_SIZE);
     }
 
     public boolean isNoCursorTimeout() {

@@ -60,13 +60,6 @@ public class MongoConnectorOptions {
                     .withDescription(
                             "Gives the reader a hint as to the number of documents that should be fetched from the database per round-trip when reading. ");
 
-    public static final ConfigOption<Integer> SCAN_CURSOR_BATCH_SIZE =
-            ConfigOptions.key("scan.cursor.batch-size")
-                    .intType()
-                    .defaultValue(0)
-                    .withDescription(
-                            "Specifies the number of documents to return in each batch of the response from the MongoDB instance. Set to 0 to use server's default.");
-
     public static final ConfigOption<Boolean> SCAN_CURSOR_NO_TIMEOUT =
             ConfigOptions.key("scan.cursor.no-timeout")
                     .booleanType()

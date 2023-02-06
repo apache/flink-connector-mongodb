@@ -129,7 +129,6 @@ public class MongoDynamicTableSource
                         .setDatabase(connectionOptions.getDatabase())
                         .setCollection(connectionOptions.getCollection())
                         .setFetchSize(readOptions.getFetchSize())
-                        .setCursorBatchSize(readOptions.getCursorBatchSize())
                         .setNoCursorTimeout(readOptions.isNoCursorTimeout())
                         .setPartitionStrategy(readOptions.getPartitionStrategy())
                         .setPartitionSize(readOptions.getPartitionSize())

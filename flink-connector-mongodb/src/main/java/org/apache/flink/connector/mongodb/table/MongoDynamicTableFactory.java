@@ -49,7 +49,6 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
@@ -88,7 +87,6 @@ public class MongoDynamicTableFactory
     public Set<ConfigOption<?>> optionalOptions() {
         final Set<ConfigOption<?>> optionalOptions = new HashSet<>();
         optionalOptions.add(SCAN_FETCH_SIZE);
-        optionalOptions.add(SCAN_CURSOR_BATCH_SIZE);
         optionalOptions.add(SCAN_CURSOR_NO_TIMEOUT);
         optionalOptions.add(SCAN_PARTITION_STRATEGY);
         optionalOptions.add(SCAN_PARTITION_SIZE);
@@ -116,7 +114,6 @@ public class MongoDynamicTableFactory
         forwardOptions.add(DATABASE);
         forwardOptions.add(COLLECTION);
         forwardOptions.add(SCAN_FETCH_SIZE);
-        forwardOptions.add(SCAN_CURSOR_BATCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_NO_TIMEOUT);
         forwardOptions.add(BUFFER_FLUSH_MAX_ROWS);
         forwardOptions.add(BUFFER_FLUSH_INTERVAL);
@@ -187,7 +184,6 @@ public class MongoDynamicTableFactory
     private static MongoReadOptions getReadOptions(MongoConfiguration configuration) {
         return MongoReadOptions.builder()
                 .setFetchSize(configuration.getFetchSize())
-                .setCursorBatchSize(configuration.getCursorBatchSize())
                 .setNoCursorTimeout(configuration.isNoCursorTimeout())
                 .setPartitionStrategy(configuration.getPartitionStrategy())
                 .setPartitionSize(configuration.getPartitionSize())

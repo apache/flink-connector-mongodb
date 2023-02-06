@@ -179,7 +179,6 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             .min(currentSplit.getMin())
                             .max(currentSplit.getMax())
                             .hint(currentSplit.getHint())
-                            .batchSize(readOptions.getCursorBatchSize())
                             .noCursorTimeout(readOptions.isNoCursorTimeout());
 
             // Push limit down

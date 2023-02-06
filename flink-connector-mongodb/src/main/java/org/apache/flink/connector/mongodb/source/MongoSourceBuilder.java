@@ -100,17 +100,6 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
-     * Sets the batch size of MongoDB find cursor.
-     *
-     * @param cursorBatchSize the max batch size of find cursor.
-     * @return this builder
-     */
-    public MongoSourceBuilder<OUT> setCursorBatchSize(int cursorBatchSize) {
-        readOptionsBuilder.setCursorBatchSize(cursorBatchSize);
-        return this;
-    }
-
-    /**
      * The MongoDB server normally times out idle cursors after an inactivity period (10 minutes) to
      * prevent excess memory use. Set this option to prevent that. If a session is idle for longer
      * than 30 minutes, the MongoDB server marks that session as expired and may close it at any

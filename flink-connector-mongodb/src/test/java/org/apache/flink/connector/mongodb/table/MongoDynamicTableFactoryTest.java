@@ -47,7 +47,6 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
@@ -113,7 +112,6 @@ public class MongoDynamicTableFactoryTest {
     public void testMongoReadProperties() {
         Map<String, String> properties = getRequiredOptions();
         properties.put(SCAN_FETCH_SIZE.key(), "1024");
-        properties.put(SCAN_CURSOR_BATCH_SIZE.key(), "2048");
         properties.put(SCAN_CURSOR_NO_TIMEOUT.key(), "false");
         properties.put(SCAN_PARTITION_STRATEGY.key(), "split-vector");
         properties.put(SCAN_PARTITION_SIZE.key(), "128m");
@@ -125,7 +123,6 @@ public class MongoDynamicTableFactoryTest {
         MongoReadOptions readOptions =
                 MongoReadOptions.builder()
                         .setFetchSize(1024)
-                        .setCursorBatchSize(2048)
                         .setNoCursorTimeout(false)
                         .setPartitionStrategy(PartitionStrategy.SPLIT_VECTOR)
                         .setPartitionSize(MemorySize.ofMebiBytes(128))
@@ -232,12 +229,6 @@ public class MongoDynamicTableFactoryTest {
         // fetch size lower than 1
         assertSourceValidationRejects(
                 SCAN_FETCH_SIZE.key(), "0", "The fetch size must be larger than 0.");
-
-        // cursor batch size lower than 0
-        assertSourceValidationRejects(
-                SCAN_CURSOR_BATCH_SIZE.key(),
-                "-1",
-                "The cursor batch size must be larger than or equal to 0");
 
         // partition memory size lower than 1mb
         assertSourceValidationRejects(

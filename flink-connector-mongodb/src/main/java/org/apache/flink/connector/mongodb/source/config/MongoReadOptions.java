@@ -25,7 +25,6 @@ import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSpl
 import java.io.Serializable;
 import java.util.Objects;
 
-import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_BATCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
@@ -42,8 +41,6 @@ public class MongoReadOptions implements Serializable {
 
     private final int fetchSize;
 
-    private final int cursorBatchSize;
-
     private final boolean noCursorTimeout;
 
     private final PartitionStrategy partitionStrategy;
@@ -54,13 +51,11 @@ public class MongoReadOptions implements Serializable {
 
     private MongoReadOptions(
             int fetchSize,
-            int cursorBatchSize,
             boolean noCursorTimeout,
             PartitionStrategy partitionStrategy,
             MemorySize partitionSize,
             int samplesPerPartition) {
         this.fetchSize = fetchSize;
-        this.cursorBatchSize = cursorBatchSize;
         this.noCursorTimeout = noCursorTimeout;
         this.partitionStrategy = partitionStrategy;
         this.partitionSize = partitionSize;
@@ -69,10 +64,6 @@ public class MongoReadOptions implements Serializable {
 
     public int getFetchSize() {
         return fetchSize;
-    }
-
-    public int getCursorBatchSize() {
-        return cursorBatchSize;
     }
 
     public boolean isNoCursorTimeout() {
@@ -100,8 +91,7 @@ public class MongoReadOptions implements Serializable {
             return false;
         }
         MongoReadOptions that = (MongoReadOptions) o;
-        return cursorBatchSize == that.cursorBatchSize
-                && noCursorTimeout == that.noCursorTimeout
+        return noCursorTimeout == that.noCursorTimeout
                 && partitionStrategy == that.partitionStrategy
                 && samplesPerPartition == that.samplesPerPartition
                 && Objects.equals(partitionSize, that.partitionSize);
@@ -109,12 +99,7 @@ public class MongoReadOptions implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-                cursorBatchSize,
-                noCursorTimeout,
-                partitionStrategy,
-                partitionSize,
-                samplesPerPartition);
+        return Objects.hash(noCursorTimeout, partitionStrategy, partitionSize, samplesPerPartition);
     }
 
     public static MongoReadOptionsBuilder builder() {
@@ -125,7 +110,6 @@ public class MongoReadOptions implements Serializable {
     @PublicEvolving
     public static class MongoReadOptionsBuilder {
         private int fetchSize = SCAN_FETCH_SIZE.defaultValue();
-        private int cursorBatchSize = SCAN_CURSOR_BATCH_SIZE.defaultValue();
         private boolean noCursorTimeout = SCAN_CURSOR_NO_TIMEOUT.defaultValue();
         private PartitionStrategy partitionStrategy = SCAN_PARTITION_STRATEGY.defaultValue();
         private MemorySize partitionSize = SCAN_PARTITION_SIZE.defaultValue();
@@ -142,20 +126,6 @@ public class MongoReadOptions implements Serializable {
         public MongoReadOptionsBuilder setFetchSize(int fetchSize) {
             checkArgument(fetchSize > 0, "The fetch size must be larger than 0.");
             this.fetchSize = fetchSize;
-            return this;
-        }
-
-        /**
-         * Sets the batch size of MongoDB find cursor.
-         *
-         * @param cursorBatchSize the max batch size of find cursor.
-         * @return this builder
-         */
-        public MongoReadOptionsBuilder setCursorBatchSize(int cursorBatchSize) {
-            checkArgument(
-                    cursorBatchSize >= 0,
-                    "The cursor batch size must be larger than or equal to 0.");
-            this.cursorBatchSize = cursorBatchSize;
             return this;
         }
 
@@ -237,7 +207,6 @@ public class MongoReadOptions implements Serializable {
         public MongoReadOptions build() {
             return new MongoReadOptions(
                     fetchSize,
-                    cursorBatchSize,
                     noCursorTimeout,
                     partitionStrategy,
                     partitionSize,
