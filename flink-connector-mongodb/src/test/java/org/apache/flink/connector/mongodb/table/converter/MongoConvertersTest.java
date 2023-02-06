@@ -420,8 +420,8 @@ public class MongoConvertersTest {
 
         // Test convert RowData to Bson
         RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createConverter(rowType.getLogicalType());
-        BsonDocument actual = (BsonDocument) rowDataToBsonConverter.convert(rowData);
+                RowDataToBsonConverters.createConverter((RowType) rowType.getLogicalType());
+        BsonDocument actual = rowDataToBsonConverter.convert(rowData);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -432,7 +432,7 @@ public class MongoConvertersTest {
         RowData rowData = GenericRowData.of((StringData) null);
 
         RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createConverter(rowType.getLogicalType());
+                RowDataToBsonConverters.createConverter((RowType) rowType.getLogicalType());
 
         assertThatThrownBy(() -> rowDataToBsonConverter.convert(rowData))
                 .hasStackTraceContaining(

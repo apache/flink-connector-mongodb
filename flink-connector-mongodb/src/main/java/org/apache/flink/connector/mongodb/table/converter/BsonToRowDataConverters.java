@@ -60,7 +60,7 @@ public class BsonToRowDataConverters {
 
     /**
      * Runtime converter that converts {@link BsonValue} into objects of Flink Table & SQL internal
-     * data structures.
+     * data structures {@link RowData}.
      */
     @FunctionalInterface
     public interface BsonToRowDataConverter extends Serializable {

@@ -20,7 +20,6 @@ package org.apache.flink.connector.mongodb.table;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.common.utils.MongoValidationUtils;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
-import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters.RowDataToBsonConverter;
 import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.catalog.UniqueConstraint;
@@ -54,13 +53,14 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
     private final int[] primaryKeyIndexes;
 
-    private final RowDataToBsonConverter primaryKeyConverter;
+    private final SerializableFunction<Object, BsonValue> primaryKeyConverter;
 
     private final FieldGetter primaryKeyGetter;
 
     private MongoKeyExtractor(LogicalType primaryKeyType, int[] primaryKeyIndexes) {
         this.primaryKeyIndexes = primaryKeyIndexes;
-        this.primaryKeyConverter = RowDataToBsonConverters.createConverter(primaryKeyType);
+        this.primaryKeyConverter = RowDataToBsonConverters.createFieldDataConverter(primaryKeyType);
+
         if (isCompoundPrimaryKey(primaryKeyIndexes)) {
             this.primaryKeyGetter =
                     rowData -> ProjectedRowData.from(primaryKeyIndexes).replaceRow(rowData);
@@ -73,7 +73,8 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
     public BsonValue apply(RowData rowData) {
         Object rowKeyValue = primaryKeyGetter.getFieldOrNull(rowData);
         checkNotNull(rowKeyValue, "Primary key value is null of RowData: " + rowData);
-        BsonValue keyValue = primaryKeyConverter.convert(rowKeyValue);
+
+        BsonValue keyValue = primaryKeyConverter.apply(rowKeyValue);
         if (!isCompoundPrimaryKey(primaryKeyIndexes) && keyValue.isString()) {
             String keyString = keyValue.asString().getValue();
             // Try to restore MongoDB's ObjectId from string.

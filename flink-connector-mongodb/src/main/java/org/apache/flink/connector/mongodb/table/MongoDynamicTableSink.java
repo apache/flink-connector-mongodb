@@ -29,6 +29,7 @@ import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkV2Provider;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
+import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.function.SerializableFunction;
 
 import org.bson.BsonValue;
@@ -77,7 +78,8 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     @Override
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         final RowDataToBsonConverter rowDataToBsonConverter =
-                RowDataToBsonConverters.createConverter(physicalRowDataType.getLogicalType());
+                RowDataToBsonConverters.createConverter(
+                        (RowType) physicalRowDataType.getLogicalType());
 
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);
