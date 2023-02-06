@@ -19,6 +19,8 @@ package org.apache.flink.connector.mongodb.source.enumerator.assigner;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumState;
+import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumerator;
+import org.apache.flink.connector.mongodb.source.reader.split.MongoSourceSplitReader;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
 import java.io.IOException;
@@ -40,7 +42,10 @@ public interface MongoSplitAssigner {
      */
     void close() throws IOException;
 
-    /** Gets the next split. */
+    /**
+     * Gets the next split to assign to {@link MongoSourceSplitReader} when {@link
+     * MongoSourceEnumerator} receives a split request, until there are {@link #noMoreSplits()}.
+     */
     Optional<MongoSourceSplit> getNext();
 
     /**

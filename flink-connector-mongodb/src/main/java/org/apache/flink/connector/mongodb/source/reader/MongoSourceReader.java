@@ -32,7 +32,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 /**
@@ -46,8 +45,6 @@ public class MongoSourceReader<OUT>
                 BsonDocument, OUT, MongoSourceSplit, MongoSourceSplitState> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSourceReader.class);
-
-    private final AtomicInteger readCount = new AtomicInteger(0);
 
     public MongoSourceReader(
             FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementQueue,
