@@ -32,12 +32,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Queue;
 
 import static org.apache.flink.util.Preconditions.checkState;
 
@@ -50,7 +52,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
 
-    private final LinkedList<String> remainingCollections;
+    private final Queue<String> remainingCollections;
     private final List<String> alreadyProcessedCollections;
     private final List<MongoScanSourceSplit> remainingScanSplits;
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
@@ -96,7 +98,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
             return Optional.of(split);
         } else {
             // it's turn for next collection
-            String nextCollection = remainingCollections.pollFirst();
+            String nextCollection = remainingCollections.poll();
             if (nextCollection != null) {
                 // split the given collection into chunks (scan splits)
                 Collection<MongoScanSourceSplit> splits =
@@ -126,7 +128,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     @Override
     public MongoSourceEnumState snapshotState(long checkpointId) {
         return new MongoSourceEnumState(
-                remainingCollections,
+                new ArrayList<>(remainingCollections),
                 alreadyProcessedCollections,
                 remainingScanSplits,
                 assignedScanSplits,

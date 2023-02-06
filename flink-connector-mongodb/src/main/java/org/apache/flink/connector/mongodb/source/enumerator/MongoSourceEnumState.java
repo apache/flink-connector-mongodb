@@ -24,6 +24,7 @@ import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -60,7 +61,7 @@ public class MongoSourceEnumState {
             List<MongoScanSourceSplit> remainingScanSplits,
             Map<String, MongoScanSourceSplit> assignedScanSplits,
             boolean initialized) {
-        this.remainingCollections = remainingCollections;
+        this.remainingCollections = new LinkedList<>(remainingCollections);
         this.alreadyProcessedCollections = alreadyProcessedCollections;
         this.remainingScanSplits = remainingScanSplits;
         this.assignedScanSplits = assignedScanSplits;
