@@ -68,6 +68,7 @@ import java.util.OptionalLong;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 /** Tests for {@link MongoWriter}. */
 @Testcontainers
@@ -210,21 +211,31 @@ public class MongoWriterITCase {
     void testCurrentSendTime() throws Exception {
         final String collection = "test-current-send-time";
         final boolean flushOnCheckpoint = false;
-        final int batchSize = 2;
+        final int batchSize = 1;
         final int batchIntervalMs = -1;
+        final int retryTimes = 5;
 
         try (final MongoWriter<Document> writer =
                 createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             final Optional<Gauge<Long>> currentSendTime =
                     metricListener.getGauge("currentSendTime");
 
-            writer.write(buildMessage(1), null);
-            writer.write(buildMessage(2), null);
-
-            writer.doBulkWrite();
-
             assertThat(currentSendTime.isPresent()).isTrue();
-            assertThat(currentSendTime.get().getValue()).isGreaterThan(0L);
+            assertThat(currentSendTime.get().getValue()).isEqualTo(Long.MAX_VALUE);
+
+            // Since currentTimeMillis does not guarantee a monotonous sequence,
+            // we added a retry mechanism to make the tests more stable.
+            for (int i = 0; i < retryTimes; i++) {
+                writer.write(buildMessage(i), null);
+                writer.doBulkWrite();
+
+                // currentSendTime should be larger than 0.
+                if (currentSendTime.get().getValue() > 0L) {
+                    return;
+                }
+            }
+
+            fail("Test currentSendTime should be larger than 0 failed over max retry times.");
         }
     }
 
