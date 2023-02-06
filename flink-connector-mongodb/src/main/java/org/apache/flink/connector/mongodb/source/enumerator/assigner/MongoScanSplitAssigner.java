@@ -32,14 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Queue;
 
 import static org.apache.flink.util.Preconditions.checkState;
 
@@ -52,9 +49,9 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
 
-    private final Queue<String> remainingCollections;
+    private final LinkedList<String> remainingCollections;
     private final List<String> alreadyProcessedCollections;
-    private final List<MongoScanSourceSplit> remainingScanSplits;
+    private final LinkedList<MongoScanSourceSplit> remainingScanSplits;
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
     private boolean initialized;
 
@@ -68,7 +65,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
         this.readOptions = readOptions;
         this.remainingCollections = new LinkedList<>(sourceEnumState.getRemainingCollections());
         this.alreadyProcessedCollections = sourceEnumState.getAlreadyProcessedCollections();
-        this.remainingScanSplits = sourceEnumState.getRemainingScanSplits();
+        this.remainingScanSplits = new LinkedList<>(sourceEnumState.getRemainingScanSplits());
         this.assignedScanSplits = sourceEnumState.getAssignedScanSplits();
         this.initialized = sourceEnumState.isInitialized();
     }
@@ -91,9 +88,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     public Optional<MongoSourceSplit> getNext() {
         if (!remainingScanSplits.isEmpty()) {
             // return remaining splits firstly
-            Iterator<MongoScanSourceSplit> iterator = remainingScanSplits.iterator();
-            MongoScanSourceSplit split = iterator.next();
-            iterator.remove();
+            MongoScanSourceSplit split = remainingScanSplits.poll();
             assignedScanSplits.put(split.splitId(), split);
             return Optional.of(split);
         } else {
@@ -128,7 +123,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     @Override
     public MongoSourceEnumState snapshotState(long checkpointId) {
         return new MongoSourceEnumState(
-                new ArrayList<>(remainingCollections),
+                remainingCollections,
                 alreadyProcessedCollections,
                 remainingScanSplits,
                 assignedScanSplits,
