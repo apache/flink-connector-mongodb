@@ -63,7 +63,7 @@ public class MongoRowDataSerializationSchema implements MongoSerializationSchema
     }
 
     private WriteModel<BsonDocument> processUpsert(RowData row) {
-        final BsonDocument document = (BsonDocument) rowDataToBsonConverter.convert(row);
+        final BsonDocument document = rowDataToBsonConverter.convert(row);
         final BsonValue key = createKey.apply(row);
         if (key != null) {
             BsonDocument filter = new BsonDocument("_id", key);

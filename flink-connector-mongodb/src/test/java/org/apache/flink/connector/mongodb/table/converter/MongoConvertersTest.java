@@ -179,7 +179,7 @@ public class MongoConvertersTest {
         // Test convert Bson to RowData
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(docWithFullTypes);
+        RowData actual = bsonToRowDataConverter.convert(docWithFullTypes);
         assertThat(actual).isEqualTo(expect);
     }
 

@@ -111,7 +111,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
     public Collection<RowData> lookup(RowData keyRow) {
         for (int retry = 0; retry <= maxRetries; retry++) {
             try {
-                BsonDocument lookupValues = (BsonDocument) lookupKeyRowConverter.convert(keyRow);
+                BsonDocument lookupValues = lookupKeyRowConverter.convert(keyRow);
 
                 List<Bson> filters =
                         keyNames.stream()
