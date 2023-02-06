@@ -280,6 +280,12 @@ public class MongoDynamicTableFactoryTest {
                 BUFFER_FLUSH_MAX_ROWS.key(),
                 "0",
                 "Max number of batch size must be larger than 0.");
+
+        // sink delivery guarantee shouldn't be exactly-once
+        assertSinkValidationRejects(
+                DELIVERY_GUARANTEE.key(),
+                "exactly-once",
+                "Mongo sink does not support the EXACTLY_ONCE guarantee.");
     }
 
     private void assertSourceValidationRejects(String key, String value, String errorMessage) {
