@@ -107,7 +107,6 @@ class MongoE2ECase {
     public void testUpsertSink() throws Exception {
         MongoDatabase db = mongoClient.getDatabase("test_upsert");
 
-        int ordersCount = 5;
         List<Document> orders = mockOrders();
         db.getCollection("orders").insertMany(orders);
 
