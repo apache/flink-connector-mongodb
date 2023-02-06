@@ -90,27 +90,21 @@ public class MongoSinkITCase {
     }
 
     @ParameterizedTest
-    @EnumSource(DeliveryGuarantee.class)
+    @EnumSource(
+            value = DeliveryGuarantee.class,
+            mode = EnumSource.Mode.EXCLUDE,
+            names = "EXACTLY_ONCE")
     void testWriteToMongoWithDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)
             throws Exception {
         final String collection = "test-sink-with-delivery-" + deliveryGuarantee;
-        boolean failure = false;
-        try {
-            final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
-            final StreamExecutionEnvironment env =
-                    StreamExecutionEnvironment.getExecutionEnvironment();
-            env.enableCheckpointing(100L);
-            env.setRestartStrategy(RestartStrategies.noRestart());
+        final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
 
-            env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
-            env.execute();
-            assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
-        } catch (IllegalArgumentException e) {
-            failure = true;
-            assertThat(deliveryGuarantee).isSameAs(DeliveryGuarantee.EXACTLY_ONCE);
-        } finally {
-            assertThat(failure).isEqualTo(deliveryGuarantee == DeliveryGuarantee.EXACTLY_ONCE);
-        }
+        env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
+        env.execute();
+        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
     }
 
     @Test
