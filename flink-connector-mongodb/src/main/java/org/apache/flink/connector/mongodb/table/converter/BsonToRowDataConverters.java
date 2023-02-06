@@ -30,6 +30,7 @@ import org.apache.flink.table.types.logical.DecimalType;
 import org.apache.flink.table.types.logical.LogicalType;
 import org.apache.flink.table.types.logical.MapType;
 import org.apache.flink.table.types.logical.RowType;
+import org.apache.flink.util.function.SerializableFunction;
 
 import org.bson.BsonDocument;
 import org.bson.BsonType;
@@ -63,7 +64,7 @@ public class BsonToRowDataConverters {
      */
     @FunctionalInterface
     public interface BsonToRowDataConverter extends Serializable {
-        Object convert(BsonValue bsonValue);
+        RowData convert(BsonDocument bsonDocument);
     }
 
     // --------------------------------------------------------------------------------
@@ -74,20 +75,30 @@ public class BsonToRowDataConverters {
     // --------------------------------------------------------------------------------
 
     public static BsonToRowDataConverter createConverter(RowType rowType) {
-        return createNullSafeInternalConverter(rowType);
-    }
-
-    private static BsonToRowDataConverter createNullSafeInternalConverter(LogicalType type) {
-        return wrapIntoNullSafeInternalConverter(createInternalConverter(type), type);
-    }
-
-    private static BsonToRowDataConverter wrapIntoNullSafeInternalConverter(
-            BsonToRowDataConverter bsonToRowDataConverter, LogicalType type) {
+        SerializableFunction<BsonValue, Object> internalRowConverter =
+                createNullSafeInternalConverter(rowType);
         return new BsonToRowDataConverter() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Object convert(BsonValue bsonValue) {
+            public RowData convert(BsonDocument bsonDocument) {
+                return (RowData) internalRowConverter.apply(bsonDocument);
+            }
+        };
+    }
+
+    private static SerializableFunction<BsonValue, Object> createNullSafeInternalConverter(
+            LogicalType type) {
+        return wrapIntoNullSafeInternalConverter(createInternalConverter(type), type);
+    }
+
+    private static SerializableFunction<BsonValue, Object> wrapIntoNullSafeInternalConverter(
+            SerializableFunction<BsonValue, Object> internalConverter, LogicalType type) {
+        return new SerializableFunction<BsonValue, Object>() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public Object apply(BsonValue bsonValue) {
                 if (isBsonValueNull(bsonValue) || isBsonDecimalNaN(bsonValue)) {
                     if (type.isNullable()) {
                         return null;
@@ -99,7 +110,7 @@ public class BsonToRowDataConverters {
                                         + bsonValue);
                     }
                 }
-                return bsonToRowDataConverter.convert(bsonValue);
+                return internalConverter.apply(bsonValue);
             }
         };
     }
@@ -115,99 +126,100 @@ public class BsonToRowDataConverters {
     }
 
     /** Creates a runtime converter which assuming input object is not null. */
-    private static BsonToRowDataConverter createInternalConverter(LogicalType type) {
+    private static SerializableFunction<BsonValue, Object> createInternalConverter(
+            LogicalType type) {
         switch (type.getTypeRoot()) {
             case NULL:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return null;
                     }
                 };
             case BOOLEAN:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return convertToBoolean(bsonValue);
                     }
                 };
             case INTEGER:
             case INTERVAL_YEAR_MONTH:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return convertToInt(bsonValue);
                     }
                 };
             case BIGINT:
             case INTERVAL_DAY_TIME:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return convertToLong(bsonValue);
                     }
                 };
             case TIMESTAMP_WITHOUT_TIME_ZONE:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return TimestampData.fromLocalDateTime(convertToLocalDateTime(bsonValue));
                     }
                 };
             case TIMESTAMP_WITH_LOCAL_TIME_ZONE:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return TimestampData.fromInstant(convertToInstant(bsonValue));
                     }
                 };
             case DOUBLE:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return convertToDouble(bsonValue);
                     }
                 };
             case CHAR:
             case VARCHAR:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return StringData.fromString(convertToString(bsonValue));
                     }
                 };
             case BINARY:
             case VARBINARY:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         return convertToBinary(bsonValue);
                     }
                 };
             case DECIMAL:
-                return new BsonToRowDataConverter() {
+                return new SerializableFunction<BsonValue, Object>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public Object convert(BsonValue bsonValue) {
+                    public Object apply(BsonValue bsonValue) {
                         DecimalType decimalType = (DecimalType) type;
                         BigDecimal decimalValue = convertToBigDecimal(bsonValue);
                         return DecimalData.fromBigDecimal(
@@ -227,20 +239,20 @@ public class BsonToRowDataConverters {
         }
     }
 
-    private static BsonToRowDataConverter createRowConverter(RowType rowType) {
-        final BsonToRowDataConverter[] fieldConverters =
+    private static SerializableFunction<BsonValue, Object> createRowConverter(RowType rowType) {
+        final SerializableFunction<BsonValue, Object>[] fieldConverters =
                 rowType.getFields().stream()
                         .map(RowType.RowField::getType)
                         .map(BsonToRowDataConverters::createNullSafeInternalConverter)
-                        .toArray(BsonToRowDataConverter[]::new);
+                        .toArray(SerializableFunction[]::new);
         final int arity = rowType.getFieldCount();
         final String[] fieldNames = rowType.getFieldNames().toArray(new String[0]);
 
-        return new BsonToRowDataConverter() {
+        return new SerializableFunction<BsonValue, Object>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Object convert(BsonValue bsonValue) {
+            public Object apply(BsonValue bsonValue) {
                 if (!bsonValue.isDocument()) {
                     throw new IllegalArgumentException(
                             "Unable to convert to rowType from unexpected value '"
@@ -254,7 +266,7 @@ public class BsonToRowDataConverters {
                 for (int i = 0; i < arity; i++) {
                     String fieldName = fieldNames[i];
                     BsonValue fieldValue = document.get(fieldName);
-                    Object convertedField = fieldConverters[i].convert(fieldValue);
+                    Object convertedField = fieldConverters[i].apply(fieldValue);
                     row.setField(i, convertedField);
                 }
                 return row;
@@ -262,14 +274,15 @@ public class BsonToRowDataConverters {
         };
     }
 
-    private static BsonToRowDataConverter createArrayConverter(ArrayType arrayType) {
-        final BsonToRowDataConverter elementConverter =
+    private static SerializableFunction<BsonValue, Object> createArrayConverter(
+            ArrayType arrayType) {
+        final SerializableFunction<BsonValue, Object> elementConverter =
                 createNullSafeInternalConverter(arrayType.getElementType());
-        return new BsonToRowDataConverter() {
+        return new SerializableFunction<BsonValue, Object>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Object convert(BsonValue bsonValue) {
+            public Object apply(BsonValue bsonValue) {
                 if (!bsonValue.isArray()) {
                     throw new IllegalArgumentException(
                             "Unable to convert to arrayType from unexpected value '"
@@ -281,25 +294,26 @@ public class BsonToRowDataConverters {
                 List<BsonValue> in = bsonValue.asArray();
                 final Object[] elementArray = new Object[in.size()];
                 for (int i = 0; i < in.size(); i++) {
-                    elementArray[i] = elementConverter.convert(in.get(i));
+                    elementArray[i] = elementConverter.apply(in.get(i));
                 }
                 return new GenericArrayData(elementArray);
             }
         };
     }
 
-    private static BsonToRowDataConverter createMapConverter(MapType mapType) {
+    private static SerializableFunction<BsonValue, Object> createMapConverter(MapType mapType) {
         LogicalType keyType = mapType.getKeyType();
         checkArgument(keyType.supportsInputConversion(String.class));
 
         LogicalType valueType = mapType.getValueType();
-        BsonToRowDataConverter valueConverter = createNullSafeInternalConverter(valueType);
+        SerializableFunction<BsonValue, Object> valueConverter =
+                createNullSafeInternalConverter(valueType);
 
-        return new BsonToRowDataConverter() {
+        return new SerializableFunction<BsonValue, Object>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public Object convert(BsonValue bsonValue) {
+            public Object apply(BsonValue bsonValue) {
                 if (!bsonValue.isDocument()) {
                     throw new IllegalArgumentException(
                             "Unable to convert to rowType from unexpected value '"
@@ -311,7 +325,7 @@ public class BsonToRowDataConverters {
                 BsonDocument document = bsonValue.asDocument();
                 Map<StringData, Object> map = new HashMap<>();
                 for (String key : document.keySet()) {
-                    map.put(StringData.fromString(key), valueConverter.convert(document.get(key)));
+                    map.put(StringData.fromString(key), valueConverter.apply(document.get(key)));
                 }
                 return new GenericMapData(map);
             }

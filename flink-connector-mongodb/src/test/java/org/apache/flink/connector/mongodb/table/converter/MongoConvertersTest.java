@@ -226,7 +226,7 @@ public class MongoConvertersTest {
         // Test for compatible bson number and boolean to string sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -241,7 +241,7 @@ public class MongoConvertersTest {
         // Test for compatible boolean sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -276,7 +276,7 @@ public class MongoConvertersTest {
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -291,7 +291,7 @@ public class MongoConvertersTest {
         // Test for compatible int sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -306,7 +306,7 @@ public class MongoConvertersTest {
         // Test for compatible double sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 
@@ -334,7 +334,7 @@ public class MongoConvertersTest {
         // Test for compatible float sql type conversions
         BsonToRowDataConverters.BsonToRowDataConverter bsonToRowDataConverter =
                 BsonToRowDataConverters.createConverter((RowType) rowType.getLogicalType());
-        RowData actual = (RowData) bsonToRowDataConverter.convert(document);
+        RowData actual = bsonToRowDataConverter.convert(document);
         assertThat(actual).isEqualTo(expect);
     }
 

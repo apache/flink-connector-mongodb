@@ -125,7 +125,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
                         getMongoCollection().find(query).projection(projection).cursor()) {
                     List<RowData> rows = new ArrayList<>();
                     while (cursor.hasNext()) {
-                        RowData row = (RowData) mongoRowConverter.convert(cursor.next());
+                        RowData row = mongoRowConverter.convert(cursor.next());
                         rows.add(row);
                     }
                     return rows;

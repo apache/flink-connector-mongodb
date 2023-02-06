@@ -43,7 +43,7 @@ public class MongoRowDataDeserializationSchema implements MongoDeserializationSc
 
     @Override
     public RowData deserialize(BsonDocument document) {
-        return (RowData) runtimeConverter.convert(document);
+        return runtimeConverter.convert(document);
     }
 
     @Override
