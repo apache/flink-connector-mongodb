@@ -18,6 +18,7 @@
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
@@ -95,16 +96,7 @@ public class MongoSampleSplitter {
                 (int) Math.ceil(totalNumDocuments * 1.0d / numDocumentsPerPartition);
         int numberOfSamples = samplesPerPartition * numberOfPartitions;
 
-        List<BsonDocument> samples =
-                splitContext
-                        .getMongoCollection()
-                        .aggregate(
-                                Arrays.asList(
-                                        Aggregates.sample(numberOfSamples),
-                                        Aggregates.project(Projections.include(ID_FIELD)),
-                                        Aggregates.sort(Sorts.ascending(ID_FIELD))))
-                        .allowDiskUse(true)
-                        .into(new ArrayList<>());
+        List<BsonDocument> samples = sampling(splitContext, numberOfSamples);
 
         // Use minKey to replace the first sample and maxKey to replace the last sample
         // to ensure that the partition boundaries can include the entire collection.
@@ -122,6 +114,19 @@ public class MongoSampleSplitter {
         }
 
         return sourceSplits;
+    }
+
+    @VisibleForTesting
+    List<BsonDocument> sampling(MongoSplitContext splitContext, int numberOfSamples) {
+        return splitContext
+                .getMongoCollection()
+                .aggregate(
+                        Arrays.asList(
+                                Aggregates.sample(numberOfSamples),
+                                Aggregates.project(Projections.include(ID_FIELD)),
+                                Aggregates.sort(Sorts.ascending(ID_FIELD))))
+                .allowDiskUse(true)
+                .into(new ArrayList<>());
     }
 
     private MongoScanSourceSplit createSplit(

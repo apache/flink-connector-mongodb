@@ -103,8 +103,8 @@ public class MongoDynamicTableSourceITCase {
     private static final MongoDBContainer MONGO_CONTAINER =
             MongoTestUtil.createMongoDBContainer(LOG);
 
-    public static final String TEST_DATABASE = "test";
-    public static final String TEST_COLLECTION = "mongo_table_source";
+    private static final String TEST_DATABASE = "test";
+    private static final String TEST_COLLECTION = "mongo_table_source";
 
     private static MongoClient mongoClient;
 
