@@ -98,19 +98,21 @@ public class MongoSampleSplitter {
 
         int numberOfPartitions =
                 (int) Math.ceil(totalNumDocuments * 1.0d / numDocumentsPerPartition);
-        int numberOfSamples = samplesPerPartition * numberOfPartitions;
+        // N samples divide the data into N + 1 partitions
+        int numberOfSamples = samplesPerPartition * numberOfPartitions - 1;
 
         List<BsonDocument> samples = sampler.apply(splitContext, numberOfSamples);
 
-        // Use minKey to replace the first sample and maxKey to replace the last sample
-        // to ensure that the partition boundaries can include the entire collection.
-        // It is safe to set the value here, because numberOfPartitions >= 2
-        // and samplesPerPartition >= 1, so numberOfSamples >= 2.
-        samples.set(0, new BsonDocument(ID_FIELD, BSON_MIN_KEY));
-        samples.set(samples.size() - 1, new BsonDocument(ID_FIELD, BSON_MAX_KEY));
+        return createSplits(samples, samplesPerPartition, namespace);
+    }
+
+    @VisibleForTesting
+    static List<MongoScanSourceSplit> createSplits(
+            List<BsonDocument> samples, int samplesPerPartition, MongoNamespace namespace) {
+        samples.add(new BsonDocument(ID_FIELD, BSON_MAX_KEY));
 
         List<MongoScanSourceSplit> sourceSplits = new ArrayList<>();
-        BsonDocument partitionStart = samples.get(0);
+        BsonDocument partitionStart = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
         int splitNum = 0;
         for (int i = samplesPerPartition - 1; i < samples.size(); i += samplesPerPartition) {
             sourceSplits.add(createSplit(namespace, splitNum++, partitionStart, samples.get(i)));

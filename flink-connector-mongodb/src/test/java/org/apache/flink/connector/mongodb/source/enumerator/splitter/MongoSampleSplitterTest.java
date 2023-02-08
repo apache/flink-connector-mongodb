@@ -22,7 +22,6 @@ import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
 import com.mongodb.MongoNamespace;
-import org.apache.commons.lang3.RandomUtils;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.junit.jupiter.api.Test;
@@ -41,7 +40,6 @@ class MongoSampleSplitterTest {
     private static final MongoNamespace TEST_NS = new MongoNamespace("test.test");
     private static final BsonDocument MIN = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
     private static final BsonDocument MAX = new BsonDocument(ID_FIELD, BSON_MAX_KEY);
-    private static final int STEP_SIZE = 101;
 
     @Test
     void testSplitEmptyCollection() {
@@ -57,22 +55,19 @@ class MongoSampleSplitterTest {
     @Test
     void testLargerSizedPartitions() {
         long totalNumDocuments = 10000L;
-        long avgObjSizeInBytes = 160L;
-        long totalStorageSize = totalNumDocuments * avgObjSizeInBytes;
 
-        long partitionSizeInBytes = totalNumDocuments * avgObjSizeInBytes;
+        MemorySize avgObjSize = new MemorySize(160L);
+        MemorySize totalStorageSize = avgObjSize.multiply(totalNumDocuments);
 
         MongoSplitContext splitContext =
                 new MongoSplitContext(
-                        MongoReadOptions.builder()
-                                .setPartitionSize(new MemorySize(partitionSizeInBytes))
-                                .build(),
+                        MongoReadOptions.builder().setPartitionSize(totalStorageSize).build(),
                         null,
                         TEST_NS,
                         false,
                         totalNumDocuments,
-                        totalStorageSize,
-                        avgObjSizeInBytes);
+                        totalStorageSize.getBytes(),
+                        avgObjSize.getBytes());
 
         assertSingleSplit(
                 new ArrayList<>(
@@ -80,52 +75,76 @@ class MongoSampleSplitterTest {
     }
 
     @Test
-    void testSplitBoundaries() {
-        long totalNumDocuments = RandomUtils.nextLong(1000000L, 2000000L);
-        long avgObjSizeInBytes = 260L;
-        int samplesPerPartition = 11;
-        MemorySize partitionSize = MemorySize.parse("2mb");
-        long numDocumentsPerPartition = partitionSize.getBytes() / avgObjSizeInBytes;
-        long totalStorageSize = totalNumDocuments * avgObjSizeInBytes;
+    void testNumberOfSampleCalculation() {
+        long totalNumDocuments = 100L;
+        int numPartitions = 10;
 
-        int numberOfPartitions =
-                (int) Math.ceil(totalNumDocuments * 1.0d / numDocumentsPerPartition);
-        int numberOfSamples = samplesPerPartition * numberOfPartitions;
+        MemorySize avgObjSize = MemorySize.ofMebiBytes(10);
+        MemorySize totalStorageSize = avgObjSize.multiply(totalNumDocuments);
+        MemorySize partitionSize = totalStorageSize.divide(numPartitions);
 
-        List<BsonDocument> samples = createSamples(numberOfSamples);
+        int samplesPerPartition = 2;
+        int numExpectedSamples = samplesPerPartition * numPartitions - 1;
 
         MongoSplitContext splitContext =
                 new MongoSplitContext(
                         MongoReadOptions.builder()
-                                .setSamplesPerPartition(samplesPerPartition)
                                 .setPartitionSize(partitionSize)
+                                .setSamplesPerPartition(2)
                                 .build(),
                         null,
                         TEST_NS,
                         false,
                         totalNumDocuments,
-                        totalStorageSize,
-                        avgObjSizeInBytes);
+                        totalStorageSize.getBytes(),
+                        avgObjSize.getBytes());
+
+        MongoSampleSplitter.split(
+                splitContext,
+                (ignored, numRequestedSamples) -> {
+                    assertThat(numRequestedSamples).isEqualTo(numExpectedSamples);
+                    return createSamples(numRequestedSamples);
+                });
+    }
+
+    @Test
+    void testSampleMerging() {
+        final int numPartitions = 3;
+        final int samplesPerPartition = 2;
+        final List<BsonDocument> samples = createSamples(numPartitions * samplesPerPartition - 1);
 
         List<MongoScanSourceSplit> splits =
-                new ArrayList<>(MongoSampleSplitter.split(splitContext, (i1, i2) -> samples));
+                MongoSampleSplitter.createSplits(samples, samplesPerPartition, TEST_NS);
 
-        // Assert boundaries can include the entire collection.
-        assertThat(splits).hasSize(numberOfPartitions);
-        assertThat(splits.get(0).getMin()).isEqualTo(MIN);
-        assertThat(splits.get(splits.size() - 1).getMax()).isEqualTo(MAX);
-
-        MongoScanSourceSplit previous = splits.get(0);
-        for (int i = 1; i < splits.size(); i++) {
-            assertThat(previous.getMax()).isEqualTo(splits.get(i).getMin());
-            previous = splits.get(i);
-        }
+        // Samples:      0 1 2 3 4
+        // Bounds:     -           +
+        // Partitions: |-|-|-|-|-|-|
+        // Splits:     |---|---|---|
+        assertThat(splits).hasSize(numPartitions);
+        assertThat(splits.get(0))
+                .satisfies(
+                        split -> {
+                            assertThat(split.getMin()).isEqualTo(MIN);
+                            assertThat(split.getMax()).isEqualTo(samples.get(1));
+                        });
+        assertThat(splits.get(1))
+                .satisfies(
+                        split -> {
+                            assertThat(split.getMin()).isEqualTo(samples.get(1));
+                            assertThat(split.getMax()).isEqualTo(samples.get(3));
+                        });
+        assertThat(splits.get(2))
+                .satisfies(
+                        split -> {
+                            assertThat(split.getMin()).isEqualTo(samples.get(3));
+                            assertThat(split.getMax()).isEqualTo(MAX);
+                        });
     }
 
     private static List<BsonDocument> createSamples(int samplesCount) {
         List<BsonDocument> samples = new ArrayList<>(samplesCount);
         for (int i = 0; i < samplesCount; i++) {
-            samples.add(new BsonDocument(ID_FIELD, new BsonInt32(i * STEP_SIZE)));
+            samples.add(new BsonDocument(ID_FIELD, new BsonInt32(i)));
         }
         return samples;
     }
