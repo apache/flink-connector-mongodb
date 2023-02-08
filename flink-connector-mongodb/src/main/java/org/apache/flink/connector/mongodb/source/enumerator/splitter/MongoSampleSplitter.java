@@ -65,20 +65,14 @@ public class MongoSampleSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSampleSplitter.class);
 
-    public static final MongoSampleSplitter INSTANCE = new MongoSampleSplitter();
-
-    private final BiFunction<MongoSplitContext, Integer, List<BsonDocument>> sampler;
-
-    private MongoSampleSplitter() {
-        this.sampler = new DefaultMongoSampler();
+    public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+        return split(splitContext, new DefaultMongoSampler());
     }
 
     @VisibleForTesting
-    MongoSampleSplitter(BiFunction<MongoSplitContext, Integer, List<BsonDocument>> mongoDbSampler) {
-        this.sampler = mongoDbSampler;
-    }
-
-    public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+    static Collection<MongoScanSourceSplit> split(
+            MongoSplitContext splitContext,
+            BiFunction<MongoSplitContext, Integer, List<BsonDocument>> sampler) {
         MongoReadOptions readOptions = splitContext.getReadOptions();
         MongoNamespace namespace = splitContext.getMongoNamespace();
 
@@ -90,7 +84,7 @@ public class MongoSampleSplitter {
         if (avgObjSizeInBytes == 0L) {
             LOG.info(
                     "{} seems to be an empty collection, Returning a single partition.", namespace);
-            return MongoSingleSplitter.INSTANCE.split(splitContext);
+            return MongoSingleSplitter.split(splitContext);
         }
 
         long numDocumentsPerPartition = partitionSizeInBytes / avgObjSizeInBytes;
@@ -99,7 +93,7 @@ public class MongoSampleSplitter {
                     "Fewer documents ({}) than the number of documents per partition ({}), Returning a single partition.",
                     totalNumDocuments,
                     numDocumentsPerPartition);
-            return MongoSingleSplitter.INSTANCE.split(splitContext);
+            return MongoSingleSplitter.split(splitContext);
         }
 
         int numberOfPartitions =
@@ -126,7 +120,8 @@ public class MongoSampleSplitter {
         return sourceSplits;
     }
 
-    private static class DefaultMongoSampler implements BiFunction<MongoSplitContext, Integer, List<BsonDocument>> {
+    private static class DefaultMongoSampler
+            implements BiFunction<MongoSplitContext, Integer, List<BsonDocument>> {
 
         @Override
         public List<BsonDocument> apply(MongoSplitContext splitContext, Integer numberOfSamples) {
@@ -142,7 +137,7 @@ public class MongoSampleSplitter {
         }
     }
 
-    private MongoScanSourceSplit createSplit(
+    private static MongoScanSourceSplit createSplit(
             MongoNamespace ns, int index, BsonDocument min, BsonDocument max) {
         return new MongoScanSourceSplit(
                 String.format("%s_%d", ns, index),

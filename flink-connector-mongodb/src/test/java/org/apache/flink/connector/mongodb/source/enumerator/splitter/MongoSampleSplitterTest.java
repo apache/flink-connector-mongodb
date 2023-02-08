@@ -45,19 +45,17 @@ class MongoSampleSplitterTest {
 
     @Test
     void testSplitEmptyCollection() {
-        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> new ArrayList<>());
-
         MongoSplitContext splitContext =
                 new MongoSplitContext(
                         MongoReadOptions.builder().build(), null, TEST_NS, false, 0, 0, 0);
 
-        assertSingleSplit(new ArrayList<>(sampleSplitter.split(splitContext)));
+        assertSingleSplit(
+                new ArrayList<>(
+                        MongoSampleSplitter.split(splitContext, (i1, i2) -> new ArrayList<>())));
     }
 
     @Test
     void testLargerSizedPartitions() {
-        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> new ArrayList<>());
-
         long totalNumDocuments = 10000L;
         long avgObjSizeInBytes = 160L;
         long totalStorageSize = totalNumDocuments * avgObjSizeInBytes;
@@ -76,7 +74,9 @@ class MongoSampleSplitterTest {
                         totalStorageSize,
                         avgObjSizeInBytes);
 
-        assertSingleSplit(new ArrayList<>(sampleSplitter.split(splitContext)));
+        assertSingleSplit(
+                new ArrayList<>(
+                        MongoSampleSplitter.split(splitContext, (i1, i2) -> new ArrayList<>())));
     }
 
     @Test
@@ -94,8 +94,6 @@ class MongoSampleSplitterTest {
 
         List<BsonDocument> samples = createSamples(numberOfSamples);
 
-        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> samples);
-
         MongoSplitContext splitContext =
                 new MongoSplitContext(
                         MongoReadOptions.builder()
@@ -109,7 +107,8 @@ class MongoSampleSplitterTest {
                         totalStorageSize,
                         avgObjSizeInBytes);
 
-        List<MongoScanSourceSplit> splits = new ArrayList<>(sampleSplitter.split(splitContext));
+        List<MongoScanSourceSplit> splits =
+                new ArrayList<>(MongoSampleSplitter.split(splitContext, (i1, i2) -> samples));
 
         // Assert boundaries can include the entire collection.
         assertThat(splits).hasSize(numberOfPartitions);

@@ -58,11 +58,9 @@ public class MongoSplitVectorSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSplitVectorSplitter.class);
 
-    public static final MongoSplitVectorSplitter INSTANCE = new MongoSplitVectorSplitter();
-
     private MongoSplitVectorSplitter() {}
 
-    public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+    public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         if (splitContext.isSharded()) {
             throw new FlinkRuntimeException("splitVector does not apply to sharded collections.");
         }
@@ -88,7 +86,7 @@ public class MongoSplitVectorSplitter {
         BsonArray splitKeys = splitResult.getArray(SPLIT_KEYS_FIELD);
         if (CollectionUtils.isEmpty(splitKeys)) {
             // documents size is less than chunk size, treat the entire collection as single chunk.
-            return MongoSingleSplitter.INSTANCE.split(splitContext);
+            return MongoSingleSplitter.split(splitContext);
         }
 
         // Complete right bound: (lastKey, maxKey)

@@ -34,11 +34,9 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
 @Internal
 public class MongoSingleSplitter {
 
-    public static final MongoSingleSplitter INSTANCE = new MongoSingleSplitter();
-
     private MongoSingleSplitter() {}
 
-    public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+    public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoScanSourceSplit singleSplit =
                 new MongoScanSourceSplit(
                         splitContext.getMongoNamespace().getFullName(),

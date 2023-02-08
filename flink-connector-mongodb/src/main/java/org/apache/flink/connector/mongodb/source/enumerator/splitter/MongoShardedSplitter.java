@@ -58,11 +58,9 @@ public class MongoShardedSplitter {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoShardedSplitter.class);
 
-    public static final MongoShardedSplitter INSTANCE = new MongoShardedSplitter();
-
     private MongoShardedSplitter() {}
 
-    public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+    public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoNamespace namespace = splitContext.getMongoNamespace();
         MongoClient mongoClient = splitContext.getMongoClient();
 

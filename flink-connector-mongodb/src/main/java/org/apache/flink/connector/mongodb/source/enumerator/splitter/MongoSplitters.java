@@ -57,18 +57,18 @@ public class MongoSplitters {
 
         switch (readOptions.getPartitionStrategy()) {
             case SINGLE:
-                return MongoSingleSplitter.INSTANCE.split(splitContext);
+                return MongoSingleSplitter.split(splitContext);
             case SAMPLE:
-                return MongoSampleSplitter.INSTANCE.split(splitContext);
+                return MongoSampleSplitter.split(splitContext);
             case SPLIT_VECTOR:
-                return MongoSplitVectorSplitter.INSTANCE.split(splitContext);
+                return MongoSplitVectorSplitter.split(splitContext);
             case SHARDED:
-                return MongoShardedSplitter.INSTANCE.split(splitContext);
+                return MongoShardedSplitter.split(splitContext);
             case DEFAULT:
             default:
                 return splitContext.isSharded()
-                        ? MongoShardedSplitter.INSTANCE.split(splitContext)
-                        : MongoSplitVectorSplitter.INSTANCE.split(splitContext);
+                        ? MongoShardedSplitter.split(splitContext)
+                        : MongoSplitVectorSplitter.split(splitContext);
         }
     }
 }
