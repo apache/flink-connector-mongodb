@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.function.BiFunction;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
@@ -66,7 +67,16 @@ public class MongoSampleSplitter {
 
     public static final MongoSampleSplitter INSTANCE = new MongoSampleSplitter();
 
-    private MongoSampleSplitter() {}
+    private final BiFunction<MongoSplitContext, Integer, List<BsonDocument>> sampler;
+
+    private MongoSampleSplitter() {
+        this.sampler = new DefaultMongoSampler();
+    }
+
+    @VisibleForTesting
+    MongoSampleSplitter(BiFunction<MongoSplitContext, Integer, List<BsonDocument>> mongoDbSampler) {
+        this.sampler = mongoDbSampler;
+    }
 
     public Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
         MongoReadOptions readOptions = splitContext.getReadOptions();
@@ -96,7 +106,7 @@ public class MongoSampleSplitter {
                 (int) Math.ceil(totalNumDocuments * 1.0d / numDocumentsPerPartition);
         int numberOfSamples = samplesPerPartition * numberOfPartitions;
 
-        List<BsonDocument> samples = sampling(splitContext, numberOfSamples);
+        List<BsonDocument> samples = sampler.apply(splitContext, numberOfSamples);
 
         // Use minKey to replace the first sample and maxKey to replace the last sample
         // to ensure that the partition boundaries can include the entire collection.
@@ -116,17 +126,20 @@ public class MongoSampleSplitter {
         return sourceSplits;
     }
 
-    @VisibleForTesting
-    List<BsonDocument> sampling(MongoSplitContext splitContext, int numberOfSamples) {
-        return splitContext
-                .getMongoCollection()
-                .aggregate(
-                        Arrays.asList(
-                                Aggregates.sample(numberOfSamples),
-                                Aggregates.project(Projections.include(ID_FIELD)),
-                                Aggregates.sort(Sorts.ascending(ID_FIELD))))
-                .allowDiskUse(true)
-                .into(new ArrayList<>());
+    private static class DefaultMongoSampler implements BiFunction<MongoSplitContext, Integer, List<BsonDocument>> {
+
+        @Override
+        public List<BsonDocument> apply(MongoSplitContext splitContext, Integer numberOfSamples) {
+            return splitContext
+                    .getMongoCollection()
+                    .aggregate(
+                            Arrays.asList(
+                                    Aggregates.sample(numberOfSamples),
+                                    Aggregates.project(Projections.include(ID_FIELD)),
+                                    Aggregates.sort(Sorts.ascending(ID_FIELD))))
+                    .allowDiskUse(true)
+                    .into(new ArrayList<>());
+        }
     }
 
     private MongoScanSourceSplit createSplit(

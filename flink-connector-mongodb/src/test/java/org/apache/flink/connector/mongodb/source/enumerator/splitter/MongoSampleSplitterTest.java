@@ -34,10 +34,6 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSO
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
 
 /** Unit tests for {@link MongoSampleSplitter}. */
 class MongoSampleSplitterTest {
@@ -49,8 +45,7 @@ class MongoSampleSplitterTest {
 
     @Test
     void testSplitEmptyCollection() {
-        MongoSampleSplitter sampleSplitter = spy(MongoSampleSplitter.INSTANCE);
-        doReturn(new ArrayList<>()).when(sampleSplitter).sampling(any(), anyInt());
+        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> new ArrayList<>());
 
         MongoSplitContext splitContext =
                 new MongoSplitContext(
@@ -61,8 +56,7 @@ class MongoSampleSplitterTest {
 
     @Test
     void testLargerSizedPartitions() {
-        MongoSampleSplitter sampleSplitter = spy(MongoSampleSplitter.INSTANCE);
-        doReturn(new ArrayList<>()).when(sampleSplitter).sampling(any(), anyInt());
+        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> new ArrayList<>());
 
         long totalNumDocuments = 10000L;
         long avgObjSizeInBytes = 160L;
@@ -100,8 +94,7 @@ class MongoSampleSplitterTest {
 
         List<BsonDocument> samples = createSamples(numberOfSamples);
 
-        MongoSampleSplitter sampleSplitter = spy(MongoSampleSplitter.INSTANCE);
-        doReturn(samples).when(sampleSplitter).sampling(any(), anyInt());
+        MongoSampleSplitter sampleSplitter = new MongoSampleSplitter((i1, i2) -> samples);
 
         MongoSplitContext splitContext =
                 new MongoSplitContext(
