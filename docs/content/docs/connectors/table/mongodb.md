@@ -2,8 +2,6 @@
 title: MongoDB
 weight: 5
 type: docs
-aliases:
-- /dev/table/connectors/mongodb.html
 ---
 <!--
 Licensed to the Apache Software Foundation (ASF) under one
@@ -46,7 +44,7 @@ Dependencies
 In order to use the MongoDB connector the following dependencies are required for both projects 
 using a build automation tool (such as Maven or SBT) and SQL Client with SQL JAR bundles.
 
-{{< sql_download_table "mongodb" >}}
+{{< sql_connector_download_table "mongodb" 1.0.0 >}}
 
 The MongoDB connector is not part of the binary distribution. 
 See how to link with it for cluster execution [here]({{< ref "docs/dev/configuration/overview" >}}).
