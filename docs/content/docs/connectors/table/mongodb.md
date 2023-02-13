@@ -301,7 +301,6 @@ In MongoDB the primary key is used to calculate the MongoDB document _id.
 Its value must be unique and immutable in the collection, and may be of any 
 [BSON Type](https://www.mongodb.com/docs/manual/reference/bson-types/#bson-types) other than an Array. 
 If the _id contains subfields, the subfield names cannot begin with a ($) symbol.
-Its value must be unique and immutable in the collection.
 
 There are also some constraints on the primary key index.
 Before MongoDB 4.2, the total size of an index entry, which can include structural overhead 
@@ -374,7 +373,7 @@ it helps avoid constraint violations or duplicate data if records need to be re-
 
 Data Type Mapping
 ----------------
-The field data type mappings from MongoDB bson types to Flink SQL data types are listed in the following table.
+The field data type mappings from MongoDB BSON types to Flink SQL data types are listed in the following table.
 
 <table class="table table-bordered">
     <thead>

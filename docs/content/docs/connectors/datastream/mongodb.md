@@ -114,7 +114,11 @@ Flink's MongoDB source is created by using the static builder `MongoSource.<Outp
       multiple readers to speed up the overall read time.
 8. _setSamplesPerPartition(int samplesPerPartition)_
     * Optional. Default: `10`.
-    * The maximum number of records that may be buffered in the sink before backpressure is applied.
+    * Sets the number of samples to take per partition which is only used for the sample partition
+      strategy `SAMPLE`. The sample partitioner samples the collection, projects and sorts by the
+      partition fields. Then uses every `samplesPerPartition` as the value to use to calculate the
+      partition boundaries. The total number of samples taken is:
+      `samples per partition * ( count of documents / number of documents per partition)`.
 9. _setLimit(int limit)_
     * Optional. Default: `-1`.
     * Sets the limit of documents for each reader to read. If limit is not set or set to -1, 
@@ -196,10 +200,10 @@ Flink's MongoDB sink is created by using the static builder `MongoSink.<InputTyp
     * Sets the batch flush interval, in milliseconds. You can pass -1 to disable it.
 6. _setMaxRetries(int maxRetries)_
     * Optional. Default: `3`.
-    * aSets the max retry times if writing records failed.
+    * Sets the max retry times if writing records failed.
 7. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
     * Optional. Default: `DeliveryGuarantee.AT_LEAST_ONCE`.
-    * Sets the wanted `DeliveryGuarantee`.
+    * Sets the wanted `DeliveryGuarantee`. The `EXACTLY_ONCE` guarantee is not supported yet.
 8. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * Required.
     * A `MongoSerializationSchema` is required for parsing input record to MongoDB 
