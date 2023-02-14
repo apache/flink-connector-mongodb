@@ -21,6 +21,7 @@ import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.connector.source.SourceSplit;
 
 import org.bson.BsonDocument;
+import org.bson.BsonInt32;
 
 import java.util.Objects;
 
@@ -91,6 +92,20 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
 
     public int getOffset() {
         return offset;
+    }
+
+    public BsonDocument getSort() {
+        BsonDocument sort = new BsonDocument();
+        hint.forEach(
+                (k, v) -> {
+                    if (v.isInt32()) {
+                        sort.append(k, v);
+                    } else {
+                        // Normalize order if is a hashed index, eg. { f1: 'hashed' } -> { f1: 1 }
+                        sort.append(k, new BsonInt32(1));
+                    }
+                });
+        return sort;
     }
 
     @Override

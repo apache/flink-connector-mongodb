@@ -59,7 +59,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -67,6 +68,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
@@ -102,6 +104,7 @@ public class MongoSourceITCase {
     private static final String TEST_DATABASE = "test_source";
     private static final String TEST_COLLECTION = "test_coll";
     private static final String TEST_SHARDED_COLLECTION = "test_sharded_coll";
+    private static final String TEST_HASHED_KEY_SHARDED_COLLECTION = "test_hashed_key_sharded_coll";
 
     private static final int TEST_RECORD_SIZE = 30000;
     private static final int TEST_RECORD_BATCH_SIZE = 10000;
@@ -125,21 +128,42 @@ public class MongoSourceITCase {
         initTestData(TEST_COLLECTION);
         // make test data for sharded collection.
         initTestData(TEST_SHARDED_COLLECTION);
+        // make test data for hashed key sharded collection.
+        initTestData(TEST_HASHED_KEY_SHARDED_COLLECTION);
+
         // create unique index {f0: 1, f1: 1}.
         mongoClient
                 .getDatabase(TEST_DATABASE)
                 .getCollection(TEST_SHARDED_COLLECTION)
-                .createIndex(BsonDocument.parse("{f0: 1, f1: 1}"), new IndexOptions().unique(true));
+                .createIndex(
+                        BsonDocument.parse("{ f0: 1, f1: 1 }"), new IndexOptions().unique(true));
 
         MongoDatabase admin = mongoClient.getDatabase(ADMIN_DATABASE);
-        // shard test collection with sharded key {f0: 1, f1: 1}
+        // shard test collection with sharded key { f0: 1, f1: 1 }
         admin.runCommand(
                 BsonDocument.parse(String.format("{ enableSharding: '%s'}", TEST_DATABASE)));
         admin.runCommand(
                 BsonDocument.parse(
                         String.format(
-                                "{ shardCollection : '%s.%s', key : {f0: 1, f1: 1} }",
+                                "{ shardCollection : '%s.%s', key : { f0: 1, f1: 1 }}",
                                 TEST_DATABASE, TEST_SHARDED_COLLECTION)));
+
+        // create hashed index {f1: 'hashed'}.
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .getCollection(TEST_HASHED_KEY_SHARDED_COLLECTION)
+                .createIndex(BsonDocument.parse("{ f1: 'hashed' }"), new IndexOptions());
+
+        // shard test collection with hashed sharded key { f1: 'hashed' }
+        admin.runCommand(
+                BsonDocument.parse(
+                        String.format(
+                                "{ enableSharding: '%s'}", TEST_HASHED_KEY_SHARDED_COLLECTION)));
+        admin.runCommand(
+                BsonDocument.parse(
+                        String.format(
+                                "{ shardCollection : '%s.%s', key : { f1: 'hashed' }}",
+                                TEST_DATABASE, TEST_HASHED_KEY_SHARDED_COLLECTION)));
     }
 
     @AfterAll
@@ -150,13 +174,9 @@ public class MongoSourceITCase {
     }
 
     @ParameterizedTest
-    @EnumSource(PartitionStrategy.class)
-    public void testPartitionStrategy(PartitionStrategy partitionStrategy) throws Exception {
-        String collection =
-                partitionStrategy == PartitionStrategy.SHARDED
-                        ? TEST_SHARDED_COLLECTION
-                        : TEST_COLLECTION;
-
+    @MethodSource("providePartitionStrategyAndCollection")
+    public void testPartitionStrategy(PartitionStrategy partitionStrategy, String collection)
+            throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         MongoSource<RowData> mongoSource =
@@ -225,15 +245,10 @@ public class MongoSourceITCase {
     }
 
     @ParameterizedTest
-    @EnumSource(PartitionStrategy.class)
-    void testRecovery(PartitionStrategy partitionStrategy) throws Exception {
+    @MethodSource("providePartitionStrategyAndCollection")
+    void testRecovery(PartitionStrategy partitionStrategy, String collection) throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(200L);
-
-        String collection =
-                partitionStrategy == PartitionStrategy.SHARDED
-                        ? TEST_SHARDED_COLLECTION
-                        : TEST_COLLECTION;
 
         MongoSource<RowData> mongoSource =
                 defaultSourceBuilder(collection)
@@ -255,6 +270,15 @@ public class MongoSourceITCase {
                                 .executeAndCollect());
 
         assertThat(results).hasSize(TEST_RECORD_SIZE);
+    }
+
+    private static Stream<Arguments> providePartitionStrategyAndCollection() {
+        return Stream.of(
+                Arguments.of(PartitionStrategy.SINGLE, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SPLIT_VECTOR, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SAMPLE, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SHARDED, TEST_SHARDED_COLLECTION),
+                Arguments.of(PartitionStrategy.SHARDED, TEST_HASHED_KEY_SHARDED_COLLECTION));
     }
 
     private static MongoSourceBuilder<RowData> defaultSourceBuilder(String collection) {
