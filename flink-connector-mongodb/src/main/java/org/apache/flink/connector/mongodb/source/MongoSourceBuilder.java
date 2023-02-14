@@ -69,7 +69,7 @@ public class MongoSourceBuilder<OUT> {
     /**
      * Sets the database to sink of MongoDB.
      *
-     * @param database the database to sink of MongoDB.
+     * @param database the database to read from MongoDB.
      * @return this builder
      */
     public MongoSourceBuilder<OUT> setDatabase(String database) {
@@ -80,7 +80,7 @@ public class MongoSourceBuilder<OUT> {
     /**
      * Sets the collection to sink of MongoDB.
      *
-     * @param collection the collection to sink of MongoDB.
+     * @param collection the collection to read from MongoDB.
      * @return this builder
      */
     public MongoSourceBuilder<OUT> setCollection(String collection) {

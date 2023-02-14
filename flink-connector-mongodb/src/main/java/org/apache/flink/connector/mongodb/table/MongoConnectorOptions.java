@@ -94,7 +94,7 @@ public class MongoConnectorOptions {
                     .intType()
                     .defaultValue(10)
                     .withDescription(
-                            "Specifies the the samples count per partition. It only takes effect when the partition strategy is sample. "
+                            "Specifies the samples count per partition. It only takes effect when the partition strategy is sample. "
                                     + "The sample partitioner samples the collection, projects and sorts by the partition fields. "
                                     + "Then uses every 'scan.partition.samples' as the value to use to calculate the partition boundaries."
                                     + "The total number of samples taken is calculated as: samples per partition * (count of documents / number of documents per partition.");
