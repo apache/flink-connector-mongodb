@@ -76,6 +76,7 @@ public class MongoSourceEnumStateSerializerTest {
                 "coll",
                 new BsonDocument("_id", new BsonInt32(index)),
                 new BsonDocument("_id", MongoConstants.BSON_MAX_KEY),
-                ID_HINT);
+                ID_HINT,
+                index);
     }
 }

@@ -47,6 +47,8 @@ public class MongoRecordEmitter<T>
     public void emitRecord(
             BsonDocument document, SourceOutput<T> output, MongoSourceSplitState splitState)
             throws Exception {
+        // Update current offset.
+        splitState.updateOffset(document);
         // Sink the record to source output.
         sourceOutputWrapper.setSourceOutput(output);
         deserializationSchema.deserialize(document, sourceOutputWrapper);

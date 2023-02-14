@@ -40,6 +40,8 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
 
     private final BsonDocument hint;
 
+    private final int offset;
+
     public MongoScanSourceSplit(
             String splitId,
             String database,
@@ -47,12 +49,24 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
             BsonDocument min,
             BsonDocument max,
             BsonDocument hint) {
+        this(splitId, database, collection, min, max, hint, 0);
+    }
+
+    public MongoScanSourceSplit(
+            String splitId,
+            String database,
+            String collection,
+            BsonDocument min,
+            BsonDocument max,
+            BsonDocument hint,
+            int offset) {
         super(splitId);
         this.database = database;
         this.collection = collection;
         this.min = min;
         this.max = max;
         this.hint = hint;
+        this.offset = offset;
     }
 
     public String getDatabase() {
@@ -75,6 +89,10 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
         return hint;
     }
 
+    public int getOffset() {
+        return offset;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -91,11 +109,12 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
                 && Objects.equals(collection, split.collection)
                 && Objects.equals(min, split.min)
                 && Objects.equals(max, split.max)
-                && Objects.equals(hint, split.hint);
+                && Objects.equals(hint, split.hint)
+                && offset == split.offset;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), database, collection, min, max, hint);
+        return Objects.hash(super.hashCode(), database, collection, min, max, hint, offset);
     }
 }

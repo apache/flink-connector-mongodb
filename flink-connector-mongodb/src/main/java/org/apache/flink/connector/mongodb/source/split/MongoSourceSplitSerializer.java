@@ -80,6 +80,7 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
             out.writeUTF(split.getMin().toJson());
             out.writeUTF(split.getMax().toJson());
             out.writeUTF(split.getHint().toJson());
+            out.writeInt(split.getOffset());
         }
     }
 
@@ -93,7 +94,9 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
                 BsonDocument min = BsonDocument.parse(in.readUTF());
                 BsonDocument max = BsonDocument.parse(in.readUTF());
                 BsonDocument hint = BsonDocument.parse(in.readUTF());
-                return new MongoScanSourceSplit(splitId, database, collection, min, max, hint);
+                int offset = in.readInt();
+                return new MongoScanSourceSplit(
+                        splitId, database, collection, min, max, hint, offset);
             default:
                 throw new IOException("Unknown version: " + version);
         }
