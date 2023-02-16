@@ -179,7 +179,6 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             .min(currentSplit.getMin())
                             .max(currentSplit.getMax())
                             .hint(currentSplit.getHint())
-                            .sort(currentSplit.getSort())
                             .noCursorTimeout(readOptions.isNoCursorTimeout());
 
             // Current split was partially read and recovered from checkpoint
