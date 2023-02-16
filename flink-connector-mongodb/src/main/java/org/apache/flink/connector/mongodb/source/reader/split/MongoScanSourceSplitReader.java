@@ -182,7 +182,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             .sort(currentSplit.getSort())
                             .noCursorTimeout(readOptions.isNoCursorTimeout());
 
-            // Current split is partial read and recovered from checkpoint.
+            // Current split was partially read and recovered from checkpoint
             if (currentSplit.getOffset() > 0) {
                 findIterable.skip(currentSplit.getOffset());
             }
