@@ -21,17 +21,17 @@ import org.apache.flink.annotation.PublicEvolving;
 
 import org.bson.BsonDocument;
 
-/** MongoDB source split state. */
+/** MongoDB source split state for {@link MongoSourceSplit}. */
 @PublicEvolving
-public abstract class MongoSourceSplitState {
+public interface MongoSourceSplitState {
 
-    protected final MongoSourceSplit split;
+    /** Use the current split state to create a new {@link MongoSourceSplit}. */
+    MongoSourceSplit toMongoSourceSplit();
 
-    public MongoSourceSplitState(MongoSourceSplit split) {
-        this.split = split;
-    }
-
-    public abstract MongoSourceSplit toMongoSourceSplit();
-
-    public abstract void updateOffset(BsonDocument record);
+    /**
+     * Update the offset read by the current split for failure recovery.
+     *
+     * @param record The latest record that was read.
+     */
+    void updateOffset(BsonDocument record);
 }

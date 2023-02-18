@@ -23,18 +23,19 @@ import org.bson.BsonDocument;
 
 /** MongoDB source split state for {@link MongoScanSourceSplit}. */
 @PublicEvolving
-public class MongoScanSourceSplitState extends MongoSourceSplitState {
+public class MongoScanSourceSplitState implements MongoSourceSplitState {
+
+    private final MongoScanSourceSplit scanSplit;
 
     private int offset;
 
     public MongoScanSourceSplitState(MongoScanSourceSplit scanSplit) {
-        super(scanSplit);
+        this.scanSplit = scanSplit;
         this.offset = scanSplit.getOffset();
     }
 
     @Override
     public MongoScanSourceSplit toMongoSourceSplit() {
-        MongoScanSourceSplit scanSplit = (MongoScanSourceSplit) split;
         return new MongoScanSourceSplit(
                 scanSplit.splitId(),
                 scanSplit.getDatabase(),
