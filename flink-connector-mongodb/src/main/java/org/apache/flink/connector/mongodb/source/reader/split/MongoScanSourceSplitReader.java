@@ -181,6 +181,11 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             .hint(currentSplit.getHint())
                             .noCursorTimeout(readOptions.isNoCursorTimeout());
 
+            // Current split was partially read and recovered from checkpoint
+            if (currentSplit.getOffset() > 0) {
+                findIterable.skip(currentSplit.getOffset());
+            }
+
             // Push limit down
             if (readerContext.isLimitPushedDown()) {
                 findIterable.limit(readerContext.getLimit());

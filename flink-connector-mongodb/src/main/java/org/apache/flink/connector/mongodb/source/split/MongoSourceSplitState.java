@@ -17,30 +17,21 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
-import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.Internal;
 
-/** MongoDB source split state. */
-@PublicEvolving
-public class MongoSourceSplitState {
+import org.bson.BsonDocument;
 
-    private final MongoSourceSplit split;
+/** MongoDB source split state for {@link MongoSourceSplit}. */
+@Internal
+public interface MongoSourceSplitState {
 
-    public MongoSourceSplitState(MongoSourceSplit split) {
-        this.split = split;
-    }
+    /** Use the current split state to create a new {@link MongoSourceSplit}. */
+    MongoSourceSplit toMongoSourceSplit();
 
-    public MongoSourceSplit toMongoSourceSplit() {
-        if (split instanceof MongoScanSourceSplit) {
-            MongoScanSourceSplit scanSplit = (MongoScanSourceSplit) split;
-            return new MongoScanSourceSplit(
-                    scanSplit.splitId(),
-                    scanSplit.getDatabase(),
-                    scanSplit.getCollection(),
-                    scanSplit.getMin(),
-                    scanSplit.getMax(),
-                    scanSplit.getHint());
-        } else {
-            throw new IllegalStateException("Unknown split type");
-        }
-    }
+    /**
+     * Update the offset read by the current split for failure recovery.
+     *
+     * @param record The latest record that was read.
+     */
+    void updateOffset(BsonDocument record);
 }

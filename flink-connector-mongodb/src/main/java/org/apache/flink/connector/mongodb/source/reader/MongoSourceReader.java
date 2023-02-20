@@ -24,6 +24,8 @@ import org.apache.flink.connector.base.source.reader.SingleThreadMultiplexSource
 import org.apache.flink.connector.base.source.reader.fetcher.SingleThreadFetcherManager;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
+import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
+import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplitState;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplitState;
 
@@ -77,7 +79,11 @@ public class MongoSourceReader<OUT>
 
     @Override
     protected MongoSourceSplitState initializedState(MongoSourceSplit split) {
-        return new MongoSourceSplitState(split);
+        if (split instanceof MongoScanSourceSplit) {
+            return new MongoScanSourceSplitState((MongoScanSourceSplit) split);
+        } else {
+            throw new IllegalArgumentException("Unknown split type.");
+        }
     }
 
     @Override

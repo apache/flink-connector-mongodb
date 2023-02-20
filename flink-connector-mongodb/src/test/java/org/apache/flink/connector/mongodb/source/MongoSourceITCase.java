@@ -18,6 +18,8 @@
 package org.apache.flink.connector.mongodb.source;
 
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
+import org.apache.flink.api.common.functions.MapFunction;
+import org.apache.flink.api.common.state.CheckpointListener;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.MemorySize;
@@ -35,6 +37,8 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.runtime.typeutils.InternalTypeInfo;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.test.junit5.MiniClusterExtension;
+import org.apache.flink.testutils.junit.SharedObjectsExtension;
+import org.apache.flink.testutils.junit.SharedReference;
 import org.apache.flink.util.CollectionUtil;
 
 import com.mongodb.client.MongoClient;
@@ -42,6 +46,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -54,13 +59,16 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.containers.Network;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Stream;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
@@ -83,6 +91,8 @@ public class MongoSourceITCase {
     static final MongoShardedContainers MONGO_SHARDED_CONTAINER =
             MongoTestUtil.createMongoDBShardedContainers(Network.newNetwork());
 
+    @RegisterExtension final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
+
     private static MongoClient mongoClient;
 
     private static final String ADMIN_DATABASE = "admin";
@@ -94,6 +104,7 @@ public class MongoSourceITCase {
     private static final String TEST_DATABASE = "test_source";
     private static final String TEST_COLLECTION = "test_coll";
     private static final String TEST_SHARDED_COLLECTION = "test_sharded_coll";
+    private static final String TEST_HASHED_KEY_SHARDED_COLLECTION = "test_hashed_key_sharded_coll";
 
     private static final int TEST_RECORD_SIZE = 30000;
     private static final int TEST_RECORD_BATCH_SIZE = 10000;
@@ -117,16 +128,42 @@ public class MongoSourceITCase {
         initTestData(TEST_COLLECTION);
         // make test data for sharded collection.
         initTestData(TEST_SHARDED_COLLECTION);
+        // make test data for hashed key sharded collection.
+        initTestData(TEST_HASHED_KEY_SHARDED_COLLECTION);
+
+        // create unique index {f0: 1, f1: 1}.
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .getCollection(TEST_SHARDED_COLLECTION)
+                .createIndex(
+                        BsonDocument.parse("{ f0: 1, f1: 1 }"), new IndexOptions().unique(true));
 
         MongoDatabase admin = mongoClient.getDatabase(ADMIN_DATABASE);
-        // shard test collection with sharded key _id
+        // shard test collection with sharded key { f0: 1, f1: 1 }
         admin.runCommand(
                 BsonDocument.parse(String.format("{ enableSharding: '%s'}", TEST_DATABASE)));
         admin.runCommand(
                 BsonDocument.parse(
                         String.format(
-                                "{ shardCollection : '%s.%s', key : {_id : 1} }",
+                                "{ shardCollection : '%s.%s', key : { f0: 1, f1: 1 }}",
                                 TEST_DATABASE, TEST_SHARDED_COLLECTION)));
+
+        // create hashed index {f1: 'hashed'}.
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .getCollection(TEST_HASHED_KEY_SHARDED_COLLECTION)
+                .createIndex(BsonDocument.parse("{ f1: 'hashed' }"), new IndexOptions());
+
+        // shard test collection with hashed sharded key { f1: 'hashed' }
+        admin.runCommand(
+                BsonDocument.parse(
+                        String.format(
+                                "{ enableSharding: '%s'}", TEST_HASHED_KEY_SHARDED_COLLECTION)));
+        admin.runCommand(
+                BsonDocument.parse(
+                        String.format(
+                                "{ shardCollection : '%s.%s', key : { f1: 'hashed' }}",
+                                TEST_DATABASE, TEST_HASHED_KEY_SHARDED_COLLECTION)));
     }
 
     @AfterAll
@@ -137,13 +174,9 @@ public class MongoSourceITCase {
     }
 
     @ParameterizedTest
-    @EnumSource(PartitionStrategy.class)
-    public void testPartitionStrategy(PartitionStrategy partitionStrategy) throws Exception {
-        String collection =
-                partitionStrategy == PartitionStrategy.SHARDED
-                        ? TEST_SHARDED_COLLECTION
-                        : TEST_COLLECTION;
-
+    @MethodSource("providePartitionStrategyAndCollection")
+    public void testPartitionStrategy(PartitionStrategy partitionStrategy, String collection)
+            throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         MongoSource<RowData> mongoSource =
@@ -211,6 +244,43 @@ public class MongoSourceITCase {
         assertThat(Document.parse(results.get(0))).containsOnlyKeys("f0");
     }
 
+    @ParameterizedTest
+    @MethodSource("providePartitionStrategyAndCollection")
+    void testRecovery(PartitionStrategy partitionStrategy, String collection) throws Exception {
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(200L);
+
+        MongoSource<RowData> mongoSource =
+                defaultSourceBuilder(collection)
+                        .setPartitionStrategy(partitionStrategy)
+                        .setPartitionSize(MemorySize.parse("6mb"))
+                        .setProjectedFields("f0")
+                        .setFetchSize(100)
+                        .build();
+
+        final SharedReference<AtomicBoolean> failed = sharedObjects.add(new AtomicBoolean(false));
+
+        List<RowData> results =
+                CollectionUtil.iteratorToList(
+                        env.fromSource(
+                                        mongoSource,
+                                        WatermarkStrategy.noWatermarks(),
+                                        "MongoDB-Source")
+                                .map(new FailingMapper(failed))
+                                .executeAndCollect());
+
+        assertThat(results).hasSize(TEST_RECORD_SIZE);
+    }
+
+    private static Stream<Arguments> providePartitionStrategyAndCollection() {
+        return Stream.of(
+                Arguments.of(PartitionStrategy.SINGLE, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SPLIT_VECTOR, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SAMPLE, TEST_COLLECTION),
+                Arguments.of(PartitionStrategy.SHARDED, TEST_SHARDED_COLLECTION),
+                Arguments.of(PartitionStrategy.SHARDED, TEST_HASHED_KEY_SHARDED_COLLECTION));
+    }
+
     private static MongoSourceBuilder<RowData> defaultSourceBuilder(String collection) {
         ResolvedSchema schema = defaultSourceSchema();
         RowType rowType = (RowType) schema.toPhysicalRowDataType().getLogicalType();
@@ -263,6 +333,32 @@ public class MongoSourceITCase {
         @Override
         public TypeInformation<String> getProducedType() {
             return BasicTypeInfo.STRING_TYPE_INFO;
+        }
+    }
+
+    private static class FailingMapper
+            implements MapFunction<RowData, RowData>, CheckpointListener {
+
+        private final SharedReference<AtomicBoolean> failed;
+        private int emittedRecords = 0;
+
+        private FailingMapper(SharedReference<AtomicBoolean> failed) {
+            this.failed = failed;
+        }
+
+        @Override
+        public RowData map(RowData value) {
+            emittedRecords++;
+            return value;
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) throws Exception {
+            if (failed.get().get() || emittedRecords == 0) {
+                return;
+            }
+            failed.get().set(true);
+            throw new Exception("Expected failure");
         }
     }
 }
