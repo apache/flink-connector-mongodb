@@ -17,12 +17,12 @@
 
 package org.apache.flink.connector.mongodb.source.split;
 
-import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.Internal;
 
 import org.bson.BsonDocument;
 
 /** MongoDB source split state for {@link MongoScanSourceSplit}. */
-@PublicEvolving
+@Internal
 public class MongoScanSourceSplitState implements MongoSourceSplitState {
 
     private final MongoScanSourceSplit scanSplit;
