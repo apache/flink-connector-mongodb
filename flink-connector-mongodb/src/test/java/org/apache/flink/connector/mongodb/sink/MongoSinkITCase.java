@@ -97,7 +97,7 @@ public class MongoSinkITCase {
     void testWriteToMongoWithDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)
             throws Exception {
         final String collection = "test-sink-with-delivery-" + deliveryGuarantee;
-        final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
+        final MongoSink<Document> sink = createSink(collection, deliveryGuarantee, 5, 1000);
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(100L);
         env.setRestartStrategy(RestartStrategies.noRestart());
@@ -110,7 +110,8 @@ public class MongoSinkITCase {
     @Test
     void testRecovery() throws Exception {
         final String collection = "test-recovery-mongo-sink";
-        final MongoSink<Document> sink = createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE);
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, -1, -1);
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(100L);
@@ -128,12 +129,16 @@ public class MongoSinkITCase {
     }
 
     private static MongoSink<Document> createSink(
-            String collection, DeliveryGuarantee deliveryGuarantee) {
+            String collection,
+            DeliveryGuarantee deliveryGuarantee,
+            int batchSize,
+            long batchIntervalMs) {
         return MongoSink.<Document>builder()
                 .setUri(MONGO_CONTAINER.getConnectionString())
                 .setDatabase(TEST_DATABASE)
                 .setCollection(collection)
-                .setBatchSize(5)
+                .setBatchSize(batchSize)
+                .setBatchIntervalMs(batchIntervalMs)
                 .setDeliveryGuarantee(deliveryGuarantee)
                 .setSerializationSchema(new AppendOnlySerializationSchema())
                 .build();
