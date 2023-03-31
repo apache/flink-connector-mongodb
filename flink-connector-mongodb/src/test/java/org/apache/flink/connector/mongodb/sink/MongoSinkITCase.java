@@ -33,7 +33,8 @@ import org.apache.flink.testutils.junit.SharedReference;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.InsertOneModel;
+import com.mongodb.client.model.UpdateOneModel;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.WriteModel;
 import org.bson.BsonDocument;
 import org.bson.Document;
@@ -135,7 +136,7 @@ public class MongoSinkITCase {
                 .setCollection(collection)
                 .setBatchSize(5)
                 .setDeliveryGuarantee(deliveryGuarantee)
-                .setSerializationSchema(new AppendOnlySerializationSchema())
+                .setSerializationSchema(new UpsertSerializationSchema())
                 .build();
     }
 
@@ -154,11 +155,15 @@ public class MongoSinkITCase {
         }
     }
 
-    private static class AppendOnlySerializationSchema
-            implements MongoSerializationSchema<Document> {
+    private static class UpsertSerializationSchema implements MongoSerializationSchema<Document> {
         @Override
         public WriteModel<BsonDocument> serialize(Document element, MongoSinkContext sinkContext) {
-            return new InsertOneModel<>(element.toBsonDocument());
+            BsonDocument document = element.toBsonDocument();
+            BsonDocument filter = new BsonDocument("_id", document.get("_id"));
+            // _id is immutable so we remove it here to prevent exception.
+            document.remove("_id");
+            BsonDocument update = new BsonDocument("$set", document);
+            return new UpdateOneModel<>(filter, update, new UpdateOptions().upsert(true));
         }
     }
 
