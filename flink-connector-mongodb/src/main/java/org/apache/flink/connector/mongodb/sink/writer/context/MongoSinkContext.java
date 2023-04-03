@@ -24,7 +24,10 @@ import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializat
 
 /** This context provides information for {@link MongoSerializationSchema}. */
 @PublicEvolving
-public interface MongoSinkContext extends Sink.InitContext {
+public interface MongoSinkContext {
+
+    /** Returns the current sink's init context. */
+    Sink.InitContext getInitContext();
 
     /** Returns the current process time in flink. */
     long processTime();
