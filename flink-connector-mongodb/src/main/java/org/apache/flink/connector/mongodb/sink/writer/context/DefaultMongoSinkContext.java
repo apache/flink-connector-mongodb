@@ -18,15 +18,8 @@
 package org.apache.flink.connector.mongodb.sink.writer.context;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.common.operators.MailboxExecutor;
-import org.apache.flink.api.common.operators.ProcessingTimeService;
-import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
-import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
-import org.apache.flink.util.UserCodeClassLoader;
-
-import java.util.OptionalLong;
 
 /** Default {@link MongoSinkContext} implementation. */
 @Internal
@@ -41,6 +34,11 @@ public class DefaultMongoSinkContext implements MongoSinkContext {
     }
 
     @Override
+    public Sink.InitContext getInitContext() {
+        return initContext;
+    }
+
+    @Override
     public long processTime() {
         return initContext.getProcessingTimeService().getCurrentProcessingTime();
     }
@@ -48,45 +46,5 @@ public class DefaultMongoSinkContext implements MongoSinkContext {
     @Override
     public MongoWriteOptions getWriteOptions() {
         return writeOptions;
-    }
-
-    @Override
-    public UserCodeClassLoader getUserCodeClassLoader() {
-        return initContext.getUserCodeClassLoader();
-    }
-
-    @Override
-    public MailboxExecutor getMailboxExecutor() {
-        return initContext.getMailboxExecutor();
-    }
-
-    @Override
-    public ProcessingTimeService getProcessingTimeService() {
-        return initContext.getProcessingTimeService();
-    }
-
-    @Override
-    public int getSubtaskId() {
-        return initContext.getSubtaskId();
-    }
-
-    @Override
-    public int getNumberOfParallelSubtasks() {
-        return initContext.getNumberOfParallelSubtasks();
-    }
-
-    @Override
-    public SinkWriterMetricGroup metricGroup() {
-        return initContext.metricGroup();
-    }
-
-    @Override
-    public OptionalLong getRestoredCheckpointId() {
-        return initContext.getRestoredCheckpointId();
-    }
-
-    @Override
-    public SerializationSchema.InitializationContext asSerializationSchemaInitializationContext() {
-        return initContext.asSerializationSchemaInitializationContext();
     }
 }
