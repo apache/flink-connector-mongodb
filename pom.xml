@@ -22,9 +22,9 @@ under the License.
 	<modelVersion>4.0.0</modelVersion>
 
 	<parent>
-		<groupId>io.github.zentol.flink</groupId>
+		<groupId>org.apache.flink</groupId>
 		<artifactId>flink-connector-parent</artifactId>
-		<version>1.0</version>
+		<version>1.0.0</version>
 	</parent>
 
 	<groupId>org.apache.flink</groupId>
@@ -53,17 +53,16 @@ under the License.
 	<properties>
 		<mongodb.version>4.7.2</mongodb.version>
 
-		<flink.version>1.16.0</flink.version>
-		<flink.shaded.version>15.0</flink.shaded.version>
+		<flink.version>1.17.0</flink.version>
+		<flink.shaded.version>16.1</flink.shaded.version>
 
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
-		<archunit.version>0.22.0</archunit.version>
 		<testcontainers.version>1.17.2</testcontainers.version>
 		<mockito.version>3.4.6</mockito.version>
 
 		<japicmp.skip>false</japicmp.skip>
-		<japicmp.referenceVersion>1.15.0</japicmp.referenceVersion>
+		<japicmp.referenceVersion>3.0.0-1.16</japicmp.referenceVersion>
 
 		<slf4j.version>1.7.36</slf4j.version>
 		<log4j.version>2.17.2</log4j.version>
@@ -311,20 +310,6 @@ under the License.
 				<version>${testcontainers.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>com.tngtech.archunit</groupId>
-				<artifactId>archunit</artifactId>
-				<version>${archunit.version}</version>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>com.tngtech.archunit</groupId>
-				<artifactId>archunit-junit5</artifactId>
-				<version>${archunit.version}</version>
-				<scope>test</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
