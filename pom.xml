@@ -29,7 +29,7 @@ under the License.
 
 	<groupId>org.apache.flink</groupId>
 	<artifactId>flink-connector-mongodb-parent</artifactId>
-	<version>1.0.0</version>
+	<version>1.0-SNAPSHOT</version>
 
 	<name>Flink : Connectors : MongoDB Parent</name>
 	<packaging>pom</packaging>
