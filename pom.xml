@@ -80,7 +80,6 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-shaded-force-shading</artifactId>
-			<version>${flink.shaded.version}</version>
 		</dependency>
 
 		<!-- Root dependencies for all projects -->
@@ -193,6 +192,12 @@ under the License.
 				<artifactId>flink-test-utils-junit</artifactId>
 				<version>${flink.version}</version>
 				<scope>test</scope>
+			</dependency>
+
+			<dependency>
+				<groupId>org.apache.flink</groupId>
+				<artifactId>flink-shaded-force-shading</artifactId>
+				<version>${flink.shaded.version}</version>
 			</dependency>
 
 			<!-- Flink ArchUnit -->
