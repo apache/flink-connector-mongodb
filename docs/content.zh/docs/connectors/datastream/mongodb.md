@@ -27,7 +27,7 @@ Flink 提供了 [MongoDB](https://www.mongodb.com/) 连接器使用至少一次�
 
 要使用此连接器，请将以下依赖添加到你的项目中：
 
-{{< connector_artifact flink-connector-mongodb 1.0.0 >}}
+{{< connector_artifact flink-connector-mongodb mongodb >}}
 
 ## MongoDB Source
 下面的例子介绍了如何构建一个 MongoDB Source：
