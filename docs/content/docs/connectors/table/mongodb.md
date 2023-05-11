@@ -44,7 +44,7 @@ Dependencies
 In order to use the MongoDB connector the following dependencies are required for both projects 
 using a build automation tool (such as Maven or SBT) and SQL Client with SQL JAR bundles.
 
-{{< sql_connector_download_table "mongodb" 1.0.0 >}}
+{{< sql_connector_download_table "mongodb" >}}
 
 The MongoDB connector is not part of the binary distribution. 
 See how to link with it for cluster execution [here]({{< ref "docs/dev/configuration/overview" >}}).

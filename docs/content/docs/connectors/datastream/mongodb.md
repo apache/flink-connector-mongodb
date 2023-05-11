@@ -28,7 +28,7 @@ and to MongoDB collections with at-least-once guarantees.
 
 To use this connector, add one of the following dependencies to your project.
 
-{{< connector_artifact flink-connector-mongodb 1.0.0 >}}
+{{< connector_artifact flink-connector-mongodb mongodb >}}
 
 ## MongoDB Source
 
