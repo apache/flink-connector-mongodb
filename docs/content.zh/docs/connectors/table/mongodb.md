@@ -41,7 +41,7 @@ MongoDB 连接器提供了从 MongoDB 中读取和写入数据的能力。
 In order to use the MongoDB connector the following dependencies are required for both projects 
 using a build automation tool (such as Maven or SBT) and SQL Client with SQL JAR bundles.
 
-{{< sql_connector_download_table "mongodb" 1.0.0 >}}
+{{< sql_connector_download_table "mongodb" >}}
 
 MongoDB 连接器目前并不包含在 Flink 的二进制发行版中，请查阅[这里]({{< ref "docs/dev/configuration/overview" >}})了解如何在集群运行中引用 MongoDB 连接器。
 
