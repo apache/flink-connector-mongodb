@@ -54,7 +54,6 @@ under the License.
 		<mongodb.version>4.7.2</mongodb.version>
 
 		<flink.version>1.17.0</flink.version>
-		<flink.shaded.version>16.1</flink.shaded.version>
 
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
@@ -77,11 +76,6 @@ under the License.
 	</modules>
 
 	<dependencies>
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-shaded-force-shading</artifactId>
-		</dependency>
-
 		<!-- Root dependencies for all projects -->
 
 		<!-- Logging API -->
@@ -192,12 +186,6 @@ under the License.
 				<artifactId>flink-test-utils-junit</artifactId>
 				<version>${flink.version}</version>
 				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.apache.flink</groupId>
-				<artifactId>flink-shaded-force-shading</artifactId>
-				<version>${flink.shaded.version}</version>
 			</dependency>
 
 			<!-- Flink ArchUnit -->
