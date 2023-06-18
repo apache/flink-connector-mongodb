@@ -47,6 +47,7 @@ public class MongoSourceEnumerator
     private final SplitEnumeratorContext<MongoSourceSplit> context;
     private final MongoSplitAssigner splitAssigner;
     private final TreeSet<Integer> readersAwaitingSplit;
+    private final TreeSet<Integer> activeReaders;
 
     public MongoSourceEnumerator(
             Boundedness boundedness,
@@ -56,6 +57,7 @@ public class MongoSourceEnumerator
         this.context = context;
         this.splitAssigner = splitAssigner;
         this.readersAwaitingSplit = new TreeSet<>();
+        this.activeReaders = new TreeSet<>();
     }
 
     @Override
@@ -83,6 +85,7 @@ public class MongoSourceEnumerator
     @Override
     public void addReader(int subtaskId) {
         LOG.debug("Adding reader {} to MongoSourceEnumerator.", subtaskId);
+        activeReaders.add(subtaskId);
     }
 
     private void assignSplits() {
@@ -93,17 +96,22 @@ public class MongoSourceEnumerator
             // if the reader that requested another split has failed in the meantime, remove
             // it from the list of waiting readers
             if (!context.registeredReaders().containsKey(nextAwaiting)) {
+                activeReaders.remove(nextAwaiting);
                 awaitingReader.remove();
                 continue;
             }
 
             // close idle readers
-            if (splitAssigner.noMoreSplits() && boundedness == Boundedness.BOUNDED) {
-                context.signalNoMoreSplits(nextAwaiting);
-                awaitingReader.remove();
-                LOG.info(
-                        "All scan splits have been assigned, closing idle reader {}", nextAwaiting);
-                continue;
+            if (splitAssigner.noMoreScanSplits()) {
+                if (boundedness == Boundedness.BOUNDED || activeReaders.size() > 1) {
+                    context.signalNoMoreSplits(nextAwaiting);
+                    activeReaders.remove(nextAwaiting);
+                    awaitingReader.remove();
+                    LOG.info(
+                            "All scan splits have been assigned, closing idle reader {}",
+                            nextAwaiting);
+                    continue;
+                }
             }
 
             Optional<MongoSourceSplit> split = splitAssigner.getNext();

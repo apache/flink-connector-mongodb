@@ -20,11 +20,15 @@ package org.apache.flink.connector.mongodb.source;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoChangeStreamOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoStartupOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
+import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import org.bson.BsonDocument;
 
 import java.util.Arrays;
@@ -45,7 +49,10 @@ public class MongoSourceBuilder<OUT> {
 
     private final MongoConnectionOptions.MongoConnectionOptionsBuilder connectionOptionsBuilder;
     private final MongoReadOptions.MongoReadOptionsBuilder readOptionsBuilder;
+    private final MongoChangeStreamOptions.MongoChangeStreamOptionsBuilder
+            changeStreamOptionsBuilder;
 
+    private MongoStartupOptions startupOptions = MongoStartupOptions.bounded();
     private List<String> projectedFields;
     private int limit = -1;
     private MongoDeserializationSchema<OUT> deserializationSchema;
@@ -53,6 +60,7 @@ public class MongoSourceBuilder<OUT> {
     MongoSourceBuilder() {
         this.connectionOptionsBuilder = MongoConnectionOptions.builder();
         this.readOptionsBuilder = MongoReadOptions.builder();
+        this.changeStreamOptionsBuilder = MongoChangeStreamOptions.builder();
     }
 
     /**
@@ -85,6 +93,17 @@ public class MongoSourceBuilder<OUT> {
      */
     public MongoSourceBuilder<OUT> setCollection(String collection) {
         connectionOptionsBuilder.setCollection(collection);
+        return this;
+    }
+
+    /**
+     * Specifies the startup options.
+     *
+     * @param startupOptions the connector startup options {@link MongoStartupOptions}.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setStartupOptions(MongoStartupOptions startupOptions) {
+        this.startupOptions = startupOptions;
         return this;
     }
 
@@ -193,6 +212,52 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
+     * Sets the number of change stream documents should be fetched per round-trip when reading.
+     *
+     * @param changeStreamFetchSize the number of change stream documents should be fetched per
+     *     round-trip when reading.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setChangeStreamFetchSize(int changeStreamFetchSize) {
+        changeStreamOptionsBuilder.setFetchSize(changeStreamFetchSize);
+        return this;
+    }
+
+    /**
+     * Determines what values your change stream returns on update operations. The default setting
+     * returns the differences between the original document and the updated document. The
+     * updateLookup setting returns the differences between the original document and updated
+     * document as well as a copy of the entire updated document at a point in time after the
+     * update. The whenAvailable setting returns the updated document, if available. The required
+     * setting returns the updated document and raises an error if it is not available.
+     *
+     * @param fullDocument the values your change stream returns on update operations.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setFullDocument(FullDocument fullDocument) {
+        changeStreamOptionsBuilder.setFullDocument(fullDocument);
+        return this;
+    }
+
+    /**
+     * Configures the document pre-image your change stream returns on update operations. The
+     * pre-image is not available for source records published while copying existing data, and the
+     * pre-image configuration has no effect on copying. The default setting suppresses the document
+     * pre-image. The whenAvailable setting returns the document pre-image if it's available, before
+     * it was replaced, updated, or deleted. The required setting returns the document pre-image and
+     * raises an error if it is not available.
+     *
+     * @param fullDocumentBeforeChange the document pre-image your change stream returns on update
+     *     operations.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setFullDocumentBeforeChange(
+            FullDocumentBeforeChange fullDocumentBeforeChange) {
+        changeStreamOptionsBuilder.setFullDocumentBeforeChange(fullDocumentBeforeChange);
+        return this;
+    }
+
+    /**
      * Sets the deserialization schema for MongoDB {@link BsonDocument}.
      *
      * @param deserializationSchema the deserialization schema to deserialize {@link BsonDocument}.
@@ -215,6 +280,8 @@ public class MongoSourceBuilder<OUT> {
         return new MongoSource<>(
                 connectionOptionsBuilder.build(),
                 readOptionsBuilder.build(),
+                changeStreamOptionsBuilder.build(),
+                startupOptions,
                 projectedFields,
                 limit,
                 deserializationSchema);

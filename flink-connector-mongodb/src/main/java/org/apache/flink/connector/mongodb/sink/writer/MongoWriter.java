@@ -37,7 +37,6 @@ import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.model.WriteModel;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
@@ -51,6 +50,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.clientFor;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -118,7 +118,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         }
 
         // Initialize the mongo client.
-        this.mongoClient = MongoClients.create(connectionOptions.getUri());
+        this.mongoClient = clientFor(connectionOptions);
 
         boolean flushOnlyOnCheckpoint = batchIntervalMs == -1 && batchSize == -1;
 

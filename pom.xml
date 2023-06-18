@@ -57,7 +57,7 @@ under the License.
 
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
-		<testcontainers.version>1.17.2</testcontainers.version>
+		<testcontainers.version>1.18.3</testcontainers.version>
 		<mockito.version>3.4.6</mockito.version>
 
 		<japicmp.skip>false</japicmp.skip>
@@ -288,6 +288,13 @@ under the License.
 				<groupId>com.esotericsoftware.kryo</groupId>
 				<artifactId>kryo</artifactId>
 				<version>2.24.0</version>
+			</dependency>
+
+			<!-- For dependency convergence  -->
+			<dependency>
+				<groupId>org.apache.commons</groupId>
+				<artifactId>commons-compress</artifactId>
+				<version>1.23.0</version>
 			</dependency>
 
 			<!-- For dependency convergence -->

@@ -30,22 +30,26 @@ import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
 import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoChangeStreamOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoStartupOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumState;
 import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumStateSerializer;
 import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumerator;
+import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoHybridSplitAssigner;
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoScanSplitAssigner;
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoSplitAssigner;
+import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoStreamSplitAssigner;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReader;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReaderContext;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.source.reader.emitter.MongoRecordEmitter;
-import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
+import org.apache.flink.connector.mongodb.source.reader.split.MongoHybridSourceSplitReader;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplitSerializer;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
-
-import org.bson.BsonDocument;
+import org.apache.flink.table.api.ValidationException;
 
 import javax.annotation.Nullable;
 
@@ -84,14 +88,17 @@ public class MongoSource<OUT>
     /** The read options for MongoDB source. */
     private final MongoReadOptions readOptions;
 
+    /** The change stream options for MongoDB source. */
+    private final MongoChangeStreamOptions changeStreamOptions;
+
+    /** The startup options for MongoDB source. */
+    private final MongoStartupOptions startupOptions;
+
     /** The projections for MongoDB source. */
     @Nullable private final List<String> projectedFields;
 
     /** The limit for MongoDB source. */
     private final int limit;
-
-    /** The boundedness for MongoDB source. */
-    private final Boundedness boundedness;
 
     /** The mongo deserialization schema used for deserializing message. */
     private final MongoDeserializationSchema<OUT> deserializationSchema;
@@ -99,16 +106,17 @@ public class MongoSource<OUT>
     MongoSource(
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
+            MongoChangeStreamOptions changeStreamOptions,
+            MongoStartupOptions startupOptions,
             @Nullable List<String> projectedFields,
             int limit,
             MongoDeserializationSchema<OUT> deserializationSchema) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.readOptions = checkNotNull(readOptions);
+        this.changeStreamOptions = checkNotNull(changeStreamOptions);
+        this.startupOptions = checkNotNull(startupOptions);
         this.projectedFields = projectedFields;
         this.limit = limit;
-        // Only support bounded mode for now.
-        // We can implement unbounded mode by ChangeStream future.
-        this.boundedness = Boundedness.BOUNDED;
         this.deserializationSchema = checkNotNull(deserializationSchema);
     }
 
@@ -123,24 +131,25 @@ public class MongoSource<OUT>
 
     @Override
     public Boundedness getBoundedness() {
-        return boundedness;
+        return startupOptions.boundedness();
     }
 
     @Override
     public SourceReader<OUT, MongoSourceSplit> createReader(SourceReaderContext readerContext) {
-        FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementsQueue =
+        FutureCompletingBlockingQueue<RecordsWithSplitIds<MongoSourceRecord>> elementsQueue =
                 new FutureCompletingBlockingQueue<>();
 
         MongoSourceReaderContext mongoReaderContext =
                 new MongoSourceReaderContext(readerContext, limit);
 
-        Supplier<SplitReader<BsonDocument, MongoSourceSplit>> splitReaderSupplier =
+        Supplier<SplitReader<MongoSourceRecord, MongoSourceSplit>> splitReaderSupplier =
                 () ->
-                        new MongoScanSourceSplitReader(
+                        new MongoHybridSourceSplitReader(
                                 connectionOptions,
                                 readOptions,
-                                projectedFields,
-                                mongoReaderContext);
+                                changeStreamOptions,
+                                mongoReaderContext,
+                                projectedFields);
 
         return new MongoSourceReader<>(
                 elementsQueue,
@@ -153,17 +162,15 @@ public class MongoSource<OUT>
     public SplitEnumerator<MongoSourceSplit, MongoSourceEnumState> createEnumerator(
             SplitEnumeratorContext<MongoSourceSplit> enumContext) {
         MongoSourceEnumState initialState = MongoSourceEnumState.initialState();
-        MongoSplitAssigner splitAssigner =
-                new MongoScanSplitAssigner(connectionOptions, readOptions, initialState);
-        return new MongoSourceEnumerator(boundedness, enumContext, splitAssigner);
+        return new MongoSourceEnumerator(
+                startupOptions.boundedness(), enumContext, createMongoSplitAssigner(initialState));
     }
 
     @Override
     public SplitEnumerator<MongoSourceSplit, MongoSourceEnumState> restoreEnumerator(
             SplitEnumeratorContext<MongoSourceSplit> enumContext, MongoSourceEnumState checkpoint) {
-        MongoSplitAssigner splitAssigner =
-                new MongoScanSplitAssigner(connectionOptions, readOptions, checkpoint);
-        return new MongoSourceEnumerator(boundedness, enumContext, splitAssigner);
+        return new MongoSourceEnumerator(
+                startupOptions.boundedness(), enumContext, createMongoSplitAssigner(checkpoint));
     }
 
     @Override
@@ -179,5 +186,28 @@ public class MongoSource<OUT>
     @Override
     public TypeInformation<OUT> getProducedType() {
         return deserializationSchema.getProducedType();
+    }
+
+    private MongoSplitAssigner createMongoSplitAssigner(MongoSourceEnumState sourceEnumState) {
+        MongoSplitAssigner splitAssigner;
+        switch (startupOptions.getStartupMode()) {
+            case BOUNDED:
+                splitAssigner =
+                        new MongoScanSplitAssigner(connectionOptions, readOptions, sourceEnumState);
+                break;
+            case LATEST_OFFSET:
+            case TIMESTAMP:
+                splitAssigner = new MongoStreamSplitAssigner(connectionOptions, startupOptions);
+                break;
+            case INITIAL:
+                splitAssigner =
+                        new MongoHybridSplitAssigner(
+                                connectionOptions, readOptions, sourceEnumState);
+                break;
+            default:
+                throw new ValidationException(
+                        "Unsupported startup mode " + startupOptions.getStartupMode());
+        }
+        return splitAssigner;
     }
 }

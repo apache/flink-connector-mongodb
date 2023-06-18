@@ -22,6 +22,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoChangeStreamOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.table.config.MongoConfiguration;
 import org.apache.flink.table.catalog.ResolvedSchema;
@@ -36,6 +37,8 @@ import org.apache.flink.table.factories.DynamicTableSourceFactory;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.util.function.SerializableFunction;
 
+import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import org.bson.BsonValue;
 
 import javax.annotation.Nullable;
@@ -45,6 +48,8 @@ import java.util.Set;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FULL_DOCUMENT_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
@@ -54,6 +59,8 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_MODE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_TIMESTAMP_MILLIS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
@@ -91,6 +98,10 @@ public class MongoDynamicTableFactory
         optionalOptions.add(SCAN_PARTITION_STRATEGY);
         optionalOptions.add(SCAN_PARTITION_SIZE);
         optionalOptions.add(SCAN_PARTITION_SAMPLES);
+        optionalOptions.add(SCAN_STARTUP_MODE);
+        optionalOptions.add(SCAN_STARTUP_TIMESTAMP_MILLIS);
+        optionalOptions.add(CHANGE_STREAM_FETCH_SIZE);
+        optionalOptions.add(CHANGE_STREAM_FULL_DOCUMENT_STRATEGY);
         optionalOptions.add(BUFFER_FLUSH_MAX_ROWS);
         optionalOptions.add(BUFFER_FLUSH_INTERVAL);
         optionalOptions.add(DELIVERY_GUARANTEE);
@@ -115,6 +126,10 @@ public class MongoDynamicTableFactory
         forwardOptions.add(COLLECTION);
         forwardOptions.add(SCAN_FETCH_SIZE);
         forwardOptions.add(SCAN_CURSOR_NO_TIMEOUT);
+        forwardOptions.add(SCAN_STARTUP_MODE);
+        forwardOptions.add(SCAN_STARTUP_TIMESTAMP_MILLIS);
+        forwardOptions.add(CHANGE_STREAM_FETCH_SIZE);
+        forwardOptions.add(CHANGE_STREAM_FULL_DOCUMENT_STRATEGY);
         forwardOptions.add(BUFFER_FLUSH_MAX_ROWS);
         forwardOptions.add(BUFFER_FLUSH_INTERVAL);
         forwardOptions.add(SINK_MAX_RETRIES);
@@ -134,6 +149,8 @@ public class MongoDynamicTableFactory
         return new MongoDynamicTableSource(
                 getConnectionOptions(config),
                 getReadOptions(config),
+                getChangeStreamOptions(config),
+                config.getScanStartupMode(),
                 getLookupCache(options),
                 config.getLookupMaxRetries(),
                 config.getLookupRetryIntervalMs(),
@@ -189,6 +206,29 @@ public class MongoDynamicTableFactory
                 .setPartitionSize(configuration.getPartitionSize())
                 .setSamplesPerPartition(configuration.getSamplesPerPartition())
                 .build();
+    }
+
+    private static MongoChangeStreamOptions getChangeStreamOptions(
+            MongoConfiguration configuration) {
+        MongoChangeStreamOptions.MongoChangeStreamOptionsBuilder builder =
+                MongoChangeStreamOptions.builder()
+                        .setFetchSize(configuration.getChangeStreamFetchSize());
+
+        switch (configuration.getFullDocumentStrategy()) {
+            case UPDATE_LOOKUP:
+                builder.setFullDocument(FullDocument.UPDATE_LOOKUP)
+                        .setFullDocumentBeforeChange(FullDocumentBeforeChange.OFF);
+                break;
+            case PRE_AND_POST_IMAGES:
+                builder.setFullDocument(FullDocument.REQUIRED)
+                        .setFullDocumentBeforeChange(FullDocumentBeforeChange.REQUIRED);
+                break;
+            default:
+                throw new IllegalArgumentException(
+                        "Unsupported fullDocumentStrategy "
+                                + configuration.getFullDocumentStrategy());
+        }
+        return builder.build();
     }
 
     private static MongoWriteOptions getWriteOptions(MongoConfiguration configuration) {

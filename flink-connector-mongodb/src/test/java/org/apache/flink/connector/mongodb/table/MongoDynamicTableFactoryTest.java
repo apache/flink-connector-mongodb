@@ -22,8 +22,11 @@ import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoChangeStreamOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoStartupOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.connector.mongodb.table.config.FullDocumentStrategy;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.catalog.Column;
 import org.apache.flink.table.catalog.ResolvedSchema;
@@ -33,7 +36,11 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.connector.source.lookup.cache.DefaultLookupCache;
 
+import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +50,8 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FULL_DOCUMENT_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
@@ -52,6 +61,8 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_MODE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_TIMESTAMP_MILLIS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
@@ -86,6 +97,8 @@ public class MongoDynamicTableFactoryTest {
                 new MongoDynamicTableSource(
                         getConnectionOptions(),
                         MongoReadOptions.builder().build(),
+                        MongoChangeStreamOptions.builder().build(),
+                        MongoStartupOptions.bounded(),
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
                         LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
@@ -116,6 +129,8 @@ public class MongoDynamicTableFactoryTest {
         properties.put(SCAN_PARTITION_STRATEGY.key(), "split-vector");
         properties.put(SCAN_PARTITION_SIZE.key(), "128m");
         properties.put(SCAN_PARTITION_SAMPLES.key(), "5");
+        properties.put(SCAN_STARTUP_MODE.key(), "timestamp");
+        properties.put(SCAN_STARTUP_TIMESTAMP_MILLIS.key(), "1686902599000");
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
@@ -133,6 +148,8 @@ public class MongoDynamicTableFactoryTest {
                 new MongoDynamicTableSource(
                         connectionOptions,
                         readOptions,
+                        MongoChangeStreamOptions.builder().build(),
+                        MongoStartupOptions.timestamp(1686902599000L),
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
                         LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
@@ -160,9 +177,59 @@ public class MongoDynamicTableFactoryTest {
                 new MongoDynamicTableSource(
                         connectionOptions,
                         MongoReadOptions.builder().build(),
+                        MongoChangeStreamOptions.builder().build(),
+                        MongoStartupOptions.bounded(),
                         DefaultLookupCache.fromConfig(Configuration.fromMap(properties)),
                         10,
                         20,
+                        SCHEMA.toPhysicalRowDataType());
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = FullDocumentStrategy.class)
+    public void testMongoChangeStreamProperties(FullDocumentStrategy fullDocumentStrategy) {
+        Map<String, String> properties = getRequiredOptions();
+        properties.put(CHANGE_STREAM_FETCH_SIZE.key(), "10");
+        properties.put(CHANGE_STREAM_FULL_DOCUMENT_STRATEGY.key(), fullDocumentStrategy.toString());
+
+        DynamicTableSource actual = createTableSource(SCHEMA, properties);
+
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
+
+        MongoChangeStreamOptions changeStreamOptions;
+        switch (fullDocumentStrategy) {
+            case PRE_AND_POST_IMAGES:
+                changeStreamOptions =
+                        MongoChangeStreamOptions.builder()
+                                .setFetchSize(10)
+                                .setFullDocument(FullDocument.REQUIRED)
+                                .setFullDocumentBeforeChange(FullDocumentBeforeChange.REQUIRED)
+                                .build();
+                break;
+            case UPDATE_LOOKUP:
+                changeStreamOptions =
+                        MongoChangeStreamOptions.builder()
+                                .setFetchSize(10)
+                                .setFullDocument(FullDocument.UPDATE_LOOKUP)
+                                .setFullDocumentBeforeChange(FullDocumentBeforeChange.OFF)
+                                .build();
+                break;
+            default:
+                throw new IllegalStateException(
+                        "Unknown fullDocumentStrategy " + fullDocumentStrategy);
+        }
+
+        MongoDynamicTableSource expected =
+                new MongoDynamicTableSource(
+                        connectionOptions,
+                        MongoReadOptions.builder().build(),
+                        changeStreamOptions,
+                        MongoStartupOptions.bounded(),
+                        null,
+                        LookupOptions.MAX_RETRIES.defaultValue(),
+                        LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
                         SCHEMA.toPhysicalRowDataType());
 
         assertThat(actual).isEqualTo(expected);
@@ -241,6 +308,18 @@ public class MongoDynamicTableFactoryTest {
                 SCAN_PARTITION_SAMPLES.key(),
                 "0",
                 "The samples per partition must be larger than 0.");
+
+        // change stream fetch size lower than 1
+        assertSourceValidationRejects(
+                CHANGE_STREAM_FETCH_SIZE.key(),
+                "0",
+                "The change stream fetch size must be larger than 0.");
+
+        // startup timestamp millis shouldn't be null when using timestamp startup mode.
+        assertSourceValidationRejects(
+                SCAN_STARTUP_MODE.key(),
+                "timestamp",
+                "The startupTimestampMillis shouldn't be null when using timestamp startup mode.");
 
         // lookup retry times shouldn't be negative
         assertSourceValidationRejects(

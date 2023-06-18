@@ -76,6 +76,8 @@ public class MongoSourceEnumStateSerializer
 
             out.writeBoolean(state.isInitialized());
 
+            out.writeBoolean(state.isStreamSplitAssigned());
+
             out.flush();
             return baos.toByteArray();
         }
@@ -98,12 +100,25 @@ public class MongoSourceEnumStateSerializer
 
             boolean initialized = in.readBoolean();
 
+            boolean isStreamSplitAssigned;
+            switch (version) {
+                case 0:
+                    isStreamSplitAssigned = false;
+                    break;
+                case 1:
+                    isStreamSplitAssigned = in.readBoolean();
+                    break;
+                default:
+                    throw new IOException("Unknown version: " + version);
+            }
+
             return new MongoSourceEnumState(
                     remainingCollections,
                     alreadyProcessedCollections,
                     remainingScanSplits,
                     assignedScanSplits,
-                    initialized);
+                    initialized,
+                    isStreamSplitAssigned);
         }
     }
 

@@ -18,8 +18,7 @@
 package org.apache.flink.connector.mongodb.source.split;
 
 import org.apache.flink.annotation.Internal;
-
-import org.bson.BsonDocument;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 
 /** MongoDB source split state for {@link MongoScanSourceSplit}. */
 @Internal
@@ -47,7 +46,7 @@ public class MongoScanSourceSplitState implements MongoSourceSplitState {
     }
 
     @Override
-    public void updateOffset(BsonDocument record) {
+    public void updateOffset(MongoSourceRecord record) {
         offset++;
     }
 }

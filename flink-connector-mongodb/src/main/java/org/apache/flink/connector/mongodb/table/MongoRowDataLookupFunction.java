@@ -30,7 +30,6 @@ import org.apache.flink.table.types.logical.RowType;
 
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.bson.BsonDocument;
@@ -47,6 +46,7 @@ import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.and;
 import static com.mongodb.client.model.Filters.eq;
+import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.clientFor;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.project;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -99,7 +99,7 @@ public class MongoRowDataLookupFunction extends LookupFunction {
 
     @Override
     public void open(FunctionContext context) {
-        this.mongoClient = MongoClients.create(connectionOptions.getUri());
+        this.mongoClient = clientFor(connectionOptions);
     }
 
     /**

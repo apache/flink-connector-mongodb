@@ -26,14 +26,15 @@ import org.apache.flink.connector.base.source.reader.splitreader.SplitsChange;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReaderContext;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.apache.flink.util.CollectionUtil;
+import org.apache.flink.util.IOUtils;
 
 import com.mongodb.MongoException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCursor;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
@@ -44,11 +45,13 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.clientFor;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.project;
+import static org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord.snapshotRecord;
 
-/** An split reader implements {@link SplitReader} for {@link MongoScanSourceSplit}. */
+/** A split reader implements {@link SplitReader} for {@link MongoScanSourceSplit}. */
 @Internal
-public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoSourceSplit> {
+public class MongoScanSourceSplitReader implements MongoSourceSplitReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoScanSourceSplitReader.class);
 
@@ -75,12 +78,12 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
     }
 
     @Override
-    public RecordsWithSplitIds<BsonDocument> fetch() throws IOException {
+    public RecordsWithSplitIds<MongoSourceRecord> fetch() throws IOException {
         if (closed) {
-            throw new IllegalStateException("Cannot fetch records from a closed split reader");
+            throw new IOException("Cannot fetch records from a closed split reader");
         }
 
-        RecordsBySplits.Builder<BsonDocument> builder = new RecordsBySplits.Builder<>();
+        RecordsBySplits.Builder<MongoSourceRecord> builder = new RecordsBySplits.Builder<>();
 
         // Return when no split registered to this reader.
         if (currentSplit == null) {
@@ -95,13 +98,12 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             return builder.build();
         }
 
-        currentCursor = getOrCreateCursor();
         int fetchSize = readOptions.getFetchSize();
-
         try {
+            currentCursor = getOrCreateCursor();
             for (int recordNum = 0; recordNum < fetchSize; recordNum++) {
                 if (currentCursor.hasNext()) {
-                    builder.add(currentSplit, currentCursor.next());
+                    builder.add(currentSplit, snapshotRecord(currentCursor.next()));
                     readerContext.getReadCount().incrementAndGet();
                     if (readerContext.isOverLimit()) {
                         builder.addFinishedSplit(currentSplit.splitId());
@@ -143,8 +145,10 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                             sourceSplit.getClass()));
         }
 
-        this.currentSplit = (MongoScanSourceSplit) sourceSplit;
-        this.finished = false;
+        if (canAcceptNextSplit()) {
+            this.currentSplit = (MongoScanSourceSplit) sourceSplit;
+            this.finished = false;
+        }
     }
 
     @Override
@@ -164,7 +168,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
     private MongoCursor<BsonDocument> getOrCreateCursor() {
         if (currentCursor == null) {
             LOG.debug("Opened cursor for partitionId: {}", currentSplit);
-            mongoClient = MongoClients.create(connectionOptions.getUri());
+            mongoClient = clientFor(connectionOptions);
 
             // Using MongoDB's cursor.min() and cursor.max() to limit an index bound.
             // When the index range is the primary key, the bound is (min <= _id < max).
@@ -201,18 +205,14 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
     }
 
     private void closeCursor() {
-        if (currentCursor != null) {
-            LOG.debug("Closing cursor for split: {}", currentSplit);
-            try {
-                currentCursor.close();
-            } finally {
-                currentCursor = null;
-                try {
-                    mongoClient.close();
-                } finally {
-                    mongoClient = null;
-                }
-            }
-        }
+        LOG.debug("Closing scan cursor for split: {}", currentSplit);
+        IOUtils.closeAllQuietly(currentCursor, mongoClient);
+        currentCursor = null;
+        mongoClient = null;
+    }
+
+    @Override
+    public boolean canAcceptNextSplit() {
+        return currentSplit == null || finished;
     }
 }

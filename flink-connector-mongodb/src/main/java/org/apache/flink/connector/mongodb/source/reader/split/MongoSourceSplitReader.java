@@ -19,15 +19,12 @@ package org.apache.flink.connector.mongodb.source.reader.split;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
-import org.bson.BsonDocument;
-
-/**
- * An split reader implements {@link SplitReader} for {@link MongoSourceSplit}.
- *
- * @param <T> Mongo source split.
- */
+/** A split reader implements {@link SplitReader} for {@link MongoSourceSplit}. */
 @Internal
-public interface MongoSourceSplitReader<T extends MongoSourceSplit>
-        extends SplitReader<BsonDocument, T> {}
+public interface MongoSourceSplitReader extends SplitReader<MongoSourceRecord, MongoSourceSplit> {
+    /** Whether the current reader can accept the next split. */
+    boolean canAcceptNextSplit();
+}

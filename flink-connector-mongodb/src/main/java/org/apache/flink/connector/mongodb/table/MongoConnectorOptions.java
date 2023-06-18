@@ -20,11 +20,16 @@ package org.apache.flink.connector.mongodb.table;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
+import org.apache.flink.configuration.DescribedEnum;
 import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.configuration.description.InlineElement;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.connector.mongodb.table.config.FullDocumentStrategy;
 
 import java.time.Duration;
+
+import static org.apache.flink.configuration.description.TextElement.text;
 
 /**
  * Base options for the MongoDB connector. Needs to be public so that the {@link
@@ -99,12 +104,45 @@ public class MongoConnectorOptions {
                                     + "Then uses every 'scan.partition.samples' as the value to use to calculate the partition boundaries."
                                     + "The total number of samples taken is calculated as: samples per partition * (count of documents / number of documents per partition.");
 
+    public static final ConfigOption<ScanStartupMode> SCAN_STARTUP_MODE =
+            ConfigOptions.key("scan.startup.mode")
+                    .enumType(ScanStartupMode.class)
+                    .defaultValue(ScanStartupMode.BOUNDED)
+                    .withDescription(
+                            "Startup mode for MongoDB connector. valid enumerations are 'bounded', 'initial', 'latest-offset', and 'timestamp'. "
+                                    + "bounded: bounded read collection snapshot data. "
+                                    + "initial: read collection snapshot data and then continuously read changed data. "
+                                    + "latest-offset: continuously read changed data from latest offset of oplog. "
+                                    + "timestamp: continuously read changed data from specified timestamp offset of oplog.");
+
+    public static final ConfigOption<Long> SCAN_STARTUP_TIMESTAMP_MILLIS =
+            ConfigOptions.key("scan.startup.timestamp-millis")
+                    .longType()
+                    .noDefaultValue()
+                    .withDescription("Optional timestamp used in case of 'timestamp' startup mode");
+
     public static final ConfigOption<Duration> LOOKUP_RETRY_INTERVAL =
             ConfigOptions.key("lookup.retry.interval")
                     .durationType()
                     .defaultValue(Duration.ofMillis(1000L))
                     .withDescription(
                             "Specifies the retry time interval if lookup records from database failed.");
+
+    public static final ConfigOption<Integer> CHANGE_STREAM_FETCH_SIZE =
+            ConfigOptions.key("change-stream.fetch-size")
+                    .intType()
+                    .defaultValue(2048)
+                    .withDescription(
+                            "Gives the reader a hint as to the number of change stream documents that should be fetched from the database per round-trip when reading. ");
+
+    public static final ConfigOption<FullDocumentStrategy> CHANGE_STREAM_FULL_DOCUMENT_STRATEGY =
+            ConfigOptions.key("change-stream.full-document.strategy")
+                    .enumType(FullDocumentStrategy.class)
+                    .defaultValue(FullDocumentStrategy.UPDATE_LOOKUP)
+                    .withDescription(
+                            "Specifies the full document strategy. Available strategies are update-lookup, and pre-and-post-images."
+                                    + "update-lookup: prior to version 6.0 of MongoDB, the pre images was not stored in the oplog. To obtain complete updated row data, use updateLookup feature to lookup the latest snapshot when the oplog record is accessed."
+                                    + "pre-and-post-images: starting in MongoDB 6.0, you can use change stream events to output the version of a document before and after changes (the document pre- and post-images).");
 
     public static final ConfigOption<Integer> BUFFER_FLUSH_MAX_ROWS =
             ConfigOptions.key("sink.buffer-flush.max-rows")
@@ -139,4 +177,34 @@ public class MongoConnectorOptions {
                     .defaultValue(Duration.ofMillis(1000L))
                     .withDescription(
                             "Specifies the retry time interval if writing records to database failed.");
+
+    /** Startup mode for the MongoDB connector, see {@link #SCAN_STARTUP_MODE}. */
+    public enum ScanStartupMode implements DescribedEnum {
+        BOUNDED("bounded", text("Bounded read collection snapshot.")),
+        INITIAL("initial", text("Read collection snapshot and continuously read changed data.")),
+        LATEST_OFFSET(
+                "latest-offset",
+                text("Continuously read changed data from latest offset of oplog.")),
+        TIMESTAMP(
+                "timestamp",
+                text("Continuously read changed data from specified timestamp offset of oplog."));
+
+        private final String value;
+        private final InlineElement description;
+
+        ScanStartupMode(String value, InlineElement description) {
+            this.value = value;
+            this.description = description;
+        }
+
+        @Override
+        public String toString() {
+            return value;
+        }
+
+        @Override
+        public InlineElement getDescription() {
+            return description;
+        }
+    }
 }

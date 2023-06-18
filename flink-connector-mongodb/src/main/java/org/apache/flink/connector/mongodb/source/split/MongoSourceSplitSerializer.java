@@ -24,9 +24,14 @@ import org.bson.BsonDocument;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
+
+import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.deserializeMap;
+import static org.apache.flink.connector.mongodb.common.utils.MongoSerdeUtils.serializeMap;
 
 /** The {@link SimpleVersionedSerializer serializer} for {@link MongoSourceSplit}. */
 @Internal
@@ -35,9 +40,10 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
     public static final MongoSourceSplitSerializer INSTANCE = new MongoSourceSplitSerializer();
 
     // This version should be bumped after modifying the MongoSourceSplit.
-    public static final int CURRENT_VERSION = 0;
+    public static final int CURRENT_VERSION = 1;
 
     public static final int SCAN_SPLIT_FLAG = 1;
+    public static final int STREAM_SPLIT_FLAG = 2;
 
     private MongoSourceSplitSerializer() {}
 
@@ -48,7 +54,6 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
 
     @Override
     public byte[] serialize(MongoSourceSplit obj) throws IOException {
-        // VERSION 0 serialization
         try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 DataOutputStream out = new DataOutputStream(baos)) {
             serializeMongoSplit(out, obj);
@@ -66,6 +71,9 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
             if (splitKind == SCAN_SPLIT_FLAG) {
                 return deserializeMongoScanSourceSplit(version, in);
             }
+            if (splitKind == STREAM_SPLIT_FLAG) {
+                return deserializeMongoStreamSourceSplit(version, in);
+            }
             throw new IOException("Unknown split kind: " + splitKind);
         }
     }
@@ -81,6 +89,19 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
             out.writeUTF(split.getMax().toJson());
             out.writeUTF(split.getHint().toJson());
             out.writeInt(split.getOffset());
+        } else if (obj instanceof MongoStreamSourceSplit) {
+            MongoStreamSourceSplit split = (MongoStreamSourceSplit) obj;
+            out.writeInt(STREAM_SPLIT_FLAG);
+            out.writeUTF(split.splitId());
+            out.writeUTF(split.getDatabase());
+            out.writeUTF(split.getCollection());
+            serializeMap(
+                    out,
+                    split.streamOffset().getOffset(),
+                    DataOutputStream::writeUTF,
+                    DataOutputStream::writeUTF);
+        } else {
+            throw new IOException("Unknown split kind: " + obj.getClass().getName());
         }
     }
 
@@ -88,6 +109,7 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
             throws IOException {
         switch (version) {
             case 0:
+            case 1:
                 String splitId = in.readUTF();
                 String database = in.readUTF();
                 String collection = in.readUTF();
@@ -97,6 +119,24 @@ public class MongoSourceSplitSerializer implements SimpleVersionedSerializer<Mon
                 int offset = in.readInt();
                 return new MongoScanSourceSplit(
                         splitId, database, collection, min, max, hint, offset);
+            default:
+                throw new IOException("Unknown version: " + version);
+        }
+    }
+
+    public MongoStreamSourceSplit deserializeMongoStreamSourceSplit(int version, DataInputStream in)
+            throws IOException {
+        switch (version) {
+            case 0:
+            case 1:
+                String splitId = in.readUTF();
+                String database = in.readUTF();
+                String collection = in.readUTF();
+
+                Map<String, String> offset =
+                        deserializeMap(in, DataInput::readUTF, DataInput::readUTF);
+                MongoStreamOffset streamOffset = MongoStreamOffset.fromOffset(offset);
+                return new MongoStreamSourceSplit(splitId, database, collection, streamOffset);
             default:
                 throw new IOException("Unknown version: " + version);
         }

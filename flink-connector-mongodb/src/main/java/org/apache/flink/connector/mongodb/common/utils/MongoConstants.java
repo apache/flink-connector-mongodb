@@ -59,6 +59,18 @@ public class MongoConstants {
 
     public static final String DROPPED_FIELD = "dropped";
 
+    public static final String CLUSTER_TIME_FIELD = "clusterTime";
+
+    public static final String RESUME_TOKEN_FIELD = "resumeToken";
+
+    public static final String OPERATION_TYPE_FIELD = "operationType";
+
+    public static final String DOCUMENT_KEY_FIELD = "documentKey";
+
+    public static final String FULL_DOCUMENT_FIELD = "fullDocument";
+
+    public static final String FULL_DOCUMENT_BEFORE_CHANGE_FIELD = "fullDocumentBeforeChange";
+
     public static final BsonValue BSON_MIN_KEY = new BsonMinKey();
 
     public static final BsonValue BSON_MAX_KEY = new BsonMaxKey();
@@ -67,6 +79,14 @@ public class MongoConstants {
 
     public static final JsonWriterSettings DEFAULT_JSON_WRITER_SETTINGS =
             JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build();
+
+    public static final int FAILED_TO_PARSE_ERROR = 9;
+
+    public static final int UNAUTHORIZED_ERROR = 13;
+
+    public static final int ILLEGAL_OPERATION_ERROR = 20;
+
+    public static final int UNKNOWN_FIELD_ERROR = 40415;
 
     private MongoConstants() {}
 }

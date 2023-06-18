@@ -18,21 +18,34 @@
 package org.apache.flink.connector.mongodb.common.utils;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.source.split.MongoStreamOffset;
 
 import com.mongodb.MongoNamespace;
+import com.mongodb.client.ChangeStreamIterable;
+import com.mongodb.client.MongoChangeStreamCursor;
 import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
+import org.bson.BsonTimestamp;
+import org.bson.Document;
 import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.or;
@@ -40,6 +53,7 @@ import static com.mongodb.client.model.Projections.excludeId;
 import static com.mongodb.client.model.Projections.fields;
 import static com.mongodb.client.model.Projections.include;
 import static com.mongodb.client.model.Sorts.ascending;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.CLUSTER_TIME_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DROPPED_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.KEY_FIELD;
@@ -49,20 +63,35 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.NAM
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.SHARD_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.UUID_FIELD;
 
-/** A util class with some helper method for MongoDB commands. */
+/** An util class with some helper method for MongoDB commands. */
 @Internal
 public class MongoUtils {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoUtils.class);
 
     private static final String COLL_STATS_COMMAND = "collStats";
     private static final String SPLIT_VECTOR_COMMAND = "splitVector";
     private static final String KEY_PATTERN_OPTION = "keyPattern";
     private static final String MAX_CHUNK_SIZE_OPTION = "maxChunkSize";
+    private static final String IS_MASTER_COMMAND = "isMaster";
 
+    private static final String ADMIN_DATABASE = "admin";
     private static final String CONFIG_DATABASE = "config";
     private static final String COLLECTIONS_COLLECTION = "collections";
     private static final String CHUNKS_COLLECTION = "chunks";
 
     private MongoUtils() {}
+
+    public static MongoClient clientFor(MongoConnectionOptions connectionOptions) {
+        return MongoClients.create(connectionOptions.getUri());
+    }
+
+    public static <T> T doWithMongoClient(
+            MongoConnectionOptions connectionOptions, Function<MongoClient, T> action) {
+        try (MongoClient mongoClient = clientFor(connectionOptions)) {
+            return action.apply(mongoClient);
+        }
+    }
 
     public static BsonDocument collStats(MongoClient mongoClient, MongoNamespace namespace) {
         BsonDocument collStatsCommand =
@@ -147,5 +176,65 @@ public class MongoUtils {
             // This suppresses the automatic inclusion of _id that is default.
             return fields(include(projectedFields), excludeId());
         }
+    }
+
+    public static MongoStreamOffset displayCurrentOffset(MongoConnectionOptions connectionOptions) {
+        return doWithMongoClient(
+                connectionOptions,
+                client -> {
+                    ChangeStreamIterable<Document> changeStreamIterable =
+                            getChangeStreamIterable(
+                                    client,
+                                    connectionOptions.getDatabase(),
+                                    connectionOptions.getCollection());
+
+                    try (MongoChangeStreamCursor<ChangeStreamDocument<Document>>
+                            changeStreamCursor = changeStreamIterable.cursor()) {
+                        ChangeStreamDocument<?> firstResult = changeStreamCursor.tryNext();
+                        BsonDocument resumeToken =
+                                firstResult != null
+                                        ? firstResult.getResumeToken()
+                                        : changeStreamCursor.getResumeToken();
+
+                        // Nullable when no change record or postResumeToken (new in MongoDB 4.0.7).
+                        return Optional.ofNullable(resumeToken)
+                                .map(MongoStreamOffset::fromResumeToken)
+                                .orElse(
+                                        MongoStreamOffset.fromClusterTime(
+                                                currentClusterTime(client)));
+                    }
+                });
+    }
+
+    public static BsonTimestamp currentClusterTime(MongoClient mongoClient) {
+        return isMaster(mongoClient)
+                .getDocument("$" + CLUSTER_TIME_FIELD)
+                .getTimestamp(CLUSTER_TIME_FIELD);
+    }
+
+    public static BsonDocument isMaster(MongoClient mongoClient) {
+        BsonDocument isMasterCommand = new BsonDocument(IS_MASTER_COMMAND, new BsonInt32(1));
+        return mongoClient
+                .getDatabase(ADMIN_DATABASE)
+                .runCommand(isMasterCommand, BsonDocument.class);
+    }
+
+    public static ChangeStreamIterable<Document> getChangeStreamIterable(
+            MongoClient mongoClient, @Nullable String database, @Nullable String collection) {
+        ChangeStreamIterable<Document> changeStream;
+        if (StringUtils.isNotEmpty(database) && StringUtils.isNotEmpty(collection)) {
+            MongoCollection<Document> coll =
+                    mongoClient.getDatabase(database).getCollection(collection);
+            LOG.info("Preparing change stream for collection {}.{}", database, collection);
+            changeStream = coll.watch();
+        } else if (StringUtils.isNotEmpty(database)) {
+            MongoDatabase db = mongoClient.getDatabase(database);
+            LOG.info("Preparing change stream for database {}", database);
+            changeStream = db.watch();
+        } else {
+            LOG.info("Preparing change stream for deployment");
+            changeStream = mongoClient.watch();
+        }
+        return changeStream;
     }
 }

@@ -19,7 +19,7 @@ package org.apache.flink.connector.mongodb.source.enumerator;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.mongodb.source.enumerator.assigner.MongoSplitAssigner;
-import org.apache.flink.connector.mongodb.source.reader.split.MongoSourceSplitReader;
+import org.apache.flink.connector.mongodb.source.reader.split.MongoHybridSourceSplitReader;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
 import java.util.ArrayList;
@@ -47,24 +47,29 @@ public class MongoSourceEnumState {
 
     /**
      * The scan splits that the {@link MongoSourceEnumerator} has assigned to {@link
-     * MongoSourceSplitReader}s.
+     * MongoHybridSourceSplitReader}s.
      */
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
 
-    /** The pipeline has been triggered and topic partitions have been assigned to readers. */
+    /** The pipeline has been triggered and collection partitions have been assigned to readers. */
     private final boolean initialized;
+
+    /** Whether the stream split has been assigned. */
+    private final boolean streamSplitAssigned;
 
     public MongoSourceEnumState(
             List<String> remainingCollections,
             List<String> alreadyProcessedCollections,
             List<MongoScanSourceSplit> remainingScanSplits,
             Map<String, MongoScanSourceSplit> assignedScanSplits,
-            boolean initialized) {
+            boolean initialized,
+            boolean streamSplitAssigned) {
         this.remainingCollections = remainingCollections;
         this.alreadyProcessedCollections = alreadyProcessedCollections;
         this.remainingScanSplits = remainingScanSplits;
         this.assignedScanSplits = assignedScanSplits;
         this.initialized = initialized;
+        this.streamSplitAssigned = streamSplitAssigned;
     }
 
     public List<String> getRemainingCollections() {
@@ -87,9 +92,41 @@ public class MongoSourceEnumState {
         return initialized;
     }
 
+    public boolean isStreamSplitAssigned() {
+        return streamSplitAssigned;
+    }
+
     /** The initial assignment state for Mongo. */
     public static MongoSourceEnumState initialState() {
         return new MongoSourceEnumState(
-                new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new HashMap<>(), false);
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new HashMap<>(),
+                false,
+                false);
+    }
+
+    /** The stream enum state for Mongo. */
+    public static MongoSourceEnumState streamState(boolean streamSplitAssigned) {
+        return new MongoSourceEnumState(
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new ArrayList<>(),
+                new HashMap<>(),
+                true,
+                streamSplitAssigned);
+    }
+
+    /** The hybrid enum state for Mongo. */
+    public static MongoSourceEnumState hybridState(
+            MongoSourceEnumState scanState, boolean streamSplitAssigned) {
+        return new MongoSourceEnumState(
+                scanState.remainingCollections,
+                scanState.alreadyProcessedCollections,
+                scanState.remainingScanSplits,
+                scanState.assignedScanSplits,
+                scanState.initialized,
+                streamSplitAssigned);
     }
 }

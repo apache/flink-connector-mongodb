@@ -39,7 +39,10 @@ public class MongoTestUtil {
 
     public static final String MONGODB_HOSTNAME = "mongodb";
 
-    public static final String MONGO_4_0 = "mongo:4.0.10";
+    public static final String MONGO_IMAGE_PREFIX = "mongo:";
+    public static final String MONGO_4_0 = "4.0.10";
+    public static final String MONGO_5_0 = "5.0.2";
+    public static final String MONGO_6_0 = "6.0.6";
 
     private MongoTestUtil() {}
 
@@ -50,7 +53,18 @@ public class MongoTestUtil {
      * @return configured MongoDB container
      */
     public static MongoDBContainer createMongoDBContainer(Logger logger) {
-        return new MongoDBContainer(DockerImageName.parse(MONGO_4_0))
+        return createMongoDBContainer(MONGO_IMAGE_PREFIX + MONGO_4_0, logger);
+    }
+
+    /**
+     * Creates a preconfigured {@link MongoDBContainer}.
+     *
+     * @param imageName mongo docker image name
+     * @param logger for test containers
+     * @return configured MongoDB container
+     */
+    public static MongoDBContainer createMongoDBContainer(String imageName, Logger logger) {
+        return new MongoDBContainer(DockerImageName.parse(imageName))
                 .withLogConsumer(new Slf4jLogConsumer(logger));
     }
 
@@ -61,7 +75,19 @@ public class MongoTestUtil {
      * @return configured MongoDB sharded containers
      */
     public static MongoShardedContainers createMongoDBShardedContainers(Network network) {
-        return new MongoShardedContainers(DockerImageName.parse(MONGO_4_0), network);
+        return createMongoDBShardedContainers(MONGO_IMAGE_PREFIX + MONGO_4_0, network);
+    }
+
+    /**
+     * Creates a preconfigured {@link MongoDBContainer}.
+     *
+     * @param imageName mongo docker image name
+     * @param network for test containers
+     * @return configured MongoDB sharded containers
+     */
+    public static MongoShardedContainers createMongoDBShardedContainers(
+            String imageName, Network network) {
+        return new MongoShardedContainers(DockerImageName.parse(imageName), network);
     }
 
     public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, Integer... ids) {

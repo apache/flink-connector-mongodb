@@ -22,6 +22,9 @@ import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
+import com.mongodb.client.model.changestream.FullDocument;
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
+
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -114,6 +117,9 @@ public class MongoReadOptions implements Serializable {
         private PartitionStrategy partitionStrategy = SCAN_PARTITION_STRATEGY.defaultValue();
         private MemorySize partitionSize = SCAN_PARTITION_SIZE.defaultValue();
         private int samplesPerPartition = SCAN_PARTITION_SAMPLES.defaultValue();
+        private FullDocument fullDocument = FullDocument.UPDATE_LOOKUP;
+        private FullDocumentBeforeChange fullDocumentBeforeChange =
+                FullDocumentBeforeChange.WHEN_AVAILABLE;
 
         private MongoReadOptionsBuilder() {}
 
@@ -196,6 +202,44 @@ public class MongoReadOptions implements Serializable {
             checkArgument(
                     samplesPerPartition > 0, "The samples per partition must be larger than 0.");
             this.samplesPerPartition = samplesPerPartition;
+            return this;
+        }
+
+        /**
+         * Determines what values your change stream returns on update operations. The default
+         * setting returns the differences between the original document and the updated document.
+         * The updateLookup setting returns the differences between the original document and
+         * updated document as well as a copy of the entire updated document at a point in time
+         * after the update. The whenAvailable setting returns the updated document, if available.
+         * The required setting returns the updated document and raises an error if it is not
+         * available.
+         *
+         * @param fullDocument the values your change stream returns on update operations.
+         * @return this builder
+         */
+        public MongoReadOptionsBuilder setFullDocument(FullDocument fullDocument) {
+            this.fullDocument = checkNotNull(fullDocument, "The fullDocument must not be null.");
+            return this;
+        }
+
+        /**
+         * Configures the document pre-image your change stream returns on update operations. The
+         * pre-image is not available for source records published while copying existing data, and
+         * the pre-image configuration has no effect on copying. The default setting suppresses the
+         * document pre-image. The whenAvailable setting returns the document pre-image if it's
+         * available, before it was replaced, updated, or deleted. The required setting returns the
+         * document pre-image and raises an error if it is not available.
+         *
+         * @param fullDocumentBeforeChange the document pre-image your change stream returns on
+         *     update operations.
+         * @return this builder
+         */
+        public MongoReadOptionsBuilder setFullDocumentBeforeChange(
+                FullDocumentBeforeChange fullDocumentBeforeChange) {
+            this.fullDocumentBeforeChange =
+                    checkNotNull(
+                            fullDocumentBeforeChange,
+                            "The fullDocumentBeforeChange must not be null.");
             return this;
         }
 
