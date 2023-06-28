@@ -33,6 +33,7 @@ import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.groups.SinkWriterMetricGroup;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.FlinkRuntimeException;
+import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
@@ -45,6 +46,10 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -68,10 +73,17 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     private final Collector<WriteModel<BsonDocument>> collector;
     private final Counter numRecordsOut;
     private final MongoClient mongoClient;
+    private final long batchIntervalMs;
+    private final int batchSize;
 
     private boolean checkpointInProgress = false;
     private volatile long lastSendTime = 0L;
     private volatile long ackTime = Long.MAX_VALUE;
+
+    private transient volatile boolean closed = false;
+    private transient ScheduledExecutorService scheduler;
+    private transient ScheduledFuture<?> scheduledFuture;
+    private transient volatile Exception flushException;
 
     public MongoWriter(
             MongoConnectionOptions connectionOptions,
@@ -83,6 +95,8 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
         this.writeOptions = checkNotNull(writeOptions);
         this.serializationSchema = checkNotNull(serializationSchema);
         this.flushOnCheckpoint = flushOnCheckpoint;
+        this.batchIntervalMs = writeOptions.getBatchIntervalMs();
+        this.batchSize = writeOptions.getBatchSize();
 
         checkNotNull(initContext);
         this.mailboxExecutor = checkNotNull(initContext.getMailboxExecutor());
@@ -105,10 +119,37 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
 
         // Initialize the mongo client.
         this.mongoClient = MongoClients.create(connectionOptions.getUri());
+
+        boolean flushOnlyOnCheckpoint = batchIntervalMs == -1 && batchSize == -1;
+
+        if (!flushOnlyOnCheckpoint && batchIntervalMs > 0) {
+            this.scheduler =
+                    Executors.newScheduledThreadPool(1, new ExecutorThreadFactory("mongo-writer"));
+
+            this.scheduledFuture =
+                    this.scheduler.scheduleWithFixedDelay(
+                            () -> {
+                                synchronized (MongoWriter.this) {
+                                    if (!closed && isOverMaxBatchIntervalLimit()) {
+                                        try {
+                                            doBulkWrite();
+                                        } catch (Exception e) {
+                                            flushException = e;
+                                        }
+                                    }
+                                }
+                            },
+                            batchIntervalMs,
+                            batchIntervalMs,
+                            TimeUnit.MILLISECONDS);
+        }
     }
 
     @Override
-    public void write(IN element, Context context) throws IOException, InterruptedException {
+    public synchronized void write(IN element, Context context)
+            throws IOException, InterruptedException {
+        checkFlushException();
+
         // do not allow new bulk writes until all actions are flushed
         while (checkpointInProgress) {
             mailboxExecutor.yield();
@@ -122,7 +163,9 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     }
 
     @Override
-    public void flush(boolean endOfInput) throws IOException {
+    public synchronized void flush(boolean endOfInput) throws IOException {
+        checkFlushException();
+
         checkpointInProgress = true;
         while (!bulkRequests.isEmpty() && (flushOnCheckpoint || endOfInput)) {
             doBulkWrite();
@@ -131,8 +174,28 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     }
 
     @Override
-    public void close() {
-        mongoClient.close();
+    public synchronized void close() throws Exception {
+        if (!closed) {
+            if (scheduledFuture != null) {
+                scheduledFuture.cancel(false);
+                scheduler.shutdown();
+            }
+
+            if (!bulkRequests.isEmpty()) {
+                try {
+                    doBulkWrite();
+                } catch (Exception e) {
+                    LOG.error("Writing records to MongoDB failed when closing MongoWriter", e);
+                    throw new IOException("Writing records to MongoDB failed.", e);
+                } finally {
+                    mongoClient.close();
+                    closed = true;
+                }
+            } else {
+                mongoClient.close();
+                closed = true;
+            }
+        }
     }
 
     @VisibleForTesting
@@ -172,13 +235,17 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     }
 
     private boolean isOverMaxBatchSizeLimit() {
-        int bulkActions = writeOptions.getBatchSize();
-        return bulkActions != -1 && bulkRequests.size() >= bulkActions;
+        return batchSize != -1 && bulkRequests.size() >= batchSize;
     }
 
     private boolean isOverMaxBatchIntervalLimit() {
-        long bulkFlushInterval = writeOptions.getBatchIntervalMs();
         long lastSentInterval = System.currentTimeMillis() - lastSendTime;
-        return bulkFlushInterval != -1 && lastSentInterval >= bulkFlushInterval;
+        return batchIntervalMs != -1 && lastSentInterval >= batchIntervalMs;
+    }
+
+    private void checkFlushException() {
+        if (flushException != null) {
+            throw new RuntimeException("Writing records to MongoDB failed.", flushException);
+        }
     }
 }
