@@ -77,4 +77,17 @@ public class MongoTestUtil {
 
         assertThat(actualIds).containsExactlyInAnyOrder(ids);
     }
+
+    public static void assertThatIdsAreWrittenWithMaxWaitTime(
+            MongoCollection<Document> coll, long maxWaitTimeMs, Integer... ids)
+            throws InterruptedException {
+        long startTimeMillis = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTimeMillis < maxWaitTimeMs) {
+            if (coll.countDocuments(Filters.in("_id", ids)) == ids.length) {
+                break;
+            }
+            Thread.sleep(1000L);
+        }
+        assertThatIdsAreWritten(coll, ids);
+    }
 }

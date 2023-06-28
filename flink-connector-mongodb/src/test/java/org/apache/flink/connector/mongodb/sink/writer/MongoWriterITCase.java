@@ -53,6 +53,7 @@ import java.util.Optional;
 
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenWithMaxWaitTime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -138,12 +139,12 @@ public class MongoWriterITCase {
                 createWriter(collection, batchSize, batchIntervalMs, flushOnCheckpoint)) {
             writer.write(buildMessage(1), null);
             writer.write(buildMessage(2), null);
+            writer.doBulkWrite();
             writer.write(buildMessage(3), null);
             writer.write(buildMessage(4), null);
-            writer.doBulkWrite();
-        }
 
-        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4);
+            assertThatIdsAreWrittenWithMaxWaitTime(collectionOf(collection), 10000L, 1, 2, 3, 4);
+        }
     }
 
     @Test
