@@ -97,16 +97,21 @@ public class MongoSourceEnumerator
                 continue;
             }
 
+            // close idle readers
+            if (splitAssigner.noMoreSplits() && boundedness == Boundedness.BOUNDED) {
+                context.signalNoMoreSplits(nextAwaiting);
+                awaitingReader.remove();
+                LOG.info(
+                        "All scan splits have been assigned, closing idle reader {}", nextAwaiting);
+                continue;
+            }
+
             Optional<MongoSourceSplit> split = splitAssigner.getNext();
             if (split.isPresent()) {
                 final MongoSourceSplit mongoSplit = split.get();
                 context.assignSplit(mongoSplit, nextAwaiting);
                 awaitingReader.remove();
                 LOG.info("Assign split {} to subtask {}", mongoSplit, nextAwaiting);
-                break;
-            } else if (splitAssigner.noMoreSplits() && boundedness == Boundedness.BOUNDED) {
-                LOG.info("All splits have been assigned");
-                context.registeredReaders().keySet().forEach(context::signalNoMoreSplits);
                 break;
             } else {
                 // there is no available splits by now, skip assigning

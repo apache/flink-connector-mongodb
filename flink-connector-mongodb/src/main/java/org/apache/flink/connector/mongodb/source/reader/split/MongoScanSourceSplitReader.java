@@ -119,7 +119,6 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             throw new IOException("Scan records form MongoDB failed", e);
         } finally {
             if (finished) {
-                currentSplit = null;
                 closeCursor();
             }
         }
