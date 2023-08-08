@@ -21,7 +21,9 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.source.MongoSource;
+import org.apache.flink.connector.mongodb.source.config.MongoChangeStreamOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
+import org.apache.flink.connector.mongodb.source.config.MongoStartupOptions;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataDeserializationSchema;
 import org.apache.flink.table.connector.ChangelogMode;
@@ -39,6 +41,8 @@ import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
+
+import com.mongodb.client.model.changestream.FullDocumentBeforeChange;
 
 import javax.annotation.Nullable;
 
@@ -59,7 +63,9 @@ public class MongoDynamicTableSource
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
+    private final MongoStartupOptions startupOptions;
     @Nullable private final LookupCache lookupCache;
+    private final MongoChangeStreamOptions changeStreamOptions;
     private final int lookupMaxRetries;
     private final long lookupRetryIntervalMs;
     private DataType producedDataType;
@@ -68,12 +74,16 @@ public class MongoDynamicTableSource
     public MongoDynamicTableSource(
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
+            MongoChangeStreamOptions changeStreamOptions,
+            MongoStartupOptions startupOptions,
             @Nullable LookupCache lookupCache,
             int lookupMaxRetries,
             long lookupRetryIntervalMs,
             DataType producedDataType) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
+        this.startupOptions = startupOptions;
+        this.changeStreamOptions = changeStreamOptions;
         this.lookupCache = lookupCache;
         checkArgument(
                 lookupMaxRetries >= 0,
@@ -128,11 +138,16 @@ public class MongoDynamicTableSource
                         .setUri(connectionOptions.getUri())
                         .setDatabase(connectionOptions.getDatabase())
                         .setCollection(connectionOptions.getCollection())
+                        .setStartupOptions(startupOptions)
                         .setFetchSize(readOptions.getFetchSize())
                         .setNoCursorTimeout(readOptions.isNoCursorTimeout())
                         .setPartitionStrategy(readOptions.getPartitionStrategy())
                         .setPartitionSize(readOptions.getPartitionSize())
                         .setSamplesPerPartition(readOptions.getSamplesPerPartition())
+                        .setChangeStreamFetchSize(changeStreamOptions.getFetchSize())
+                        .setFullDocument(changeStreamOptions.getFullDocument())
+                        .setFullDocumentBeforeChange(
+                                changeStreamOptions.getFullDocumentBeforeChange())
                         .setLimit(limit)
                         .setProjectedFields(DataType.getFieldNames(producedDataType))
                         .setDeserializationSchema(deserializationSchema)
@@ -143,7 +158,19 @@ public class MongoDynamicTableSource
 
     @Override
     public ChangelogMode getChangelogMode() {
-        return ChangelogMode.insertOnly();
+        switch (startupOptions.getStartupMode()) {
+            case INITIAL:
+            case TIMESTAMP:
+            case LATEST_OFFSET:
+                if (changeStreamOptions.getFullDocumentBeforeChange()
+                        == FullDocumentBeforeChange.REQUIRED) {
+                    return ChangelogMode.all();
+                }
+                return ChangelogMode.upsert();
+            case BOUNDED:
+            default:
+                return ChangelogMode.insertOnly();
+        }
     }
 
     @Override
@@ -151,6 +178,8 @@ public class MongoDynamicTableSource
         return new MongoDynamicTableSource(
                 connectionOptions,
                 readOptions,
+                changeStreamOptions,
+                startupOptions,
                 lookupCache,
                 lookupMaxRetries,
                 lookupRetryIntervalMs,
@@ -186,6 +215,8 @@ public class MongoDynamicTableSource
         MongoDynamicTableSource that = (MongoDynamicTableSource) o;
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(readOptions, that.readOptions)
+                && Objects.equals(changeStreamOptions, that.changeStreamOptions)
+                && Objects.equals(startupOptions, that.startupOptions)
                 && Objects.equals(producedDataType, that.producedDataType)
                 && Objects.equals(limit, that.limit)
                 && Objects.equals(lookupCache, that.lookupCache)
@@ -198,6 +229,8 @@ public class MongoDynamicTableSource
         return Objects.hash(
                 connectionOptions,
                 readOptions,
+                changeStreamOptions,
+                startupOptions,
                 producedDataType,
                 limit,
                 lookupCache,

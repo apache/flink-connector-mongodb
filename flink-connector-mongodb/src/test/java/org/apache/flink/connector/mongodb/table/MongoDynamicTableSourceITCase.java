@@ -17,24 +17,16 @@
 
 package org.apache.flink.connector.mongodb.table;
 
-import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.common.typeinfo.Types;
-import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.connector.mongodb.table.config.FullDocumentStrategy;
 import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
-import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
-import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.Schema;
+import org.apache.flink.table.api.TableResult;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-import org.apache.flink.table.connector.source.lookup.LookupOptions;
-import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
-import org.apache.flink.table.data.GenericRowData;
-import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.data.StringData;
-import org.apache.flink.table.runtime.functions.table.lookup.LookupCacheManager;
-import org.apache.flink.table.test.lookup.cache.LookupCacheAssert;
 import org.apache.flink.test.junit5.MiniClusterExtension;
+import org.apache.flink.testutils.junit.extensions.parameterized.Parameter;
+import org.apache.flink.testutils.junit.extensions.parameterized.ParameterizedTestExtension;
+import org.apache.flink.testutils.junit.extensions.parameterized.Parameters;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.CloseableIterator;
 import org.apache.flink.util.CollectionUtil;
@@ -42,6 +34,11 @@ import org.apache.flink.util.CollectionUtil;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.ChangeStreamPreAndPostImagesOptions;
+import com.mongodb.client.model.CreateCollectionOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Updates;
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -54,22 +51,18 @@ import org.bson.BsonInt64;
 import org.bson.BsonString;
 import org.bson.BsonTimestamp;
 import org.bson.types.Decimal128;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestTemplate;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -80,14 +73,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FULL_DOCUMENT_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_MODE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGO_4_0;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGO_5_0;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGO_6_0;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.MONGO_IMAGE_PREFIX;
 import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
-@Testcontainers
+@ExtendWith(ParameterizedTestExtension.class)
 public class MongoDynamicTableSourceITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSinkITCase.class);
@@ -99,46 +98,58 @@ public class MongoDynamicTableSourceITCase {
                             .setNumberTaskManagers(1)
                             .build());
 
-    @Container
-    private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(LOG);
+    @Parameter public String mongoVersion;
+
+    @Parameters(name = "mongoVersion={0}")
+    public static List<String> parameters() {
+        return Arrays.asList(MONGO_4_0, MONGO_5_0, MONGO_6_0);
+    }
 
     private static final String TEST_DATABASE = "test";
     private static final String TEST_COLLECTION = "mongo_table_source";
 
-    private static MongoClient mongoClient;
+    private MongoDBContainer mongoDBContainer;
+    private MongoClient mongoClient;
+    private MongoDatabase testDatabase;
+    private MongoCollection<BsonDocument> testCollection;
 
-    public static StreamExecutionEnvironment env;
-    public static StreamTableEnvironment tEnv;
-
-    @BeforeAll
-    static void beforeAll() {
-        mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
-
-        MongoCollection<BsonDocument> coll =
-                mongoClient
-                        .getDatabase(TEST_DATABASE)
-                        .getCollection(TEST_COLLECTION)
-                        .withDocumentClass(BsonDocument.class);
-
-        List<BsonDocument> testRecords = Arrays.asList(createTestData(1), createTestData(2));
-        coll.insertMany(testRecords);
-    }
-
-    @AfterAll
-    static void afterAll() {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
-    }
+    private StreamExecutionEnvironment env;
+    private StreamTableEnvironment tEnv;
 
     @BeforeEach
     void before() {
+        mongoDBContainer =
+                MongoTestUtil.createMongoDBContainer(MONGO_IMAGE_PREFIX + mongoVersion, LOG);
+        mongoDBContainer.start();
+        mongoClient = MongoClients.create(mongoDBContainer.getConnectionString());
+        testDatabase = mongoClient.getDatabase(TEST_DATABASE);
+        testCollection =
+                testDatabase.getCollection(TEST_COLLECTION).withDocumentClass(BsonDocument.class);
+
+        if (MONGO_6_0.equals(mongoVersion)) {
+            testDatabase.createCollection(
+                    TEST_COLLECTION,
+                    new CreateCollectionOptions()
+                            .changeStreamPreAndPostImagesOptions(
+                                    new ChangeStreamPreAndPostImagesOptions(true)));
+        }
+
+        List<BsonDocument> testRecords = Arrays.asList(createTestData(1), createTestData(2));
+        testCollection.insertMany(testRecords);
+
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         tEnv = StreamTableEnvironment.create(env);
     }
 
-    @Test
+    @AfterEach
+    void after() {
+        if (mongoClient != null) {
+            mongoClient.close();
+        }
+        mongoDBContainer.close();
+    }
+
+    @TestTemplate
     public void testSource() {
         tEnv.executeSql(createTestDDl(null));
 
@@ -159,7 +170,80 @@ public class MongoDynamicTableSourceITCase {
         assertThat(result).isEqualTo(expected);
     }
 
-    @Test
+    @TestTemplate
+    public void testUnboundedSource() throws Exception {
+        // Create MongoDB lookup table
+        Map<String, String> options = new HashMap<>();
+        options.put(
+                SCAN_STARTUP_MODE.key(), MongoConnectorOptions.ScanStartupMode.INITIAL.toString());
+        if (MONGO_6_0.equals(mongoVersion)) {
+            options.put(
+                    CHANGE_STREAM_FULL_DOCUMENT_STRATEGY.key(),
+                    FullDocumentStrategy.PRE_AND_POST_IMAGES.toString());
+        }
+
+        tEnv.executeSql(createTestDDl(options));
+        TableResult tableResult = tEnv.executeSql("SELECT * FROM mongo_source");
+
+        try (CloseableIterator<Row> iterator = tableResult.collect()) {
+            // fetch scan records
+            List<String> scanned = fetchRows(iterator, 2);
+            List<String> expected =
+                    Arrays.asList(
+                            "+I[1, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                            "+I[2, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+            // assert scanned records
+            assertThat(scanned).containsExactlyElementsOf(expected);
+
+            // insert 2 records
+            List<BsonDocument> newDocs =
+                    Arrays.asList(createTestData(3), createTestData(4), createTestData(5));
+            testCollection.insertMany(newDocs);
+            List<String> inserted = fetchRows(iterator, 3);
+            expected =
+                    Arrays.asList(
+                            "+I[3, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                            "+I[4, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                            "+I[5, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+            // assert inserted records
+            assertThat(inserted).containsExactlyElementsOf(expected);
+
+            // delete 1 record
+            testCollection.deleteOne(Filters.eq("_id", newDocs.get(0).getInt64("_id")));
+            List<String> deleted = fetchRows(iterator, 1);
+            expected =
+                    Collections.singletonList(
+                            "-D[3, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+            // assert deleted records
+            assertThat(deleted).containsExactlyElementsOf(expected);
+
+            // update 1 record
+            testCollection.updateOne(
+                    Filters.eq("_id", newDocs.get(1).getInt64("_id")),
+                    Updates.set("f1", new BsonString("3")));
+            List<String> updated = fetchRows(iterator, 2);
+            expected =
+                    Arrays.asList(
+                            "-U[4, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                            "+U[4, 3, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+            // assert updated records
+            assertThat(updated).containsExactlyElementsOf(expected);
+
+            // replace 1 record
+            BsonDocument replacement = newDocs.get(2);
+            replacement.put("f1", new BsonString("4"));
+            testCollection.replaceOne(Filters.eq("_id", replacement.remove("_id")), replacement);
+            List<String> replaced = fetchRows(iterator, 2);
+            expected =
+                    Arrays.asList(
+                            "-U[5, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
+                            "+U[5, 4, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+            // assert replaced records
+            assertThat(replaced).containsExactlyElementsOf(expected);
+        }
+    }
+
+    @TestTemplate
     public void testProject() {
         tEnv.executeSql(createTestDDl(null));
 
@@ -176,7 +260,7 @@ public class MongoDynamicTableSourceITCase {
         assertThat(result).isEqualTo(expected);
     }
 
-    @Test
+    @TestTemplate
     public void testLimit() {
         tEnv.executeSql(createTestDDl(null));
 
@@ -197,111 +281,10 @@ public class MongoDynamicTableSourceITCase {
         assertThat(result).containsAnyElementsOf(expected);
     }
 
-    @ParameterizedTest
-    @EnumSource(Caching.class)
-    public void testLookupJoin(Caching caching) throws Exception {
-        // Create MongoDB lookup table
-        Map<String, String> lookupOptions = new HashMap<>();
-        if (caching.equals(Caching.ENABLE_CACHE)) {
-            lookupOptions.put(LookupOptions.CACHE_TYPE.key(), "PARTIAL");
-            lookupOptions.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE.key(), "10min");
-            lookupOptions.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_ACCESS.key(), "10min");
-            lookupOptions.put(LookupOptions.PARTIAL_CACHE_MAX_ROWS.key(), "100");
-            lookupOptions.put(LookupOptions.MAX_RETRIES.key(), "10");
-        }
-
-        tEnv.executeSql(createTestDDl(lookupOptions));
-
-        DataStream<Row> sourceStream =
-                env.fromCollection(
-                                Arrays.asList(
-                                        Row.of(1L, "Alice"),
-                                        Row.of(1L, "Alice"),
-                                        Row.of(2L, "Bob"),
-                                        Row.of(3L, "Charlie")))
-                        .returns(
-                                new RowTypeInfo(
-                                        new TypeInformation[] {Types.LONG, Types.STRING},
-                                        new String[] {"id", "name"}));
-
-        Schema sourceSchema =
-                Schema.newBuilder()
-                        .column("id", DataTypes.BIGINT())
-                        .column("name", DataTypes.STRING())
-                        .columnByExpression("proctime", "PROCTIME()")
-                        .build();
-
-        tEnv.createTemporaryView("value_source", sourceStream, sourceSchema);
-
-        if (caching == Caching.ENABLE_CACHE) {
-            LookupCacheManager.keepCacheOnRelease(true);
-        }
-
-        // Execute lookup join
-        try (CloseableIterator<Row> iterator =
-                tEnv.executeSql(
-                                "SELECT S.id, S.name, D._id, D.f1, D.f2 FROM value_source"
-                                        + " AS S JOIN mongo_source for system_time as of S.proctime AS D ON S.id = D._id")
-                        .collect()) {
-            List<String> result =
-                    CollectionUtil.iteratorToList(iterator).stream()
-                            .map(Row::toString)
-                            .sorted()
-                            .collect(Collectors.toList());
-            List<String> expected =
-                    Arrays.asList(
-                            "+I[1, Alice, 1, 2, false]",
-                            "+I[1, Alice, 1, 2, false]",
-                            "+I[2, Bob, 2, 2, false]");
-
-            assertThat(result).hasSize(3);
-            assertThat(result).isEqualTo(expected);
-            if (caching == Caching.ENABLE_CACHE) {
-                // Validate cache
-                Map<String, LookupCacheManager.RefCountedCache> managedCaches =
-                        LookupCacheManager.getInstance().getManagedCaches();
-                assertThat(managedCaches).hasSize(1);
-                LookupCache cache =
-                        managedCaches.get(managedCaches.keySet().iterator().next()).getCache();
-                validateCachedValues(cache);
-            }
-
-        } finally {
-            if (caching == Caching.ENABLE_CACHE) {
-                LookupCacheManager.getInstance().checkAllReleased();
-                LookupCacheManager.getInstance().clear();
-                LookupCacheManager.keepCacheOnRelease(false);
-            }
-        }
-    }
-
-    private static void validateCachedValues(LookupCache cache) {
-        // mongo does support project push down, the cached row has been projected
-        RowData key1 = GenericRowData.of(1L);
-        RowData value1 = GenericRowData.of(1L, StringData.fromString("2"), false);
-
-        RowData key2 = GenericRowData.of(2L);
-        RowData value2 = GenericRowData.of(2L, StringData.fromString("2"), false);
-
-        RowData key3 = GenericRowData.of(3L);
-
-        Map<RowData, Collection<RowData>> expectedEntries = new HashMap<>();
-        expectedEntries.put(key1, Collections.singletonList(value1));
-        expectedEntries.put(key2, Collections.singletonList(value2));
-        expectedEntries.put(key3, Collections.emptyList());
-
-        LookupCacheAssert.assertThat(cache).containsExactlyEntriesOf(expectedEntries);
-    }
-
-    private enum Caching {
-        ENABLE_CACHE,
-        DISABLE_CACHE
-    }
-
-    private static String createTestDDl(Map<String, String> extraOptions) {
+    private String createTestDDl(Map<String, String> extraOptions) {
         Map<String, String> options = new HashMap<>();
         options.put(CONNECTOR.key(), "mongodb");
-        options.put(URI.key(), MONGO_CONTAINER.getConnectionString());
+        options.put(URI.key(), mongoDBContainer.getConnectionString());
         options.put(DATABASE.key(), TEST_DATABASE);
         options.put(COLLECTION.key(), TEST_COLLECTION);
         if (extraOptions != null) {
@@ -318,7 +301,7 @@ public class MongoDynamicTableSourceITCase {
                 Arrays.asList(
                         "CREATE TABLE mongo_source",
                         "(",
-                        "  _id BIGINT,",
+                        "  _id BIGINT PRIMARY KEY NOT ENFORCED,",
                         "  f1 STRING,",
                         "  f2 BOOLEAN,",
                         "  f3 BINARY,",
@@ -360,5 +343,15 @@ public class MongoDynamicTableSourceITCase {
                                 Arrays.asList(
                                         new BsonDocument("k", new BsonString("12_1")),
                                         new BsonDocument("k", new BsonString("12_2")))));
+    }
+
+    private static List<String> fetchRows(Iterator<Row> iter, int size) {
+        List<String> rows = new ArrayList<>(size);
+        while (size > 0 && iter.hasNext()) {
+            Row row = iter.next();
+            rows.add(row.toString());
+            size--;
+        }
+        return rows;
     }
 }

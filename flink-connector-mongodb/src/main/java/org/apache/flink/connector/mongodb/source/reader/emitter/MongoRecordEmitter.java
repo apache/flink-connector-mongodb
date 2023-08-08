@@ -21,11 +21,10 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.api.connector.source.SourceOutput;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
 import org.apache.flink.connector.mongodb.source.reader.MongoSourceReader;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplitState;
 import org.apache.flink.util.Collector;
-
-import org.bson.BsonDocument;
 
 /**
  * The {@link RecordEmitter} implementation for {@link MongoSourceReader} . We would always update
@@ -33,7 +32,7 @@ import org.bson.BsonDocument;
  */
 @Internal
 public class MongoRecordEmitter<T>
-        implements RecordEmitter<BsonDocument, T, MongoSourceSplitState> {
+        implements RecordEmitter<MongoSourceRecord, T, MongoSourceSplitState> {
 
     private final MongoDeserializationSchema<T> deserializationSchema;
     private final SourceOutputWrapper<T> sourceOutputWrapper;
@@ -45,13 +44,27 @@ public class MongoRecordEmitter<T>
 
     @Override
     public void emitRecord(
-            BsonDocument document, SourceOutput<T> output, MongoSourceSplitState splitState)
+            MongoSourceRecord sourceRecord,
+            SourceOutput<T> output,
+            MongoSourceSplitState splitState)
             throws Exception {
-        // Update current offset.
-        splitState.updateOffset(document);
-        // Sink the record to source output.
-        sourceOutputWrapper.setSourceOutput(output);
-        deserializationSchema.deserialize(document, sourceOutputWrapper);
+        switch (sourceRecord.getType()) {
+            case HEARTBEAT:
+                // Update current offset from heartbeat.
+                splitState.updateOffset(sourceRecord);
+                break;
+            case STREAM:
+            case SNAPSHOT:
+                // Sink the record to source output.
+                sourceOutputWrapper.setSourceOutput(output);
+                deserializationSchema.deserialize(sourceRecord, sourceOutputWrapper);
+                // Update current offset from record.
+                splitState.updateOffset(sourceRecord);
+                break;
+            default:
+                throw new IllegalStateException(
+                        "Unsupported record type " + sourceRecord.getType());
+        }
     }
 
     private static class SourceOutputWrapper<T> implements Collector<T> {

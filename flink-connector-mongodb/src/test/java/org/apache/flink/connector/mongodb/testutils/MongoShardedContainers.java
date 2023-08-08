@@ -52,25 +52,29 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
         Slf4jLogConsumer logConsumer = new Slf4jLogConsumer(LOG);
         this.configSrv =
                 new MongoDBContainer(dockerImageName)
-                        .withCreateContainerCmdModifier(it -> it.withHostName(CONFIG_HOSTNAME))
-                        .withCommand(
-                                "-configsvr",
-                                "--replSet",
-                                CONFIG_REPLICA_SET_NAME,
-                                "--port",
-                                String.valueOf(MONGODB_INTERNAL_PORT))
+                        .withCreateContainerCmdModifier(
+                                it ->
+                                        it.withCmd(
+                                                        "-configsvr",
+                                                        "--replSet",
+                                                        CONFIG_REPLICA_SET_NAME,
+                                                        "--port",
+                                                        String.valueOf(MONGODB_INTERNAL_PORT))
+                                                .withHostName(CONFIG_HOSTNAME))
                         .withNetwork(network)
                         .withNetworkAliases(CONFIG_HOSTNAME)
                         .withLogConsumer(logConsumer);
         this.shardSrv =
                 new MongoDBContainer(dockerImageName)
-                        .withCreateContainerCmdModifier(it -> it.withHostName(SHARD_HOSTNAME))
-                        .withCommand(
-                                "-shardsvr",
-                                "--replSet",
-                                SHARD_REPLICA_SET_NAME,
-                                "--port",
-                                String.valueOf(MONGODB_INTERNAL_PORT))
+                        .withCreateContainerCmdModifier(
+                                it ->
+                                        it.withCmd(
+                                                        "-shardsvr",
+                                                        "--replSet",
+                                                        SHARD_REPLICA_SET_NAME,
+                                                        "--port",
+                                                        String.valueOf(MONGODB_INTERNAL_PORT))
+                                                .withHostName(SHARD_HOSTNAME))
                         .withNetwork(network)
                         .withNetworkAliases(SHARD_HOSTNAME)
                         .withLogConsumer(logConsumer);
@@ -108,17 +112,21 @@ public class MongoShardedContainers implements BeforeAllCallback, AfterAllCallba
     private static class MongoRouterContainer extends MongoDBContainer {
         private MongoRouterContainer(DockerImageName dockerImageName) {
             super(dockerImageName);
-            withCommand(
-                    "mongos",
-                    "--bind_ip_all",
-                    "--configdb",
-                    String.format(
-                            "%s/%s:%d",
-                            CONFIG_REPLICA_SET_NAME, CONFIG_HOSTNAME, MONGODB_INTERNAL_PORT));
+            withCreateContainerCmdModifier(
+                    it ->
+                            it.withCmd(
+                                    "mongos",
+                                    "--bind_ip_all",
+                                    "--configdb",
+                                    String.format(
+                                            "%s/%s:%d",
+                                            CONFIG_REPLICA_SET_NAME,
+                                            CONFIG_HOSTNAME,
+                                            MONGODB_INTERNAL_PORT)));
         }
 
         @Override
-        protected void containerIsStarted(InspectContainerResponse containerInfo) {
+        protected void containerIsStarted(InspectContainerResponse containerInfo, boolean reused) {
             addShard();
         }
 

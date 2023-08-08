@@ -19,16 +19,13 @@ package org.apache.flink.connector.mongodb.source.reader.deserializer;
 
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.util.Collector;
 
-import org.bson.BsonDocument;
-
-import java.io.IOException;
 import java.io.Serializable;
 
 /**
- * A schema bridge for deserializing the MongoDB's {@code BsonDocument} into a flink managed
- * instance.
+ * A schema bridge for deserializing the {@code MongoSourceRecord} into a flink managed instance.
  *
  * @param <T> The output message type for sinking to downstream flink operator.
  */
@@ -36,28 +33,15 @@ import java.io.Serializable;
 public interface MongoDeserializationSchema<T> extends Serializable, ResultTypeQueryable<T> {
 
     /**
-     * Deserializes the BSON document.
-     *
-     * @param document The BSON document to deserialize.
-     * @return The deserialized message as an object (null if the message cannot be deserialized).
-     */
-    T deserialize(BsonDocument document) throws IOException;
-
-    /**
-     * Deserializes the BSON document.
+     * Deserializes the Mongo source record.
      *
      * <p>Can output multiple records through the {@link Collector}. Note that number and size of
      * the produced records should be relatively small. Depending on the source implementation
      * records can be buffered in memory or collecting records might delay emitting checkpoint
      * barrier.
      *
-     * @param document The BSON document to deserialize.
+     * @param sourceRecord The source record to deserialize.
      * @param out The collector to put the resulting messages.
      */
-    default void deserialize(BsonDocument document, Collector<T> out) throws IOException {
-        T deserialize = deserialize(document);
-        if (deserialize != null) {
-            out.collect(deserialize);
-        }
-    }
+    void deserialize(MongoSourceRecord sourceRecord, Collector<T> out);
 }

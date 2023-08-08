@@ -40,6 +40,7 @@ public class MongoSourceEnumStateSerializerTest {
     @Test
     void serializeAndDeserializeMongoSourceEnumState() throws Exception {
         boolean initialized = false;
+        boolean isStreamSplitAssigned = false;
         List<String> remainingCollections = Arrays.asList("db.remains0", "db.remains1");
         List<String> alreadyProcessedCollections = Arrays.asList("db.processed0", "db.processed1");
         List<MongoScanSourceSplit> remainingScanSplits =
@@ -54,7 +55,8 @@ public class MongoSourceEnumStateSerializerTest {
                         alreadyProcessedCollections,
                         remainingScanSplits,
                         assignedScanSplits,
-                        initialized);
+                        initialized,
+                        isStreamSplitAssigned);
 
         byte[] bytes = INSTANCE.serialize(state);
         MongoSourceEnumState state1 = INSTANCE.deserialize(INSTANCE.getVersion(), bytes);
@@ -65,6 +67,7 @@ public class MongoSourceEnumStateSerializerTest {
         assertEquals(state.getRemainingScanSplits(), state1.getRemainingScanSplits());
         assertEquals(state.getAssignedScanSplits(), state1.getAssignedScanSplits());
         assertEquals(state.isInitialized(), state1.isInitialized());
+        assertEquals(state.isStreamSplitAssigned(), state1.isStreamSplitAssigned());
 
         assertNotSame(state, state1);
     }

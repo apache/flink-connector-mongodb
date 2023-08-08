@@ -27,7 +27,6 @@ import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.clientFor;
 import static org.apache.flink.util.Preconditions.checkState;
 
 /** The split assigner for {@link MongoScanSourceSplit}. */
@@ -53,8 +53,8 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
     private final List<String> alreadyProcessedCollections;
     private final LinkedList<MongoScanSourceSplit> remainingScanSplits;
     private final Map<String, MongoScanSourceSplit> assignedScanSplits;
-    private boolean initialized;
 
+    private boolean initialized;
     private MongoClient mongoClient;
 
     public MongoScanSplitAssigner(
@@ -79,7 +79,7 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                             "%s.%s",
                             connectionOptions.getDatabase(), connectionOptions.getCollection());
             remainingCollections.add(collectionId);
-            mongoClient = MongoClients.create(connectionOptions.getUri());
+            mongoClient = clientFor(connectionOptions);
             initialized = true;
         }
     }
@@ -116,6 +116,9 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                 // we should remove the add-backed splits from the assigned list,
                 // because they are failed
                 assignedScanSplits.remove(split.splitId());
+            } else {
+                throw new IllegalArgumentException(
+                        "Cannot add stream split back to scan split assigner.");
             }
         }
     }
@@ -127,11 +130,12 @@ public class MongoScanSplitAssigner implements MongoSplitAssigner {
                 alreadyProcessedCollections,
                 remainingScanSplits,
                 assignedScanSplits,
-                initialized);
+                initialized,
+                false);
     }
 
     @Override
-    public boolean noMoreSplits() {
+    public boolean noMoreScanSplits() {
         checkState(initialized, "The noMoreSplits method was called but not initialized.");
         return remainingCollections.isEmpty() && remainingScanSplits.isEmpty();
     }

@@ -28,13 +28,16 @@ import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplitState;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplitState;
+import org.apache.flink.connector.mongodb.source.split.MongoStreamSourceSplit;
+import org.apache.flink.connector.mongodb.source.split.MongoStreamSourceSplitState;
 
-import org.bson.BsonDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.function.Supplier;
+
+import static org.apache.flink.util.Preconditions.checkState;
 
 /**
  * The common mongo source reader for both ordered & unordered message consuming.
@@ -44,14 +47,14 @@ import java.util.function.Supplier;
 @Internal
 public class MongoSourceReader<OUT>
         extends SingleThreadMultiplexSourceReaderBase<
-                BsonDocument, OUT, MongoSourceSplit, MongoSourceSplitState> {
+                MongoSourceRecord, OUT, MongoSourceSplit, MongoSourceSplitState> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSourceReader.class);
 
     public MongoSourceReader(
-            FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementQueue,
-            Supplier<SplitReader<BsonDocument, MongoSourceSplit>> splitReaderSupplier,
-            RecordEmitter<BsonDocument, OUT, MongoSourceSplitState> recordEmitter,
+            FutureCompletingBlockingQueue<RecordsWithSplitIds<MongoSourceRecord>> elementQueue,
+            Supplier<SplitReader<MongoSourceRecord, MongoSourceSplit>> splitReaderSupplier,
+            RecordEmitter<MongoSourceRecord, OUT, MongoSourceSplitState> recordEmitter,
             MongoSourceReaderContext readerContext) {
         super(
                 elementQueue,
@@ -72,8 +75,14 @@ public class MongoSourceReader<OUT>
     protected void onSplitFinished(Map<String, MongoSourceSplitState> finishedSplitIds) {
         for (MongoSourceSplitState splitState : finishedSplitIds.values()) {
             MongoSourceSplit sourceSplit = splitState.toMongoSourceSplit();
+            checkState(
+                    sourceSplit instanceof MongoScanSourceSplit,
+                    String.format(
+                            "Only scan split could finish, but the actual split is stream split %s",
+                            sourceSplit));
             LOG.info("Split {} is finished.", sourceSplit.splitId());
         }
+
         context.sendSplitRequest();
     }
 
@@ -81,8 +90,10 @@ public class MongoSourceReader<OUT>
     protected MongoSourceSplitState initializedState(MongoSourceSplit split) {
         if (split instanceof MongoScanSourceSplit) {
             return new MongoScanSourceSplitState((MongoScanSourceSplit) split);
+        } else if (split instanceof MongoStreamSourceSplit) {
+            return new MongoStreamSourceSplitState((MongoStreamSourceSplit) split);
         } else {
-            throw new IllegalArgumentException("Unknown split type.");
+            throw new IllegalStateException("Unknown split type " + split.getClass().getName());
         }
     }
 

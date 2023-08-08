@@ -24,6 +24,7 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.connector.mongodb.source.reader.MongoSourceRecord;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataDeserializationSchema;
 import org.apache.flink.connector.mongodb.testutils.MongoShardedContainers;
@@ -40,6 +41,7 @@ import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.testutils.junit.SharedObjectsExtension;
 import org.apache.flink.testutils.junit.SharedReference;
 import org.apache.flink.util.CollectionUtil;
+import org.apache.flink.util.Collector;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -66,7 +68,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -74,7 +75,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEF
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** IT cases for using Mongo Sink. */
+/** IT cases for using Mongo Source. */
 @Testcontainers
 public class MongoSourceITCase {
 
@@ -324,10 +325,8 @@ public class MongoSourceITCase {
             implements MongoDeserializationSchema<String> {
 
         @Override
-        public String deserialize(BsonDocument document) {
-            return Optional.ofNullable(document)
-                    .map(doc -> doc.toJson(DEFAULT_JSON_WRITER_SETTINGS))
-                    .orElse(null);
+        public void deserialize(MongoSourceRecord sourceRecord, Collector<String> out) {
+            out.collect(sourceRecord.getRecord().toJson(DEFAULT_JSON_WRITER_SETTINGS));
         }
 
         @Override

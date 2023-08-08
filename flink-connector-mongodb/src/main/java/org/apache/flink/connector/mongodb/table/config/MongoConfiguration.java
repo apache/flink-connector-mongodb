@@ -21,7 +21,9 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.mongodb.source.config.MongoStartupOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
 
 import javax.annotation.Nullable;
@@ -30,6 +32,8 @@ import java.util.Objects;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.CHANGE_STREAM_FULL_DOCUMENT_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
@@ -39,10 +43,13 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_MODE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_STARTUP_TIMESTAMP_MILLIS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
+import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** MongoDB configuration. */
 @Internal
@@ -86,6 +93,36 @@ public class MongoConfiguration {
 
     public int getSamplesPerPartition() {
         return config.get(SCAN_PARTITION_SAMPLES);
+    }
+
+    // -----------------------------------Change Stream Config----------------------------------
+    public int getChangeStreamFetchSize() {
+        return config.get(CHANGE_STREAM_FETCH_SIZE);
+    }
+
+    public FullDocumentStrategy getFullDocumentStrategy() {
+        return config.get(CHANGE_STREAM_FULL_DOCUMENT_STRATEGY);
+    }
+
+    // -----------------------------------Startup Config----------------------------------------
+    public MongoStartupOptions getScanStartupMode() {
+        switch (config.get(SCAN_STARTUP_MODE)) {
+            case BOUNDED:
+                return MongoStartupOptions.bounded();
+            case INITIAL:
+                return MongoStartupOptions.initial();
+            case LATEST_OFFSET:
+                return MongoStartupOptions.latest();
+            case TIMESTAMP:
+                Long startupTimestampMillis = config.get(SCAN_STARTUP_TIMESTAMP_MILLIS);
+                checkNotNull(
+                        startupTimestampMillis,
+                        "The startupTimestampMillis shouldn't be null when using timestamp startup mode.");
+                return MongoStartupOptions.timestamp(startupTimestampMillis);
+            default:
+                throw new ValidationException(
+                        "Unknown startup mode of " + config.get(SCAN_STARTUP_MODE));
+        }
     }
 
     // -----------------------------------Lookup Config----------------------------------------

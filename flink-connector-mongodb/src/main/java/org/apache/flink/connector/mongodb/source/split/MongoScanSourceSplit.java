@@ -117,4 +117,24 @@ public class MongoScanSourceSplit extends MongoSourceSplit {
     public int hashCode() {
         return Objects.hash(super.hashCode(), database, collection, min, max, hint, offset);
     }
+
+    @Override
+    public String toString() {
+        return "MongoScanSourceSplit {"
+                + " splitId="
+                + splitId
+                + ", database="
+                + database
+                + ", collection="
+                + collection
+                + ", min="
+                + min
+                + ", max="
+                + max
+                + ", hint="
+                + hint
+                + ", offset="
+                + offset
+                + " }";
+    }
 }
