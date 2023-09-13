@@ -60,10 +60,6 @@ under the License.
 							<artifactSet>
 								<includes>
 									<include>*:*</include>
-									<include>org.apache.flink:flink-connector-base</include>
-									<include>org.apache.flink:flink-connector-mongodb</include>
-									<include>org.mongodb:*</include>
-									<include>org.bson:*</include>
 								</includes>
 							</artifactSet>
 							<filters>
