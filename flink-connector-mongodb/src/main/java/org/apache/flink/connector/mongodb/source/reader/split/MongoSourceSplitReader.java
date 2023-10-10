@@ -24,7 +24,7 @@ import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
 import org.bson.BsonDocument;
 
 /**
- * An split reader implements {@link SplitReader} for {@link MongoSourceSplit}.
+ * A split reader implements {@link SplitReader} for {@link MongoSourceSplit}.
  *
  * @param <T> Mongo source split.
  */

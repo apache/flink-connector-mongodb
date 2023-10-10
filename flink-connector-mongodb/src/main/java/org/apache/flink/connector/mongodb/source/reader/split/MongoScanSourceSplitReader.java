@@ -46,7 +46,7 @@ import java.util.List;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.project;
 
-/** An split reader implements {@link SplitReader} for {@link MongoScanSourceSplit}. */
+/** A split reader implements {@link SplitReader} for {@link MongoScanSourceSplit}. */
 @Internal
 public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoSourceSplit> {
 
@@ -163,7 +163,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
 
     private MongoCursor<BsonDocument> getOrCreateCursor() {
         if (currentCursor == null) {
-            LOG.debug("Opened cursor for partitionId: {}", currentSplit);
+            LOG.debug("Opened cursor for split: {}", currentSplit);
             mongoClient = MongoClients.create(connectionOptions.getUri());
 
             // Using MongoDB's cursor.min() and cursor.max() to limit an index bound.
