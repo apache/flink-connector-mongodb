@@ -74,7 +74,7 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEF
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** IT cases for using Mongo Sink. */
+/** IT cases for using Mongo Source. */
 @Testcontainers
 public class MongoSourceITCase {
 
