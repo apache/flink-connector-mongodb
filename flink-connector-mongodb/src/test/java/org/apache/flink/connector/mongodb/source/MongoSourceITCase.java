@@ -76,7 +76,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for using Mongo Source. */
 @Testcontainers
-public class MongoSourceITCase {
+class MongoSourceITCase {
 
     private static final int PARALLELISM = 2;
 
@@ -175,7 +175,7 @@ public class MongoSourceITCase {
 
     @ParameterizedTest
     @MethodSource("providePartitionStrategyAndCollection")
-    public void testPartitionStrategy(PartitionStrategy partitionStrategy, String collection)
+    void testPartitionStrategy(PartitionStrategy partitionStrategy, String collection)
             throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
@@ -184,6 +184,7 @@ public class MongoSourceITCase {
                         .setPartitionSize(MemorySize.parse("1mb"))
                         .setSamplesPerPartition(3)
                         .setPartitionStrategy(partitionStrategy)
+                        .setFilter(Filters.gt("f0", new BsonInt32(10000)))
                         .build();
 
         List<RowData> results =
@@ -194,11 +195,11 @@ public class MongoSourceITCase {
                                         "MongoDB-Source")
                                 .executeAndCollect());
 
-        assertThat(results).hasSize(TEST_RECORD_SIZE);
+        assertThat(results).hasSize(TEST_RECORD_SIZE - 10000);
     }
 
     @Test
-    public void testLimit() throws Exception {
+    void testLimit() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         final int limitSize = 100;
@@ -220,7 +221,7 @@ public class MongoSourceITCase {
     }
 
     @Test
-    public void testProject() throws Exception {
+    void testProject() throws Exception {
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         MongoSource<String> mongoSource =

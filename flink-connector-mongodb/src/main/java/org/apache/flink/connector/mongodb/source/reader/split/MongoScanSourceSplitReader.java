@@ -36,6 +36,7 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCursor;
 import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,8 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
     private final MongoSourceReaderContext readerContext;
     @Nullable private final List<String> projectedFields;
 
+    private final Bson filter;
+
     private boolean closed = false;
     private boolean finished = false;
     private MongoClient mongoClient;
@@ -67,10 +70,12 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
             @Nullable List<String> projectedFields,
+            Bson filter,
             MongoSourceReaderContext readerContext) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
         this.projectedFields = projectedFields;
+        this.filter = filter;
         this.readerContext = readerContext;
     }
 
@@ -174,7 +179,7 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
                     mongoClient
                             .getDatabase(connectionOptions.getDatabase())
                             .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                            .find()
+                            .find(filter)
                             .min(currentSplit.getMin())
                             .max(currentSplit.getMax())
                             .hint(currentSplit.getHint())
