@@ -216,7 +216,7 @@ public class MongoDynamicTableSource
             Bson mergedFilter =
                     mongoFilters.size() == 1 ? mongoFilters.get(0) : Filters.and(mongoFilters);
             this.filter = mergedFilter.toBsonDocument();
-            LOG.debug("Pushed down filters: {}", filter.toJson());
+            LOG.info("Pushed down filters: {}", filter.toJson());
         }
 
         return Result.of(acceptedFilters, remainingFilters);
