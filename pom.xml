@@ -55,7 +55,7 @@ under the License.
 
 		<flink.version>1.17.0</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
-
+		<scala-library.version>2.12.7</scala-library.version>
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
 		<testcontainers.version>1.17.2</testcontainers.version>
@@ -310,6 +310,13 @@ under the License.
 				<groupId>org.objenesis</groupId>
 				<artifactId>objenesis</artifactId>
 				<version>2.1</version>
+			</dependency>
+
+			<!-- For dependency convergence -->
+			<dependency>
+				<groupId>org.scala-lang</groupId>
+				<artifactId>scala-library</artifactId>
+				<version>${scala-library.version}</version>
 			</dependency>
 
 			<dependency>
