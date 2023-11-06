@@ -29,7 +29,7 @@ LogicalProject(id=[$0], timestamp3_col=[$2], int_col=[$3])
     </Resource>
     <Resource name="optimized exec plan">
       <![CDATA[
-TableSourceScan(table=[[default_catalog, default_database, mongo, filter=[and(OR(=(id, 900001:BIGINT), >=(double_col, -1000.23:DECIMAL(6, 2))), OR(<>(timestamp3_col, 2022-09-06 18:25:28.127:TIMESTAMP_WITH_LOCAL_TIME_ZONE(3)), >=(double_col, -1000.23:DECIMAL(6, 2))))], project=[id, timestamp3_col, int_col]]], fields=[id, timestamp3_col, int_col])
+TableSourceScan(table=[[default_catalog, default_database, mongo, filter=[and(OR(=(id, 900001:BIGINT), >=(double_col, -1000.23:DECIMAL(6, 2))), OR(<>(timestamp3_col, 2022-09-07 10:25:28.127:TIMESTAMP_WITH_LOCAL_TIME_ZONE(3)), >=(double_col, -1000.23:DECIMAL(6, 2))))], project=[id, timestamp3_col, int_col]]], fields=[id, timestamp3_col, int_col])
 ]]>
     </Resource>
   </TestCase>

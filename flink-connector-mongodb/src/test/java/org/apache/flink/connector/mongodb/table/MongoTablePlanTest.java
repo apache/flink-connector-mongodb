@@ -18,11 +18,14 @@
 package org.apache.flink.connector.mongodb.table;
 
 import org.apache.flink.table.api.TableConfig;
+import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.planner.utils.StreamTableTestUtil;
 import org.apache.flink.table.planner.utils.TableTestBase;
 
 import org.junit.Before;
 import org.junit.Test;
+
+import java.time.ZoneId;
 
 /** Plan tests for Mongo connector, for example, testing projection push down. */
 public class MongoTablePlanTest extends TableTestBase {
@@ -31,21 +34,22 @@ public class MongoTablePlanTest extends TableTestBase {
 
     @Before
     public void setup() {
-        util.tableEnv()
-                .executeSql(
-                        "CREATE TABLE mongo ("
-                                + "id BIGINT,"
-                                + "timestamp_col TIMESTAMP_LTZ(0),"
-                                + "timestamp3_col TIMESTAMP_LTZ(3),"
-                                + "int_col INTEGER,"
-                                + "double_col DOUBLE,"
-                                + "decimal_col DECIMAL(10, 4)"
-                                + ") WITH ("
-                                + "  'connector'='mongodb',"
-                                + "  'uri'='mongodb://127.0.0.1:27017',"
-                                + "  'database'='test_db',"
-                                + "  'collection'='test_coll'"
-                                + ")");
+        TableEnvironment tEnv = util.tableEnv();
+        tEnv.getConfig().setLocalTimeZone(ZoneId.of("UTC"));
+        tEnv.executeSql(
+                "CREATE TABLE mongo ("
+                        + "id BIGINT,"
+                        + "timestamp_col TIMESTAMP_LTZ(0),"
+                        + "timestamp3_col TIMESTAMP_LTZ(3),"
+                        + "int_col INTEGER,"
+                        + "double_col DOUBLE,"
+                        + "decimal_col DECIMAL(10, 4)"
+                        + ") WITH ("
+                        + "  'connector'='mongodb',"
+                        + "  'uri'='mongodb://127.0.0.1:27017',"
+                        + "  'database'='test_db',"
+                        + "  'collection'='test_coll'"
+                        + ")");
     }
 
     @Test
