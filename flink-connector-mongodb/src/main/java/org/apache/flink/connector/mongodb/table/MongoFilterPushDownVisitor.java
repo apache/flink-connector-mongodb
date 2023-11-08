@@ -59,9 +59,7 @@ public class MongoFilterPushDownVisitor extends ExpressionDefaultVisitor<BsonVal
 
     public static final MongoFilterPushDownVisitor INSTANCE = new MongoFilterPushDownVisitor();
 
-    private MongoFilterPushDownVisitor() {
-        // Singleton instance.
-    }
+    private MongoFilterPushDownVisitor() {}
 
     @Override
     public BsonDocument visit(CallExpression call) {

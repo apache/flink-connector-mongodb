@@ -222,7 +222,7 @@ public class MongoDynamicTableSource
         return Result.of(acceptedFilters, remainingFilters);
     }
 
-    private static BsonDocument parseFilter(ResolvedExpression filter) {
+    static BsonDocument parseFilter(ResolvedExpression filter) {
         if (filter instanceof CallExpression) {
             CallExpression callExp = (CallExpression) filter;
             return MongoFilterPushDownVisitor.INSTANCE.visit(callExp);

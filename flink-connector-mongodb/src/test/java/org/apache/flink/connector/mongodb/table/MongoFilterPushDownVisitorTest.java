@@ -24,6 +24,7 @@ import org.apache.flink.table.api.bridge.java.internal.StreamTableEnvironmentImp
 import org.apache.flink.table.catalog.CatalogManager;
 import org.apache.flink.table.catalog.FunctionCatalog;
 import org.apache.flink.table.catalog.ResolvedSchema;
+import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.expressions.ResolvedExpression;
 import org.apache.flink.table.expressions.resolver.ExpressionResolver;
 import org.apache.flink.table.planner.calcite.FlinkContext;
@@ -31,18 +32,21 @@ import org.apache.flink.table.planner.calcite.FlinkTypeFactory;
 import org.apache.flink.table.planner.calcite.FlinkTypeSystem;
 import org.apache.flink.table.planner.delegation.PlannerBase;
 import org.apache.flink.table.planner.expressions.RexNodeExpression;
+import org.apache.flink.table.planner.plan.utils.FlinkRexUtil;
 import org.apache.flink.table.planner.plan.utils.RexNodeToExpressionConverter;
 import org.apache.flink.table.types.logical.RowType;
 
 import com.mongodb.client.model.Filters;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.bson.BsonBoolean;
 import org.bson.BsonDateTime;
 import org.bson.BsonDecimal128;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonNull;
 import org.bson.BsonString;
-import org.bson.BsonValue;
 import org.bson.conversions.Bson;
 import org.bson.types.Decimal128;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,18 +54,24 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
+import java.util.stream.Collectors;
 
+import scala.Option;
+
+import static org.apache.flink.connector.mongodb.table.MongoDynamicTableSource.parseFilter;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Test for {@link MongoFilterPushDownVisitor}. */
 class MongoFilterPushDownVisitorTest {
 
-    public static final String INPUT_TABLE = "mongo_source";
+    private static final String INPUT_TABLE = "mongo_source";
+
+    private static final BsonDocument EMPTY_FILTER = Filters.empty().toBsonDocument();
 
     private static StreamExecutionEnvironment env;
     private static StreamTableEnvironment tEnv;
@@ -81,6 +91,7 @@ class MongoFilterPushDownVisitorTest {
                         + "("
                         + "id INTEGER,"
                         + "description VARCHAR(200),"
+                        + "boolean_col BOOLEAN,"
                         + "timestamp_col TIMESTAMP(0),"
                         + "timestamp3_col TIMESTAMP(3),"
                         + "double_col DOUBLE,"
@@ -107,6 +118,12 @@ class MongoFilterPushDownVisitorTest {
                             Filters.eq("description", new BsonString("Halo"))
                         },
                         new Object[] {
+                            "boolean_col = true", Filters.eq("boolean_col", new BsonBoolean(true))
+                        },
+                        new Object[] {
+                            "boolean_col = false", Filters.eq("boolean_col", new BsonBoolean(false))
+                        },
+                        new Object[] {
                             "double_col > 0.5",
                             Filters.gt(
                                     "double_col",
@@ -129,19 +146,16 @@ class MongoFilterPushDownVisitorTest {
     @Test
     void testComplexExpressionDatetime() {
         ResolvedSchema schema = tEnv.sqlQuery("SELECT * FROM " + INPUT_TABLE).getResolvedSchema();
-        String andExpr = "id = 6 AND timestamp_col = TIMESTAMP '2022-01-01 07:00:01'";
         assertGeneratedFilter(
-                andExpr,
+                "id = 6 AND timestamp_col = TIMESTAMP '2022-01-01 07:00:01'",
                 schema,
                 Filters.and(
                                 Filters.eq("id", new BsonInt32(6)),
                                 Filters.eq("timestamp_col", new BsonDateTime(1640991601000L)))
                         .toBsonDocument());
 
-        String orExpr =
-                "timestamp3_col = TIMESTAMP '2022-01-01 07:00:01.333' OR description = 'Halo'";
         assertGeneratedFilter(
-                orExpr,
+                "timestamp3_col = TIMESTAMP '2022-01-01 07:00:01.333' OR description = 'Halo'",
                 schema,
                 Filters.or(
                                 Filters.eq("timestamp3_col", new BsonDateTime(1640991601333L)),
@@ -152,10 +166,9 @@ class MongoFilterPushDownVisitorTest {
     @Test
     void testExpressionWithNull() {
         ResolvedSchema schema = tEnv.sqlQuery("SELECT * FROM " + INPUT_TABLE).getResolvedSchema();
-        String andExpr = "id = NULL AND decimal_col <= 0.6";
 
         assertGeneratedFilter(
-                andExpr,
+                "id = NULL AND decimal_col <= 0.6",
                 schema,
                 Filters.and(
                                 Filters.eq("id", BsonNull.VALUE),
@@ -164,9 +177,8 @@ class MongoFilterPushDownVisitorTest {
                                         new BsonDecimal128(new Decimal128(new BigDecimal("0.6")))))
                         .toBsonDocument());
 
-        String orExpr = "id = 6 OR description = NULL";
         assertGeneratedFilter(
-                orExpr,
+                "id = 6 OR description = NULL",
                 schema,
                 Filters.or(
                                 Filters.eq("id", new BsonInt32(6)),
@@ -177,10 +189,9 @@ class MongoFilterPushDownVisitorTest {
     @Test
     void testExpressionIsNull() {
         ResolvedSchema schema = tEnv.sqlQuery("SELECT * FROM " + INPUT_TABLE).getResolvedSchema();
-        String andExpr = "id IS NULL AND decimal_col <= 0.6";
 
         assertGeneratedFilter(
-                andExpr,
+                "id IS NULL AND decimal_col <= 0.6",
                 schema,
                 Filters.and(
                                 Filters.eq("id", BsonNull.VALUE),
@@ -189,9 +200,8 @@ class MongoFilterPushDownVisitorTest {
                                         new BsonDecimal128(new Decimal128(new BigDecimal("0.6")))))
                         .toBsonDocument());
 
-        String orExpr = "id = 6 OR description IS NOT NULL";
         assertGeneratedFilter(
-                orExpr,
+                "id = 6 OR description IS NOT NULL",
                 schema,
                 Filters.or(
                                 Filters.eq("id", new BsonInt32(6)),
@@ -199,12 +209,46 @@ class MongoFilterPushDownVisitorTest {
                         .toBsonDocument());
     }
 
+    @Test
+    void testExpressionCannotBePushedDown() {
+        ResolvedSchema schema = tEnv.sqlQuery("SELECT * FROM " + INPUT_TABLE).getResolvedSchema();
+
+        // unsupported operators
+        assertGeneratedFilter("description LIKE '_bcd%'", schema, EMPTY_FILTER);
+
+        // nested complex expressions
+        assertGeneratedFilter("double_col = decimal_col", schema, EMPTY_FILTER);
+        assertGeneratedFilter("boolean_col = (decimal_col > 2.0)", schema, EMPTY_FILTER);
+
+        // partial push down
+        assertGeneratedFilter(
+                "id IS NULL AND description LIKE '_bcd%'",
+                schema, Filters.eq("id", BsonNull.VALUE).toBsonDocument());
+
+        // sub filter cannot be pushed down
+        assertGeneratedFilter("id IS NOT NULL OR double_col = decimal_col", schema, EMPTY_FILTER);
+    }
+
     private void assertGeneratedFilter(
-            String inputExpr, ResolvedSchema schema, BsonDocument expectedFilter) {
-        List<ResolvedExpression> resolved = resolveSQLFilterToExpression(inputExpr, schema);
-        assertThat(resolved.size()).isEqualTo(1);
-        BsonValue filter = resolved.get(0).accept(MongoFilterPushDownVisitor.INSTANCE);
-        assertThat(filter).isEqualTo(expectedFilter);
+            String inputExpr, ResolvedSchema schema, BsonDocument expected) {
+        List<ResolvedExpression> filters = resolveSQLFilterToExpression(inputExpr, schema);
+
+        List<Bson> mongoFilters = new ArrayList<>();
+        for (ResolvedExpression filter : filters) {
+            BsonDocument simpleFilter = parseFilter(filter);
+            if (!simpleFilter.isEmpty()) {
+                mongoFilters.add(simpleFilter);
+            }
+        }
+
+        BsonDocument actual = EMPTY_FILTER;
+        if (!mongoFilters.isEmpty()) {
+            Bson mergedFilter =
+                    mongoFilters.size() == 1 ? mongoFilters.get(0) : Filters.and(mongoFilters);
+            actual = mergedFilter.toBsonDocument();
+        }
+
+        assertThat(actual).isEqualTo(expected);
     }
 
     /**
@@ -221,9 +265,10 @@ class MongoFilterPushDownVisitorTest {
         RowType sourceType = (RowType) schema.toSourceRowDataType().getLogicalType();
 
         FlinkTypeFactory typeFactory = new FlinkTypeFactory(classLoader, FlinkTypeSystem.INSTANCE);
+        RexBuilder rexBuilder = new RexBuilder(typeFactory);
         RexNodeToExpressionConverter converter =
                 new RexNodeToExpressionConverter(
-                        new RexBuilder(typeFactory),
+                        rexBuilder,
                         sourceType.getFieldNames().toArray(new String[0]),
                         funCat,
                         catMan,
@@ -231,18 +276,18 @@ class MongoFilterPushDownVisitorTest {
 
         RexNodeExpression rexExp =
                 (RexNodeExpression) tbImpl.getParser().parseSqlExpression(sqlExp, sourceType, null);
-        ResolvedExpression resolvedExp =
-                rexExp.getRexNode()
-                        .accept(converter)
-                        .getOrElse(
-                                () -> {
-                                    throw new IllegalArgumentException(
-                                            "Cannot convert "
-                                                    + rexExp.getRexNode()
-                                                    + " to Expression, this likely "
-                                                    + "means you used some function(s) not "
-                                                    + "supported with this setup.");
-                                });
+
+        RexNode cnf = FlinkRexUtil.toCnf(rexBuilder, -1, rexExp.getRexNode());
+        // converts the cnf condition to a list of AND conditions
+        List<RexNode> conjunctions = RelOptUtil.conjunctions(cnf);
+
+        List<Expression> resolvedExps =
+                conjunctions.stream()
+                        .map(rex -> rex.accept(converter))
+                        .filter(Option::isDefined)
+                        .map(Option::get)
+                        .collect(Collectors.toList());
+
         ExpressionResolver resolver =
                 ExpressionResolver.resolverFor(
                                 tEnv.getConfig(),
@@ -260,6 +305,6 @@ class MongoFilterPushDownVisitorTest {
                                 })
                         .build();
 
-        return resolver.resolve(Collections.singletonList(resolvedExp));
+        return resolver.resolve(resolvedExps);
     }
 }
