@@ -53,6 +53,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -151,14 +152,22 @@ class MongoFilterPushDownVisitorTest {
                 schema,
                 Filters.and(
                                 Filters.eq("id", new BsonInt32(6)),
-                                Filters.eq("timestamp_col", new BsonDateTime(1640991601000L)))
+                                Filters.eq(
+                                        "timestamp_col",
+                                        new BsonDateTime(
+                                                Timestamp.valueOf("2022-01-01 07:00:01")
+                                                        .getTime())))
                         .toBsonDocument());
 
         assertGeneratedFilter(
                 "timestamp3_col = TIMESTAMP '2022-01-01 07:00:01.333' OR description = 'Halo'",
                 schema,
                 Filters.or(
-                                Filters.eq("timestamp3_col", new BsonDateTime(1640991601333L)),
+                                Filters.eq(
+                                        "timestamp3_col",
+                                        new BsonDateTime(
+                                                Timestamp.valueOf("2022-01-01 07:00:01.333")
+                                                        .getTime())),
                                 Filters.eq("description", new BsonString("Halo")))
                         .toBsonDocument());
     }
