@@ -39,6 +39,8 @@ public class MongoTablePlanTest extends TableTestBase {
         tEnv.executeSql(
                 "CREATE TABLE mongo ("
                         + "id BIGINT,"
+                        + "description VARCHAR(200),"
+                        + "boolean_col BOOLEAN,"
                         + "timestamp_col TIMESTAMP_LTZ(0),"
                         + "timestamp3_col TIMESTAMP_LTZ(3),"
                         + "int_col INTEGER,"
@@ -56,5 +58,17 @@ public class MongoTablePlanTest extends TableTestBase {
     public void testFilterPushdown() {
         util.verifyExecPlan(
                 "SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND timestamp3_col <> TIMESTAMP '2022-09-07 10:25:28.127' OR double_col >= -1000.23");
+    }
+
+    @Test
+    public void testFilterPartialPushdown() {
+        util.verifyExecPlan(
+                "SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND boolean_col = (decimal_col > 2.0)");
+    }
+
+    @Test
+    public void testFilterCannotPushdown() {
+        util.verifyExecPlan(
+                "SELECT id, timestamp3_col, int_col FROM mongo WHERE id IS NOT NULL OR double_col = decimal_col");
     }
 }
