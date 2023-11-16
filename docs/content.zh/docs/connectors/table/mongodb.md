@@ -340,6 +340,62 @@ lookup cache 的主要目的是用于提高时态表关联 MongoDB 连接器的�
 如果出现故障，Flink 作业会从上次成功的 checkpoint 恢复并重新处理，这可能导致在恢复过程中重复处理消息。
 强烈推荐使用 upsert 模式，因为如果需要重复处理记录，它有助于避免违反数据库主键约束和产生重复数据。
 
+### 过滤器下推
+
+MongoDB 支持将 Flink SQL 的简单比较和逻辑过滤器下推以优化查询。
+Flink SQL 过滤器到 MongoDB 查询操作符的映射如下表所示。
+
+<table class="table table-bordered">
+    <thead>
+      <tr>
+        <th class="text-left">Flink SQL filters</th>
+        <th class="text-left"><a href="https://www.mongodb.com/docs/manual/reference/operator/query/">MongoDB Query Operators</a></th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td><code>=</code></td>
+      <td><code>$eq</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;&gt;</code></td>
+      <td><code>$ne</code></td>
+    </tr>
+    <tr>
+      <td><code>&gt;</code></td>
+      <td><code>$gt</code></td>
+    </tr>
+    <tr>
+      <td><code>&gt;=</code></td>
+      <td><code>$gte</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;</code></td>
+      <td><code>$lt</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;=</code></td>
+      <td><code>$lte</code></td>
+    </tr>
+    <tr>
+      <td><code>IS NULL</code></td>
+      <td><code>$eq : null</code></td>
+    </tr>
+    <tr>
+      <td><code>IS NOT NULL</code></td>
+      <td><code>$ne : null</code></td>
+    </tr>
+    <tr>
+      <td><code>OR</code></td>
+      <td><code>$or</code></td>
+    </tr>
+    <tr>
+      <td><code>AND</code></td>
+      <td><code>$and</code></td>
+    </tr>
+    </tbody>
+</table>
+
 数据类型映射
 ----------------
 MongoDB BSON 类型到 Flink SQL 数据类型的映射如下表所示。

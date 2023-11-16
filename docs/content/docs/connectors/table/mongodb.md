@@ -371,6 +371,62 @@ If there are failures, the Flink job will recover and re-process from last succe
 which can lead to re-processing messages during recovery. The upsert mode is highly recommended as 
 it helps avoid constraint violations or duplicate data if records need to be re-processed.
 
+### Filters Pushdown
+
+MongoDB supports pushing down simple comparisons and logical filters to optimize queries.
+The mappings from Flink SQL filters to MongoDB query operators are listed in the following table.
+
+<table class="table table-bordered">
+    <thead>
+      <tr>
+        <th class="text-left">Flink SQL filters</th>
+        <th class="text-left"><a href="https://www.mongodb.com/docs/manual/reference/operator/query/">MongoDB Query Operators</a></th>
+      </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td><code>=</code></td>
+      <td><code>$eq</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;&gt;</code></td>
+      <td><code>$ne</code></td>
+    </tr>
+    <tr>
+      <td><code>&gt;</code></td>
+      <td><code>$gt</code></td>
+    </tr>
+    <tr>
+      <td><code>&gt;=</code></td>
+      <td><code>$gte</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;</code></td>
+      <td><code>$lt</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;=</code></td>
+      <td><code>$lte</code></td>
+    </tr>
+    <tr>
+      <td><code>IS NULL</code></td>
+      <td><code>$eq : null</code></td>
+    </tr>
+    <tr>
+      <td><code>IS NOT NULL</code></td>
+      <td><code>$ne : null</code></td>
+    </tr>
+    <tr>
+      <td><code>OR</code></td>
+      <td><code>$or</code></td>
+    </tr>
+    <tr>
+      <td><code>AND</code></td>
+      <td><code>$and</code></td>
+    </tr>
+    </tbody>
+</table>
+
 Data Type Mapping
 ----------------
 The field data type mappings from MongoDB BSON types to Flink SQL data types are listed in the following table.
