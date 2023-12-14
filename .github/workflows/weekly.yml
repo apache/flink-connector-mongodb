@@ -27,13 +27,13 @@ jobs:
     strategy:
       matrix:
         flink_branches: [{
-          flink: 1.16-SNAPSHOT,
+          flink: 1.16.2,
           branch: main
         }, {
-          flink: 1.17-SNAPSHOT,
+          flink: 1.17.1,
           branch: main
         }, {
-          flink: 1.18-SNAPSHOT,
+          flink: 1.18.0,
           branch: main
         }, {
           flink: 1.19-SNAPSHOT,
