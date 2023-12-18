@@ -22,18 +22,23 @@ import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.planner.utils.StreamTableTestUtil;
 import org.apache.flink.table.planner.utils.TableTestBase;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
+import org.junit.rules.TestName;
 
 import java.time.ZoneId;
 
 /** Plan tests for Mongo connector, for example, testing projection push down. */
 public class MongoTablePlanTest extends TableTestBase {
-    // TODO: Update to junit5 after TableTestBase migrated
+
     private final StreamTableTestUtil util = streamTestUtil(TableConfig.getDefault());
 
-    @Before
-    public void setup() {
+    private TestInfo testInfo;
+
+    @BeforeEach
+    public void setup(TestInfo testInfo) {
+        this.testInfo = testInfo;
         TableEnvironment tEnv = util.tableEnv();
         tEnv.getConfig().setLocalTimeZone(ZoneId.of("UTC"));
         tEnv.executeSql(
@@ -70,5 +75,15 @@ public class MongoTablePlanTest extends TableTestBase {
     public void testFilterCannotPushdown() {
         util.verifyExecPlan(
                 "SELECT id, timestamp3_col, int_col FROM mongo WHERE id IS NOT NULL OR double_col = decimal_col");
+    }
+
+    // A workaround to get the test method name for flink versions not completely migrated to JUnit5
+    public TestName name() {
+        return new TestName() {
+            @Override
+            public String getMethodName() {
+                return testInfo.getTestMethod().get().getName();
+            }
+        };
     }
 }
