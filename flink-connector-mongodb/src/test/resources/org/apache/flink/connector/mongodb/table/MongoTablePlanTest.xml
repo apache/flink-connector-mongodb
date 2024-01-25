@@ -1,0 +1,72 @@
+<?xml version="1.0" ?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to you under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<Root>
+  <TestCase name="testFilterPushdown">
+    <Resource name="sql">
+      <![CDATA[SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND timestamp3_col <> TIMESTAMP '2022-09-07 10:25:28.127' OR double_col >= -1000.23]]>
+    </Resource>
+    <Resource name="ast">
+      <![CDATA[
+LogicalProject(id=[$0], timestamp3_col=[$4], int_col=[$5])
++- LogicalFilter(condition=[OR(AND(=($0, 900001), <>($4, CAST(2022-09-07 10:25:28.127:TIMESTAMP(3)):TIMESTAMP_WITH_LOCAL_TIME_ZONE(3) NOT NULL)), >=($6, -1000.23:DECIMAL(6, 2)))])
+   +- LogicalTableScan(table=[[default_catalog, default_database, mongo]])
+]]>
+    </Resource>
+    <Resource name="optimized exec plan">
+      <![CDATA[
+TableSourceScan(table=[[default_catalog, default_database, mongo, filter=[and(OR(=(id, 900001:BIGINT), >=(double_col, -1000.23:DECIMAL(6, 2))), OR(<>(timestamp3_col, 2022-09-07 10:25:28.127:TIMESTAMP_WITH_LOCAL_TIME_ZONE(3)), >=(double_col, -1000.23:DECIMAL(6, 2))))], project=[id, timestamp3_col, int_col]]], fields=[id, timestamp3_col, int_col])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterPartialPushdown">
+    <Resource name="sql">
+      <![CDATA[SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND boolean_col = (decimal_col > 2.0)]]>
+    </Resource>
+    <Resource name="ast">
+      <![CDATA[
+LogicalProject(id=[$0], timestamp3_col=[$4], int_col=[$5])
++- LogicalFilter(condition=[AND(=($0, 900001), =($2, >($7, 2.0:DECIMAL(2, 1))))])
+   +- LogicalTableScan(table=[[default_catalog, default_database, mongo]])
+]]>
+    </Resource>
+    <Resource name="optimized exec plan">
+      <![CDATA[
+Calc(select=[CAST(900001 AS BIGINT) AS id, timestamp3_col, int_col], where=[(boolean_col = (decimal_col > 2.0))])
++- TableSourceScan(table=[[default_catalog, default_database, mongo, filter=[=(id, 900001:BIGINT)], project=[boolean_col, timestamp3_col, int_col, decimal_col]]], fields=[boolean_col, timestamp3_col, int_col, decimal_col])
+]]>
+    </Resource>
+  </TestCase>
+  <TestCase name="testFilterCannotPushdown">
+    <Resource name="sql">
+      <![CDATA[SELECT id, timestamp3_col, int_col FROM mongo WHERE id IS NOT NULL OR double_col = decimal_col]]>
+    </Resource>
+    <Resource name="ast">
+      <![CDATA[
+LogicalProject(id=[$0], timestamp3_col=[$4], int_col=[$5])
++- LogicalFilter(condition=[OR(IS NOT NULL($0), =($6, CAST($7):DOUBLE))])
+   +- LogicalTableScan(table=[[default_catalog, default_database, mongo]])
+]]>
+    </Resource>
+    <Resource name="optimized exec plan">
+      <![CDATA[
+Calc(select=[id, timestamp3_col, int_col], where=[(id IS NOT NULL OR (double_col = CAST(decimal_col AS DOUBLE)))])
++- TableSourceScan(table=[[default_catalog, default_database, mongo, filter=[], project=[id, timestamp3_col, int_col, double_col, decimal_col]]], fields=[id, timestamp3_col, int_col, double_col, decimal_col])
+]]>
+    </Resource>
+  </TestCase>
+</Root>

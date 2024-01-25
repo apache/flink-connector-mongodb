@@ -46,6 +46,7 @@ import org.apache.flink.connector.mongodb.source.split.MongoSourceSplitSerialize
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
 
 import javax.annotation.Nullable;
 
@@ -87,6 +88,9 @@ public class MongoSource<OUT>
     /** The projections for MongoDB source. */
     @Nullable private final List<String> projectedFields;
 
+    /** The filter for MongoDB source. */
+    private final BsonDocument filter;
+
     /** The limit for MongoDB source. */
     private final int limit;
 
@@ -100,11 +104,13 @@ public class MongoSource<OUT>
             MongoConnectionOptions connectionOptions,
             MongoReadOptions readOptions,
             @Nullable List<String> projectedFields,
+            Bson filter,
             int limit,
             MongoDeserializationSchema<OUT> deserializationSchema) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.readOptions = checkNotNull(readOptions);
         this.projectedFields = projectedFields;
+        this.filter = filter.toBsonDocument();
         this.limit = limit;
         // Only support bounded mode for now.
         // We can implement unbounded mode by ChangeStream future.
@@ -140,6 +146,7 @@ public class MongoSource<OUT>
                                 connectionOptions,
                                 readOptions,
                                 projectedFields,
+                                filter,
                                 mongoReaderContext);
 
         return new MongoSourceReader<>(

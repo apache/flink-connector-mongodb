@@ -29,6 +29,7 @@ import org.apache.flink.table.connector.source.DynamicTableSource;
 import org.apache.flink.table.connector.source.LookupTableSource;
 import org.apache.flink.table.connector.source.ScanTableSource;
 import org.apache.flink.table.connector.source.SourceProvider;
+import org.apache.flink.table.connector.source.abilities.SupportsFilterPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsLimitPushDown;
 import org.apache.flink.table.connector.source.abilities.SupportsProjectionPushDown;
 import org.apache.flink.table.connector.source.lookup.LookupFunctionProvider;
@@ -36,9 +37,17 @@ import org.apache.flink.table.connector.source.lookup.LookupOptions;
 import org.apache.flink.table.connector.source.lookup.PartialCachingLookupProvider;
 import org.apache.flink.table.connector.source.lookup.cache.LookupCache;
 import org.apache.flink.table.data.RowData;
+import org.apache.flink.table.expressions.CallExpression;
+import org.apache.flink.table.expressions.ResolvedExpression;
 import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.Preconditions;
+
+import com.mongodb.client.model.Filters;
+import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
@@ -55,7 +64,10 @@ public class MongoDynamicTableSource
         implements ScanTableSource,
                 LookupTableSource,
                 SupportsProjectionPushDown,
+                SupportsFilterPushDown,
                 SupportsLimitPushDown {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSource.class);
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoReadOptions readOptions;
@@ -64,6 +76,8 @@ public class MongoDynamicTableSource
     private final long lookupRetryIntervalMs;
     private DataType producedDataType;
     private int limit = -1;
+
+    private BsonDocument filter = Filters.empty().toBsonDocument();
 
     public MongoDynamicTableSource(
             MongoConnectionOptions connectionOptions,
@@ -135,6 +149,7 @@ public class MongoDynamicTableSource
                         .setSamplesPerPartition(readOptions.getSamplesPerPartition())
                         .setLimit(limit)
                         .setProjectedFields(DataType.getFieldNames(producedDataType))
+                        .setFilter(filter)
                         .setDeserializationSchema(deserializationSchema)
                         .build();
 
@@ -148,13 +163,16 @@ public class MongoDynamicTableSource
 
     @Override
     public DynamicTableSource copy() {
-        return new MongoDynamicTableSource(
-                connectionOptions,
-                readOptions,
-                lookupCache,
-                lookupMaxRetries,
-                lookupRetryIntervalMs,
-                producedDataType);
+        MongoDynamicTableSource newSource =
+                new MongoDynamicTableSource(
+                        connectionOptions,
+                        readOptions,
+                        lookupCache,
+                        lookupMaxRetries,
+                        lookupRetryIntervalMs,
+                        producedDataType);
+        newSource.filter = BsonDocument.parse(filter.toJson());
+        return newSource;
     }
 
     @Override
@@ -179,6 +197,41 @@ public class MongoDynamicTableSource
     }
 
     @Override
+    public Result applyFilters(List<ResolvedExpression> filters) {
+        List<ResolvedExpression> acceptedFilters = new ArrayList<>();
+        List<ResolvedExpression> remainingFilters = new ArrayList<>();
+
+        List<Bson> mongoFilters = new ArrayList<>();
+        for (ResolvedExpression filter : filters) {
+            BsonDocument simpleFilter = parseFilter(filter);
+            if (simpleFilter.isEmpty()) {
+                remainingFilters.add(filter);
+            } else {
+                acceptedFilters.add(filter);
+                mongoFilters.add(simpleFilter);
+            }
+        }
+
+        if (!mongoFilters.isEmpty()) {
+            Bson mergedFilter =
+                    mongoFilters.size() == 1 ? mongoFilters.get(0) : Filters.and(mongoFilters);
+            this.filter = mergedFilter.toBsonDocument();
+            LOG.info("Pushed down filters: {}", filter.toJson());
+        }
+
+        return Result.of(acceptedFilters, remainingFilters);
+    }
+
+    static BsonDocument parseFilter(ResolvedExpression filter) {
+        if (filter instanceof CallExpression) {
+            CallExpression callExp = (CallExpression) filter;
+            return MongoFilterPushDownVisitor.INSTANCE.visit(callExp);
+        } else {
+            return Filters.empty().toBsonDocument();
+        }
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (!(o instanceof MongoDynamicTableSource)) {
             return false;
@@ -188,6 +241,7 @@ public class MongoDynamicTableSource
                 && Objects.equals(readOptions, that.readOptions)
                 && Objects.equals(producedDataType, that.producedDataType)
                 && Objects.equals(limit, that.limit)
+                && Objects.equals(filter, that.filter)
                 && Objects.equals(lookupCache, that.lookupCache)
                 && Objects.equals(lookupMaxRetries, that.lookupMaxRetries)
                 && Objects.equals(lookupRetryIntervalMs, that.lookupRetryIntervalMs);
@@ -200,6 +254,7 @@ public class MongoDynamicTableSource
                 readOptions,
                 producedDataType,
                 limit,
+                filter,
                 lookupCache,
                 lookupMaxRetries,
                 lookupRetryIntervalMs);

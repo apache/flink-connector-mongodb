@@ -25,7 +25,9 @@ import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionSt
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
+import com.mongodb.client.model.Filters;
 import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
 
 import java.util.Arrays;
 import java.util.List;
@@ -47,6 +49,9 @@ public class MongoSourceBuilder<OUT> {
     private final MongoReadOptions.MongoReadOptionsBuilder readOptionsBuilder;
 
     private List<String> projectedFields;
+
+    private Bson filter = Filters.empty();
+
     private int limit = -1;
     private MongoDeserializationSchema<OUT> deserializationSchema;
 
@@ -169,6 +174,17 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
+     * Sets the filter of documents to read.
+     *
+     * @param filter the filter of documents to read.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setFilter(Bson filter) {
+        this.filter = checkNotNull(filter, "The filter must not be null");
+        return this;
+    }
+
+    /**
      * Sets the projection fields of documents to read.
      *
      * @param projectedFields the projection fields of documents to read.
@@ -216,6 +232,7 @@ public class MongoSourceBuilder<OUT> {
                 connectionOptionsBuilder.build(),
                 readOptionsBuilder.build(),
                 projectedFields,
+                filter,
                 limit,
                 deserializationSchema);
     }

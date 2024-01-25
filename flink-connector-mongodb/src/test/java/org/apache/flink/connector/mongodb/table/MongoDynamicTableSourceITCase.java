@@ -51,6 +51,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonDouble;
 import org.bson.BsonInt32;
 import org.bson.BsonInt64;
+import org.bson.BsonNull;
 import org.bson.BsonString;
 import org.bson.BsonTimestamp;
 import org.bson.types.Decimal128;
@@ -68,17 +69,15 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
@@ -88,7 +87,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** ITCase for {@link MongoDynamicTableSource}. */
 @Testcontainers
-public class MongoDynamicTableSourceITCase {
+class MongoDynamicTableSourceITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSinkITCase.class);
 
@@ -108,8 +107,8 @@ public class MongoDynamicTableSourceITCase {
 
     private static MongoClient mongoClient;
 
-    public static StreamExecutionEnvironment env;
-    public static StreamTableEnvironment tEnv;
+    private static StreamExecutionEnvironment env;
+    private static StreamTableEnvironment tEnv;
 
     @BeforeAll
     static void beforeAll() {
@@ -121,8 +120,7 @@ public class MongoDynamicTableSourceITCase {
                         .getCollection(TEST_COLLECTION)
                         .withDocumentClass(BsonDocument.class);
 
-        List<BsonDocument> testRecords = Arrays.asList(createTestData(1), createTestData(2));
-        coll.insertMany(testRecords);
+        coll.insertMany(createTestData());
     }
 
     @AfterAll
@@ -136,70 +134,42 @@ public class MongoDynamicTableSourceITCase {
     void before() {
         env = StreamExecutionEnvironment.getExecutionEnvironment();
         tEnv = StreamTableEnvironment.create(env);
+        tEnv.getConfig().setLocalTimeZone(ZoneId.of("UTC"));
     }
 
     @Test
-    public void testSource() {
+    void testSource() {
         tEnv.executeSql(createTestDDl(null));
 
-        Iterator<Row> collected = tEnv.executeSql("SELECT * FROM mongo_source").collect();
-        List<String> result =
-                CollectionUtil.iteratorToList(collected).stream()
-                        .map(Row::toString)
-                        .sorted()
-                        .collect(Collectors.toList());
+        List<Row> result = executeQueryToList("SELECT * FROM mongo_source");
 
-        List<String> expected =
-                Stream.of(
-                                "+I[1, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]",
-                                "+I[2, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]")
-                        .sorted()
-                        .collect(Collectors.toList());
+        assertThat(result).isEqualTo(expectedRows());
+    }
+
+    @Test
+    void testProject() {
+        tEnv.executeSql(createTestDDl(null));
+
+        List<Row> result = executeQueryToList("SELECT f1, f10 FROM mongo_source");
+
+        List<Row> expected = Arrays.asList(Row.of("2", Row.of(13)), Row.of("3", Row.of(14)));
 
         assertThat(result).isEqualTo(expected);
     }
 
     @Test
-    public void testProject() {
+    void testLimit() {
         tEnv.executeSql(createTestDDl(null));
 
-        Iterator<Row> collected = tEnv.executeSql("SELECT f1, f10 FROM mongo_source").collect();
-        List<String> result =
-                CollectionUtil.iteratorToList(collected).stream()
-                        .map(Row::toString)
-                        .sorted()
-                        .collect(Collectors.toList());
-
-        List<String> expected =
-                Stream.of("+I[2, +I[13]]", "+I[2, +I[13]]").sorted().collect(Collectors.toList());
-
-        assertThat(result).isEqualTo(expected);
-    }
-
-    @Test
-    public void testLimit() {
-        tEnv.executeSql(createTestDDl(null));
-
-        Iterator<Row> collected = tEnv.executeSql("SELECT * FROM mongo_source LIMIT 1").collect();
-        List<String> result =
-                CollectionUtil.iteratorToList(collected).stream()
-                        .map(Row::toString)
-                        .sorted()
-                        .collect(Collectors.toList());
-
-        Set<String> expected = new HashSet<>();
-        expected.add(
-                "+I[1, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
-        expected.add(
-                "+I[2, 2, false, [3], 6, 2022-09-07T10:25:28.127Z, 2022-09-07T10:25:28Z, 0.9, 1.10, {k=12}, +I[13], [11_1, 11_2], [+I[12_1], +I[12_2]]]");
+        List<Row> result = executeQueryToList("SELECT * FROM mongo_source LIMIT 1");
 
         assertThat(result).hasSize(1);
-        assertThat(result).containsAnyElementsOf(expected);
+        assertThat(result).containsAnyElementsOf(expectedRows());
     }
 
     @ParameterizedTest
     @EnumSource(Caching.class)
-    public void testLookupJoin(Caching caching) throws Exception {
+    void testLookupJoin(Caching caching) throws Exception {
         // Create MongoDB lookup table
         Map<String, String> lookupOptions = new HashMap<>();
         if (caching.equals(Caching.ENABLE_CACHE)) {
@@ -239,20 +209,16 @@ public class MongoDynamicTableSourceITCase {
 
         // Execute lookup join
         try (CloseableIterator<Row> iterator =
-                tEnv.executeSql(
-                                "SELECT S.id, S.name, D._id, D.f1, D.f2 FROM value_source"
-                                        + " AS S JOIN mongo_source for system_time as of S.proctime AS D ON S.id = D._id")
-                        .collect()) {
-            List<String> result =
-                    CollectionUtil.iteratorToList(iterator).stream()
-                            .map(Row::toString)
-                            .sorted()
-                            .collect(Collectors.toList());
-            List<String> expected =
+                executeQuery(
+                        "SELECT S.id, S.name, D._id, D.f1, D.f2 FROM value_source"
+                                + " AS S JOIN mongo_source for system_time as of S.proctime AS D ON S.id = D._id")) {
+            List<Row> result = CollectionUtil.iteratorToList(iterator);
+
+            List<Row> expected =
                     Arrays.asList(
-                            "+I[1, Alice, 1, 2, false]",
-                            "+I[1, Alice, 1, 2, false]",
-                            "+I[2, Bob, 2, 2, false]");
+                            Row.of(1L, "Alice", 1L, "2", true),
+                            Row.of(1L, "Alice", 1L, "2", true),
+                            Row.of(2L, "Bob", 2L, "3", false));
 
             assertThat(result).hasSize(3);
             assertThat(result).isEqualTo(expected);
@@ -275,13 +241,89 @@ public class MongoDynamicTableSourceITCase {
         }
     }
 
+    @Test
+    void testFilter() {
+        tEnv.executeSql(createTestDDl(null));
+
+        // we create a VIEW here to test column remapping, i.e. would filter push down work if we
+        // create a view that depends on our source table
+        tEnv.executeSql(
+                "CREATE VIEW fake_table (idx, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9, f10, f11, f12)"
+                        + " as (SELECT * from mongo_source )");
+
+        List<Row> allRows = executeQueryToList("SELECT * FROM mongo_source");
+        assertThat(allRows).hasSize(2);
+
+        Row onlyRow1 =
+                allRows.stream()
+                        .filter(row -> row.getFieldAs(0).equals(1L))
+                        .findAny()
+                        .orElseThrow(NullPointerException::new);
+
+        Row onlyRow2 =
+                allRows.stream()
+                        .filter(row -> row.getFieldAs(0).equals(2L))
+                        .findAny()
+                        .orElseThrow(NullPointerException::new);
+
+        // test the EQUALS filter
+        assertThat(executeQueryToList("SELECT * FROM fake_table WHERE 1 = idx"))
+                .containsExactly(onlyRow1);
+
+        // test TIMESTAMP filter
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM fake_table WHERE f5 = TIMESTAMP '2022-09-07 10:25:28.127'"))
+                .containsExactly(onlyRow1);
+
+        // test the IN operator
+        assertThat(executeQueryToList("SELECT * FROM fake_table WHERE idx IN (2, 3)"))
+                .containsExactly(onlyRow2);
+
+        // test the NOT IN operator
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM fake_table WHERE f7 NOT IN (CAST(1.0 AS DOUBLE), CAST(1.1 AS DOUBLE))"))
+                .containsExactly(onlyRow1);
+
+        // test mixing AND and OR operator
+        assertThat(executeQueryToList("SELECT * FROM fake_table WHERE idx <> 1 OR f8 = 1.10"))
+                .containsExactlyInAnyOrderElementsOf(allRows);
+
+        // test mixing AND/OR with parenthesis, and the swapping the operand of equal expression
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM fake_table WHERE (f0 IS NOT NULL AND f2 IS TRUE) OR f8 = 102.2"))
+                .containsExactly(onlyRow1);
+
+        // test Greater than and Less than
+        assertThat(executeQueryToList("SELECT * FROM fake_table WHERE f8 > 1.09 AND f8 < 1.11"))
+                .containsExactly(onlyRow1);
+
+        // One more test of parenthesis
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM fake_table WHERE f0 IS NULL AND (f8 >= 1.11 OR f4 <= 5)"))
+                .containsExactly(onlyRow2);
+
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM mongo_source WHERE _id = 2 AND f7 > 0.8 OR f7 < 1.1"))
+                .containsExactlyInAnyOrderElementsOf(allRows);
+
+        assertThat(
+                        executeQueryToList(
+                                "SELECT * FROM mongo_source WHERE 1 = _id AND f1 NOT IN ('2', '3')"))
+                .isEmpty();
+    }
+
     private static void validateCachedValues(LookupCache cache) {
         // mongo does support project push down, the cached row has been projected
         RowData key1 = GenericRowData.of(1L);
-        RowData value1 = GenericRowData.of(1L, StringData.fromString("2"), false);
+        RowData value1 = GenericRowData.of(1L, StringData.fromString("2"), true);
 
         RowData key2 = GenericRowData.of(2L);
-        RowData value2 = GenericRowData.of(2L, StringData.fromString("2"), false);
+        RowData value2 = GenericRowData.of(2L, StringData.fromString("3"), false);
 
         RowData key3 = GenericRowData.of(3L);
 
@@ -319,12 +361,13 @@ public class MongoDynamicTableSourceITCase {
                         "CREATE TABLE mongo_source",
                         "(",
                         "  _id BIGINT,",
+                        "  f0 STRING,",
                         "  f1 STRING,",
                         "  f2 BOOLEAN,",
                         "  f3 BINARY,",
                         "  f4 INTEGER,",
-                        "  f5 TIMESTAMP_LTZ(6),",
-                        "  f6 TIMESTAMP_LTZ(3),",
+                        "  f5 TIMESTAMP_LTZ(3),",
+                        "  f6 TIMESTAMP_LTZ(0),",
                         "  f7 DOUBLE,",
                         "  f8 DECIMAL(10, 2),",
                         "  f9 MAP<STRING, INTEGER>,",
@@ -336,29 +379,99 @@ public class MongoDynamicTableSourceITCase {
                         ")"));
     }
 
-    private static BsonDocument createTestData(long id) {
-        return new BsonDocument()
-                .append("_id", new BsonInt64(id))
-                .append("f1", new BsonString("2"))
-                .append("f2", BsonBoolean.FALSE)
-                .append("f3", new BsonBinary(new byte[] {(byte) 3}))
-                .append("f4", new BsonInt32(6))
-                // 2022-09-07T10:25:28.127Z
-                .append("f5", new BsonDateTime(1662546328127L))
-                .append("f6", new BsonTimestamp(1662546328, 0))
-                .append("f7", new BsonDouble(0.9d))
-                .append("f8", new BsonDecimal128(new Decimal128(new BigDecimal("1.10"))))
-                .append("f9", new BsonDocument("k", new BsonInt32(12)))
-                .append("f10", new BsonDocument("k", new BsonInt32(13)))
-                .append(
-                        "f11",
-                        new BsonArray(
-                                Arrays.asList(new BsonString("11_1"), new BsonString("11_2"))))
-                .append(
-                        "f12",
-                        new BsonArray(
-                                Arrays.asList(
-                                        new BsonDocument("k", new BsonString("12_1")),
-                                        new BsonDocument("k", new BsonString("12_2")))));
+    private static List<Row> expectedRows() {
+        return Arrays.asList(
+                Row.of(
+                        1L,
+                        "",
+                        "2",
+                        true,
+                        new byte[] {(byte) 3},
+                        6,
+                        Instant.ofEpochMilli(1662546328127L),
+                        Instant.ofEpochSecond(1662546328L),
+                        0.9d,
+                        new BigDecimal("1.10"),
+                        Collections.singletonMap("k", 12),
+                        Row.of(13),
+                        new String[] {"11_1", "11_2"},
+                        new Row[] {Row.of("12_1"), Row.of("12_2")}),
+                Row.of(
+                        2L,
+                        null,
+                        "3",
+                        false,
+                        new byte[] {(byte) 4},
+                        7,
+                        Instant.ofEpochMilli(1662546328128L),
+                        Instant.ofEpochSecond(1662546329L),
+                        1.0d,
+                        new BigDecimal("1.11"),
+                        Collections.singletonMap("k", 13),
+                        Row.of(14),
+                        new String[] {"11_3", "11_4"},
+                        new Row[] {Row.of("12_3"), Row.of("12_4")}));
+    }
+
+    private static List<BsonDocument> createTestData() {
+        return Arrays.asList(
+                new BsonDocument()
+                        .append("_id", new BsonInt64(1L))
+                        .append("f0", new BsonString(""))
+                        .append("f1", new BsonString("2"))
+                        .append("f2", BsonBoolean.TRUE)
+                        .append("f3", new BsonBinary(new byte[] {(byte) 3}))
+                        .append("f4", new BsonInt32(6))
+                        // 2022-09-07T10:25:28.127Z
+                        .append("f5", new BsonDateTime(1662546328127L))
+                        .append("f6", new BsonTimestamp(1662546328, 0))
+                        .append("f7", new BsonDouble(0.9d))
+                        .append("f8", new BsonDecimal128(new Decimal128(new BigDecimal("1.10"))))
+                        .append("f9", new BsonDocument("k", new BsonInt32(12)))
+                        .append("f10", new BsonDocument("k", new BsonInt32(13)))
+                        .append(
+                                "f11",
+                                new BsonArray(
+                                        Arrays.asList(
+                                                new BsonString("11_1"), new BsonString("11_2"))))
+                        .append(
+                                "f12",
+                                new BsonArray(
+                                        Arrays.asList(
+                                                new BsonDocument("k", new BsonString("12_1")),
+                                                new BsonDocument("k", new BsonString("12_2"))))),
+                new BsonDocument()
+                        .append("_id", new BsonInt64(2L))
+                        .append("f0", BsonNull.VALUE)
+                        .append("f1", new BsonString("3"))
+                        .append("f2", BsonBoolean.FALSE)
+                        .append("f3", new BsonBinary(new byte[] {(byte) 4}))
+                        .append("f4", new BsonInt32(7))
+                        // 2022-09-07T10:25:28.128Z
+                        .append("f5", new BsonDateTime(1662546328128L))
+                        .append("f6", new BsonTimestamp(1662546329, 0))
+                        .append("f7", new BsonDouble(1.0d))
+                        .append("f8", new BsonDecimal128(new Decimal128(new BigDecimal("1.11"))))
+                        .append("f9", new BsonDocument("k", new BsonInt32(13)))
+                        .append("f10", new BsonDocument("k", new BsonInt32(14)))
+                        .append(
+                                "f11",
+                                new BsonArray(
+                                        Arrays.asList(
+                                                new BsonString("11_3"), new BsonString("11_4"))))
+                        .append(
+                                "f12",
+                                new BsonArray(
+                                        Arrays.asList(
+                                                new BsonDocument("k", new BsonString("12_3")),
+                                                new BsonDocument("k", new BsonString("12_4"))))));
+    }
+
+    private static List<Row> executeQueryToList(String sql) {
+        return CollectionUtil.iteratorToList(executeQuery(sql));
+    }
+
+    private static CloseableIterator<Row> executeQuery(String sql) {
+        return tEnv.executeSql(sql).collect();
     }
 }
