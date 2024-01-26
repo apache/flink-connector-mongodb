@@ -52,6 +52,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -74,6 +75,7 @@ public class MongoDynamicTableSource
     @Nullable private final LookupCache lookupCache;
     private final int lookupMaxRetries;
     private final long lookupRetryIntervalMs;
+    private final FilterHandlingPolicy filterHandlingPolicy;
     private DataType producedDataType;
     private int limit = -1;
 
@@ -85,6 +87,7 @@ public class MongoDynamicTableSource
             @Nullable LookupCache lookupCache,
             int lookupMaxRetries,
             long lookupRetryIntervalMs,
+            FilterHandlingPolicy filterHandlingPolicy,
             DataType producedDataType) {
         this.connectionOptions = connectionOptions;
         this.readOptions = readOptions;
@@ -99,6 +102,7 @@ public class MongoDynamicTableSource
                 String.format("The '%s' must be larger than 0.", LOOKUP_RETRY_INTERVAL.key()));
         this.lookupMaxRetries = lookupMaxRetries;
         this.lookupRetryIntervalMs = lookupRetryIntervalMs;
+        this.filterHandlingPolicy = filterHandlingPolicy;
         this.producedDataType = producedDataType;
     }
 
@@ -170,6 +174,7 @@ public class MongoDynamicTableSource
                         lookupCache,
                         lookupMaxRetries,
                         lookupRetryIntervalMs,
+                        filterHandlingPolicy,
                         producedDataType);
         newSource.filter = BsonDocument.parse(filter.toJson());
         return newSource;
@@ -198,28 +203,36 @@ public class MongoDynamicTableSource
 
     @Override
     public Result applyFilters(List<ResolvedExpression> filters) {
-        List<ResolvedExpression> acceptedFilters = new ArrayList<>();
-        List<ResolvedExpression> remainingFilters = new ArrayList<>();
+        switch (filterHandlingPolicy) {
+            case NEVER:
+                return Result.of(Collections.emptyList(), filters);
+            case ALWAYS:
+            default:
+                List<ResolvedExpression> acceptedFilters = new ArrayList<>();
+                List<ResolvedExpression> remainingFilters = new ArrayList<>();
 
-        List<Bson> mongoFilters = new ArrayList<>();
-        for (ResolvedExpression filter : filters) {
-            BsonDocument simpleFilter = parseFilter(filter);
-            if (simpleFilter.isEmpty()) {
-                remainingFilters.add(filter);
-            } else {
-                acceptedFilters.add(filter);
-                mongoFilters.add(simpleFilter);
-            }
+                List<Bson> mongoFilters = new ArrayList<>();
+                for (ResolvedExpression filter : filters) {
+                    BsonDocument simpleFilter = parseFilter(filter);
+                    if (simpleFilter.isEmpty()) {
+                        remainingFilters.add(filter);
+                    } else {
+                        acceptedFilters.add(filter);
+                        mongoFilters.add(simpleFilter);
+                    }
+                }
+
+                if (!mongoFilters.isEmpty()) {
+                    Bson mergedFilter =
+                            mongoFilters.size() == 1
+                                    ? mongoFilters.get(0)
+                                    : Filters.and(mongoFilters);
+                    this.filter = mergedFilter.toBsonDocument();
+                    LOG.info("Pushed down filters: {}", filter.toJson());
+                }
+
+                return Result.of(acceptedFilters, remainingFilters);
         }
-
-        if (!mongoFilters.isEmpty()) {
-            Bson mergedFilter =
-                    mongoFilters.size() == 1 ? mongoFilters.get(0) : Filters.and(mongoFilters);
-            this.filter = mergedFilter.toBsonDocument();
-            LOG.info("Pushed down filters: {}", filter.toJson());
-        }
-
-        return Result.of(acceptedFilters, remainingFilters);
     }
 
     static BsonDocument parseFilter(ResolvedExpression filter) {
@@ -244,7 +257,8 @@ public class MongoDynamicTableSource
                 && Objects.equals(filter, that.filter)
                 && Objects.equals(lookupCache, that.lookupCache)
                 && Objects.equals(lookupMaxRetries, that.lookupMaxRetries)
-                && Objects.equals(lookupRetryIntervalMs, that.lookupRetryIntervalMs);
+                && Objects.equals(lookupRetryIntervalMs, that.lookupRetryIntervalMs)
+                && Objects.equals(filterHandlingPolicy, that.filterHandlingPolicy);
     }
 
     @Override
@@ -257,6 +271,7 @@ public class MongoDynamicTableSource
                 filter,
                 lookupCache,
                 lookupMaxRetries,
-                lookupRetryIntervalMs);
+                lookupRetryIntervalMs,
+                filterHandlingPolicy);
     }
 }
