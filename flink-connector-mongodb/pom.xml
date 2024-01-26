@@ -34,7 +34,9 @@ under the License.
 
 	<properties>
 		<surefire.module.config>
+			<!-- required by MongoSinkITCase, MongoSourceITCase -->
 			--add-opens=java.base/java.util=ALL-UNNAMED
+			<!-- required by MongoDynamicTableSourceITCase, MongoDynamicTableSinkITCase -->
 			--add-opens=java.base/java.lang=ALL-UNNAMED
 		</surefire.module.config>
 	</properties>
