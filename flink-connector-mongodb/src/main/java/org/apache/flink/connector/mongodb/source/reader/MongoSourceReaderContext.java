@@ -18,12 +18,8 @@
 package org.apache.flink.connector.mongodb.source.reader;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.connector.source.SourceEvent;
 import org.apache.flink.api.connector.source.SourceReaderContext;
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
-import org.apache.flink.metrics.groups.SourceReaderMetricGroup;
-import org.apache.flink.util.UserCodeClassLoader;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * MongoSourceReader} and {@link MongoScanSourceSplitReader}.
  */
 @Internal
-public class MongoSourceReaderContext implements SourceReaderContext {
+public class MongoSourceReaderContext {
 
     private final SourceReaderContext readerContext;
     private final AtomicInteger readCount = new AtomicInteger(0);
@@ -43,39 +39,8 @@ public class MongoSourceReaderContext implements SourceReaderContext {
         this.limit = limit;
     }
 
-    @Override
-    public SourceReaderMetricGroup metricGroup() {
-        return readerContext.metricGroup();
-    }
-
-    @Override
-    public Configuration getConfiguration() {
-        return readerContext.getConfiguration();
-    }
-
-    @Override
-    public String getLocalHostName() {
-        return readerContext.getLocalHostName();
-    }
-
-    @Override
-    public int getIndexOfSubtask() {
-        return readerContext.getIndexOfSubtask();
-    }
-
-    @Override
-    public void sendSplitRequest() {
-        readerContext.sendSplitRequest();
-    }
-
-    @Override
-    public void sendSourceEventToCoordinator(SourceEvent sourceEvent) {
-        readerContext.sendSourceEventToCoordinator(sourceEvent);
-    }
-
-    @Override
-    public UserCodeClassLoader getUserCodeClassLoader() {
-        return readerContext.getUserCodeClassLoader();
+    public SourceReaderContext sourceReaderContext() {
+        return readerContext;
     }
 
     public AtomicInteger getReadCount() {

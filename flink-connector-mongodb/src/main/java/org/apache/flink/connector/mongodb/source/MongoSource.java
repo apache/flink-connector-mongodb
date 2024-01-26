@@ -153,7 +153,7 @@ public class MongoSource<OUT>
                 elementsQueue,
                 splitReaderSupplier,
                 new MongoRecordEmitter<>(deserializationSchema),
-                mongoReaderContext);
+                mongoReaderContext.sourceReaderContext());
     }
 
     @Override
