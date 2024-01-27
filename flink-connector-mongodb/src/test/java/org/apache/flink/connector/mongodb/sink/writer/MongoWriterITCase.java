@@ -50,6 +50,7 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.io.IOException;
 import java.util.Optional;
 
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
@@ -270,7 +271,8 @@ public class MongoWriterITCase {
     }
 
     private static MongoWriter<Document> createWriter(
-            String collection, int batchSize, long batchIntervalMs, boolean flushOnCheckpoint) {
+            String collection, int batchSize, long batchIntervalMs, boolean flushOnCheckpoint)
+            throws IOException {
         return createWriter(
                 collection,
                 batchSize,
@@ -284,7 +286,8 @@ public class MongoWriterITCase {
             int batchSize,
             long batchIntervalMs,
             boolean flushOnCheckpoint,
-            MongoSerializationSchema<Document> serializationSchema) {
+            MongoSerializationSchema<Document> serializationSchema)
+            throws IOException {
 
         MongoSink<Document> mongoSink =
                 MongoSink.<Document>builder()
