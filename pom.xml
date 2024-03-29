@@ -24,7 +24,7 @@ under the License.
 	<parent>
 		<groupId>org.apache.flink</groupId>
 		<artifactId>flink-connector-parent</artifactId>
-		<version>1.0.0</version>
+		<version>1.1.0</version>
 	</parent>
 
 	<groupId>org.apache.flink</groupId>
@@ -59,7 +59,6 @@ under the License.
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
 		<testcontainers.version>1.17.2</testcontainers.version>
-		<mockito.version>3.4.6</mockito.version>
 
 		<japicmp.skip>false</japicmp.skip>
 		<japicmp.referenceVersion>3.0.0-1.16</japicmp.referenceVersion>
@@ -107,20 +106,6 @@ under the License.
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-inline</artifactId>
-			<type>jar</type>
-			<scope>test</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<type>jar</type>
 			<scope>test</scope>
 		</dependency>
 
@@ -263,22 +248,6 @@ under the License.
 				<version>${junit5.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-inline</artifactId>
-				<version>${mockito.version}</version>
-				<type>jar</type>
-				<scope>test</scope>
-			</dependency>
-
-			<dependency>
-				<groupId>org.mockito</groupId>
-				<artifactId>mockito-core</artifactId>
-				<version>${mockito.version}</version>
-				<type>jar</type>
-				<scope>test</scope>
 			</dependency>
 
 			<dependency>
