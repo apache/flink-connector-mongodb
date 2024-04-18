@@ -28,7 +28,7 @@ under the License.
 	</parent>
 
 	<artifactId>flink-connector-mongodb-parent</artifactId>
-	<version>1.2-SNAPSHOT</version>
+	<version>1.2.0</version>
 
 	<name>Flink : Connectors : MongoDB Parent</name>
 	<packaging>pom</packaging>
