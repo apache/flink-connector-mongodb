@@ -50,7 +50,7 @@ under the License.
 	</scm>
 
 	<properties>
-		<mongodb.version>4.7.2</mongodb.version>
+		<mongodb.version>5.1.1</mongodb.version>
 
 		<flink.version>1.18.0</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
