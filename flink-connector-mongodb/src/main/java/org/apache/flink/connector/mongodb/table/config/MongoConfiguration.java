@@ -22,6 +22,7 @@ import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
+import org.apache.flink.connector.mongodb.table.FilterHandlingPolicy;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
 
 import javax.annotation.Nullable;
@@ -33,6 +34,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUF
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FILTER_HANDLING_POLICY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
@@ -95,6 +97,10 @@ public class MongoConfiguration {
 
     public long getLookupRetryIntervalMs() {
         return config.get(LOOKUP_RETRY_INTERVAL).toMillis();
+    }
+
+    public FilterHandlingPolicy getFilterHandlingPolicy() {
+        return config.get(FILTER_HANDLING_POLICY);
     }
 
     // -----------------------------------Write Config------------------------------------------

@@ -139,4 +139,11 @@ public class MongoConnectorOptions {
                     .defaultValue(Duration.ofMillis(1000L))
                     .withDescription(
                             "Specifies the retry time interval if writing records to database failed.");
+
+    public static final ConfigOption<FilterHandlingPolicy> FILTER_HANDLING_POLICY =
+            ConfigOptions.key("filter.handling.policy")
+                    .enumType(FilterHandlingPolicy.class)
+                    .defaultValue(FilterHandlingPolicy.ALWAYS)
+                    .withDescription(
+                            "Fine-grained configuration to control filter push down for MongoDB Table/SQL source.");
 }

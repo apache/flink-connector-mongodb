@@ -48,6 +48,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUF
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FILTER_HANDLING_POLICY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
@@ -104,6 +105,7 @@ public class MongoDynamicTableFactory
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE);
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_MAX_ROWS);
         optionalOptions.add(LookupOptions.PARTIAL_CACHE_CACHE_MISSING_KEY);
+        optionalOptions.add(FILTER_HANDLING_POLICY);
         return optionalOptions;
     }
 
@@ -137,6 +139,7 @@ public class MongoDynamicTableFactory
                 getLookupCache(options),
                 config.getLookupMaxRetries(),
                 config.getLookupRetryIntervalMs(),
+                config.getFilterHandlingPolicy(),
                 context.getPhysicalRowDataType());
     }
 
