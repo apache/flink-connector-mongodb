@@ -18,10 +18,16 @@
 package org.apache.flink.connector.mongodb.testutils;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.connector.mongodb.table.MongoConnectorOptions;
+import org.apache.flink.table.factories.FactoryUtil;
 
+import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.Network;
@@ -40,6 +46,12 @@ public class MongoTestUtil {
     public static final String MONGODB_HOSTNAME = "mongodb";
 
     public static final String MONGO_4_0 = "mongo:4.0.10";
+
+    public static final String ADMIN_DATABASE = "admin";
+    public static final String CONFIG_DATABASE = "config";
+    public static final String SETTINGS_COLLECTION = "settings";
+    public static final String CHUNK_SIZE_FIELD = "chunksize";
+    public static final String VALUE_FIELD = "value";
 
     private MongoTestUtil() {}
 
@@ -89,5 +101,37 @@ public class MongoTestUtil {
             Thread.sleep(1000L);
         }
         assertThatIdsAreWritten(coll, ids);
+    }
+
+    public static String getConnectorSql(
+            String database, String collection, String connectionString) {
+        return String.format("'%s'='%s',\n", FactoryUtil.CONNECTOR.key(), "mongodb")
+                + String.format("'%s'='%s',\n", MongoConnectorOptions.URI.key(), connectionString)
+                + String.format("'%s'='%s',\n", MongoConnectorOptions.DATABASE.key(), database)
+                + String.format("'%s'='%s'\n", MongoConnectorOptions.COLLECTION.key(), collection);
+    }
+
+    public static void createIndex(
+            MongoClient mongoClient,
+            String databaseName,
+            String collectionName,
+            Bson keys,
+            IndexOptions indexOptions) {
+        mongoClient
+                .getDatabase(databaseName)
+                .getCollection(collectionName)
+                .createIndex(keys, indexOptions);
+    }
+
+    public static void shardCollection(
+            MongoClient mongoClient, String databaseName, String collectionName, Bson keys) {
+        MongoDatabase admin = mongoClient.getDatabase(ADMIN_DATABASE);
+        Document enableSharingCommand = new Document("enableSharding", databaseName);
+        admin.runCommand(enableSharingCommand);
+
+        Document shardCollectionCommand =
+                new Document("shardCollection", databaseName + "." + collectionName)
+                        .append("key", keys);
+        admin.runCommand(shardCollectionCommand);
     }
 }

@@ -39,13 +39,16 @@ import java.util.function.Function;
 public class MongoRowDataSerializationSchema implements MongoSerializationSchema<RowData> {
 
     private final RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter;
-    private final Function<RowData, BsonValue> createKey;
+    private final Function<RowData, BsonValue> primaryKeyExtractor;
+    private final Function<RowData, BsonDocument> shardKeysExtractor;
 
     public MongoRowDataSerializationSchema(
             RowDataToBsonConverters.RowDataToBsonConverter rowDataToBsonConverter,
-            Function<RowData, BsonValue> createKey) {
+            Function<RowData, BsonValue> primaryKeyExtractor,
+            Function<RowData, BsonDocument> shardKeysExtractor) {
         this.rowDataToBsonConverter = rowDataToBsonConverter;
-        this.createKey = createKey;
+        this.primaryKeyExtractor = primaryKeyExtractor;
+        this.shardKeysExtractor = shardKeysExtractor;
     }
 
     @Override
@@ -64,10 +67,18 @@ public class MongoRowDataSerializationSchema implements MongoSerializationSchema
 
     private WriteModel<BsonDocument> processUpsert(RowData row) {
         final BsonDocument document = rowDataToBsonConverter.convert(row);
-        final BsonValue key = createKey.apply(row);
+        final BsonValue key = primaryKeyExtractor.apply(row);
         if (key != null) {
             BsonDocument filter = new BsonDocument("_id", key);
-            // _id is immutable so we remove it here to prevent exception.
+
+            // For upsert operation on a sharded collection, the full sharded key must be included
+            // in the filter.
+            BsonDocument shardKeysFilter = shardKeysExtractor.apply(row);
+            if (!shardKeysFilter.isEmpty()) {
+                filter.putAll(shardKeysFilter);
+            }
+
+            // _id is immutable, so we remove it here to prevent exception.
             document.remove("_id");
             BsonDocument update = new BsonDocument("$set", document);
             return new UpdateOneModel<>(filter, update, new UpdateOptions().upsert(true));
@@ -77,7 +88,7 @@ public class MongoRowDataSerializationSchema implements MongoSerializationSchema
     }
 
     private WriteModel<BsonDocument> processDelete(RowData row) {
-        final BsonValue key = createKey.apply(row);
+        final BsonValue key = primaryKeyExtractor.apply(row);
         BsonDocument filter = new BsonDocument("_id", key);
         return new DeleteOneModel<>(filter);
     }
