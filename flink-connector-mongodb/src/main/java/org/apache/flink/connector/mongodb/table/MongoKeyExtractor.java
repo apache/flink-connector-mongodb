@@ -40,7 +40,7 @@ import java.util.Optional;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** An extractor for a MongoDB key from a {@link RowData}. */
+/** An extractor for a MongoDB primary key from a {@link RowData}. */
 @Internal
 public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValue> {
 

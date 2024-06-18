@@ -371,6 +371,68 @@ If there are failures, the Flink job will recover and re-process from last succe
 which can lead to re-processing messages during recovery. The upsert mode is highly recommended as 
 it helps avoid constraint violations or duplicate data if records need to be re-processed.
 
+### [Upsert on a sharded collection](https://www.mongodb.com/docs/manual/reference/method/db.collection.updateOne/#upsert-on-a-sharded-collection)
+
+As Mongo Reference says:
+> To use db.collection.updateOne() on a sharded collection:
+>
+> - If you don't specify upsert: true, you must include an exact match on the _id field or target a single shard (such as by including the shard key in the filter).
+> - If you specify upsert: true, the filter must include the shard key.
+>
+> However, documents in a sharded collection can be missing the shard key fields. 
+> To target a document that is missing the shard key, you can use the null equality match 
+> in conjunction with another filter condition (such as on the _id field).
+
+When upsert into a sharded collection, the value of the shard key needs to be added to the filter. 
+For example:
+```javascript
+db.collection.updateOne(
+    {
+        _id: ObjectId('<value>'),
+        shardKey0: '<value>',
+        shardKey1: '<value>'
+    },
+    { $set: { status: "D" }},
+    { upsert: true }
+);
+```
+
+In Flink SQL, when creating a sink table, the shard keys need to be declared using the `PARTITIONED BY` syntax. 
+The values for shard keys will be obtained from each individual record during runtime and added them into the filter.
+
+```sql
+CREATE TABLE MySinkTable (
+    _id       BIGINT,
+    shardKey0 STRING,
+    shardKey1 STRING,
+    status    STRING,
+    PRIMARY KEY (_id) NOT ENFORCED
+) PARTITIONED BY (shardKey0, shardKey1) WITH (
+    'connector' = 'mongodb',
+    'uri' = 'mongodb://user:password@127.0.0.1:27017',
+    'database' = 'my_db',
+    'collection' = 'users'
+);
+
+-- Insert with dynamic partition
+INSERT INTO MySinkTable SELECT _id, shardKey0, shardKey1, status FROM T;
+
+-- Insert with static partition
+INSERT INTO MySinkTable PARTITION(shardKey0 = 'value0', shardKey1 = 'value1') SELECT 1, 'INIT';
+
+-- Insert with static(shardKey0) and dynamic(shardKey1) partition
+INSERT INTO MySinkTable PARTITION(shardKey0 = 'value0') SELECT 1, 'value1' 'INIT';
+```
+{{< hint warning >}}
+LIMITATION: Although the shard key value is no longer immutable in MongoDB 4.2 and later,
+it is necessary to ensure that the shard key remains immutable.
+
+Using Flink SQL upsert mode to write to a sharded collection, 
+only the updated shard key value can be obtained and 
+the original shard key value cannot be provided in the filter
+which may cause a duplicate record error.
+{{< /hint >}}
+
 ### Filters Pushdown
 
 MongoDB supports pushing down simple comparisons and logical filters to optimize queries.
