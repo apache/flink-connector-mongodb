@@ -49,8 +49,8 @@ import java.util.function.Function;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Tests for {@link MongoKeyExtractor}. */
-public class MongoKeyExtractorTest {
+/** Tests for {@link MongoPrimaryKeyExtractor}. */
+public class MongoPrimaryKeyExtractorTest {
 
     @Test
     public void testSinglePrimaryKey() {
@@ -62,7 +62,8 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         UniqueConstraint.primaryKey("pk", Collections.singletonList("a")));
 
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        Function<RowData, BsonValue> keyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema);
 
         BsonValue key = keyExtractor.apply(GenericRowData.of(12L, StringData.fromString("ABCD")));
         assertThat(key).isEqualTo(new BsonInt64(12L));
@@ -78,7 +79,8 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         UniqueConstraint.primaryKey("pk", Collections.singletonList("_id")));
 
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        Function<RowData, BsonValue> keyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema);
 
         ObjectId objectId = new ObjectId();
         BsonValue key =
@@ -99,7 +101,7 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         UniqueConstraint.primaryKey("pk", Collections.singletonList("_id, a")));
 
-        assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema0))
+        assertThatThrownBy(() -> MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Ambiguous keys .*");
 
@@ -111,7 +113,7 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         null);
 
-        assertThatThrownBy(() -> MongoKeyExtractor.createKeyExtractor(schema1))
+        assertThatThrownBy(() -> MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema1))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageMatching("Ambiguous keys .*");
     }
@@ -126,7 +128,8 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         null);
 
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        Function<RowData, BsonValue> keyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema);
 
         BsonValue key = keyExtractor.apply(GenericRowData.of(12L, StringData.fromString("ABCD")));
         assertThat(key).isNull();
@@ -143,7 +146,8 @@ public class MongoKeyExtractorTest {
                         Collections.emptyList(),
                         UniqueConstraint.primaryKey("pk", Arrays.asList("a", "b")));
 
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        Function<RowData, BsonValue> keyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema);
 
         BsonValue key =
                 keyExtractor.apply(
@@ -177,7 +181,8 @@ public class MongoKeyExtractorTest {
                         UniqueConstraint.primaryKey(
                                 "pk", Arrays.asList("a", "b", "c", "d", "e", "f", "g")));
 
-        Function<RowData, BsonValue> keyExtractor = MongoKeyExtractor.createKeyExtractor(schema);
+        Function<RowData, BsonValue> keyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(schema);
 
         BsonValue key =
                 keyExtractor.apply(

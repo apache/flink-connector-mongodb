@@ -54,7 +54,7 @@ class MongoShardKeysExtractorTest {
         String[] shardKeys = new String[] {"b"};
 
         Function<RowData, BsonDocument> shardKeysExtractor =
-                MongoShardKeysExtractor.createShardKeyExtractor(schema, shardKeys);
+                MongoShardKeysExtractor.createShardKeysExtractor(schema, shardKeys);
 
         BsonDocument actual =
                 shardKeysExtractor.apply(GenericRowData.of(12L, StringData.fromString("ABCD")));
@@ -75,7 +75,7 @@ class MongoShardKeysExtractorTest {
         String[] shardKeys = new String[] {"b", "c"};
 
         Function<RowData, BsonDocument> shardKeysExtractor =
-                MongoShardKeysExtractor.createShardKeyExtractor(schema, shardKeys);
+                MongoShardKeysExtractor.createShardKeysExtractor(schema, shardKeys);
 
         BsonDocument actual =
                 shardKeysExtractor.apply(
@@ -100,7 +100,7 @@ class MongoShardKeysExtractorTest {
         String[] shardKeys = new String[] {"a", "b"};
 
         Function<RowData, BsonDocument> shardKeysExtractor =
-                MongoShardKeysExtractor.createShardKeyExtractor(schema, shardKeys);
+                MongoShardKeysExtractor.createShardKeysExtractor(schema, shardKeys);
 
         ObjectId objectId = new ObjectId();
         BsonDocument actual =

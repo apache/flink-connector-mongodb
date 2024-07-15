@@ -81,7 +81,7 @@ public class MongoShardKeysExtractor implements SerializableFunction<RowData, Bs
         return shardKeysDoc;
     }
 
-    public static SerializableFunction<RowData, BsonDocument> createShardKeyExtractor(
+    public static SerializableFunction<RowData, BsonDocument> createShardKeysExtractor(
             ResolvedSchema resolvedSchema, String[] shardKeys) {
         // no shard keys are declared.
         if (shardKeys.length == 0) {

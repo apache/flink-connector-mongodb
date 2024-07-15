@@ -58,7 +58,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
     private final boolean isUpsert;
     private final ResolvedSchema resolvedSchema;
     private final String[] partitionKeys;
-    private final SerializableFunction<RowData, BsonValue> keyExtractor;
+    private final SerializableFunction<RowData, BsonValue> primaryKeyExtractor;
     private final SerializableFunction<RowData, BsonDocument> shardKeysExtractor;
 
     public MongoDynamicTableSink(
@@ -73,9 +73,10 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
         this.resolvedSchema = checkNotNull(resolvedSchema);
         this.partitionKeys = checkNotNull(partitionKeys);
         this.isUpsert = resolvedSchema.getPrimaryKey().isPresent();
-        this.keyExtractor = MongoKeyExtractor.createKeyExtractor(resolvedSchema);
+        this.primaryKeyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(resolvedSchema);
         this.shardKeysExtractor =
-                MongoShardKeysExtractor.createShardKeyExtractor(resolvedSchema, partitionKeys);
+                MongoShardKeysExtractor.createShardKeysExtractor(resolvedSchema, partitionKeys);
     }
 
     @Override
@@ -95,7 +96,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
 
         final MongoRowDataSerializationSchema serializationSchema =
                 new MongoRowDataSerializationSchema(
-                        rowDataToBsonConverter, keyExtractor, shardKeysExtractor);
+                        rowDataToBsonConverter, primaryKeyExtractor, shardKeysExtractor);
 
         final MongoSink<RowData> mongoSink =
                 MongoSink.<RowData>builder()
