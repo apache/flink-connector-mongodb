@@ -262,7 +262,7 @@ class MongoPartitionedTableSinkITCase {
             String database,
             String collection,
             List<String> primaryKeys,
-            Collection<String> shareKeys) {
+            Collection<String> shardKeys) {
 
         tEnv.executeSql(
                 String.format(
@@ -277,7 +277,7 @@ class MongoPartitionedTableSinkITCase {
                                 + "PARTITIONED BY (%s)\n"
                                 + "WITH (%s)",
                         formatKeys(primaryKeys),
-                        formatKeys(shareKeys),
+                        formatKeys(shardKeys),
                         getConnectorSql(
                                 database,
                                 collection,

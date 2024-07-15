@@ -126,8 +126,8 @@ public class MongoTestUtil {
     public static void shardCollection(
             MongoClient mongoClient, String databaseName, String collectionName, Bson keys) {
         MongoDatabase admin = mongoClient.getDatabase(ADMIN_DATABASE);
-        Document enableSharingCommand = new Document("enableSharding", databaseName);
-        admin.runCommand(enableSharingCommand);
+        Document enableShardingCommand = new Document("enableSharding", databaseName);
+        admin.runCommand(enableShardingCommand);
 
         Document shardCollectionCommand =
                 new Document("shardCollection", databaseName + "." + collectionName)
