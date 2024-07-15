@@ -62,7 +62,7 @@ public class MongoShardKeysExtractor implements SerializableFunction<RowData, Bs
     public BsonDocument apply(RowData rowData) {
         BsonDocument shardKeysDoc =
                 Optional.ofNullable(shardKeysGetter.getFieldOrNull(rowData))
-                        .map(shardKeys -> (BsonDocument) shardKeysConverter.apply(shardKeys))
+                        .map(shardKeys -> shardKeysConverter.apply(shardKeys).asDocument())
                         .orElse(EMPTY_DOCUMENT);
 
         shardKeysDoc
