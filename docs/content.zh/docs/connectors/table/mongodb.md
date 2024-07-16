@@ -340,6 +340,64 @@ lookup cache 的主要目的是用于提高时态表关联 MongoDB 连接器的�
 如果出现故障，Flink 作业会从上次成功的 checkpoint 恢复并重新处理，这可能导致在恢复过程中重复处理消息。
 强烈推荐使用 upsert 模式，因为如果需要重复处理记录，它有助于避免违反数据库主键约束和产生重复数据。
 
+### [Upsert 写入分片集合](https://www.mongodb.com/docs/manual/reference/method/db.collection.updateOne/#upsert-on-a-sharded-collection)
+
+在 Mongo 文档中提到:
+> To use db.collection.updateOne() on a sharded collection:
+>
+> - If you don't specify upsert: true, you must include an exact match on the _id field or target a single shard (such as by including the shard key in the filter).
+> - If you specify upsert: true, the filter must include the shard key.
+>
+> However, documents in a sharded collection can be missing the shard key fields.
+> To target a document that is missing the shard key, you can use the null equality match
+> in conjunction with another filter condition (such as on the _id field).
+
+当使用 upsert 模式写入分片集合时，需要将分片键的值添加到 filter 中， 如：
+```javascript
+db.collection.updateOne(
+    {
+        _id: ObjectId('<value>'),
+        shardKey0: '<value>',
+        shardKey1: '<value>'
+    },
+    { $set: { status: "D" }},
+    { upsert: true }
+);
+```
+
+使用 Flink SQL 创建 sink 表映射分片集合时，需要使用 `PARTITIONED BY` 语法声明分片键。
+分片键的值将在运行时从每个单独的记录中获取，并将其添加到 filter 中。
+
+```sql
+CREATE TABLE MySinkTable (
+    _id       BIGINT,
+    shardKey0 STRING,
+    shardKey1 STRING,
+    status    STRING,
+    PRIMARY KEY (_id) NOT ENFORCED
+) PARTITIONED BY (shardKey0, shardKey1) WITH (
+    'connector' = 'mongodb',
+    'uri' = 'mongodb://user:password@127.0.0.1:27017',
+    'database' = 'my_db',
+    'collection' = 'users'
+);
+
+-- 动态写入分片集合
+INSERT INTO MySinkTable SELECT _id, shardKey0, shardKey1, status FROM T;
+
+-- 指定固定分片键的值
+INSERT INTO MySinkTable PARTITION(shardKey0 = 'value0', shardKey1 = 'value1') SELECT 1, 'INIT';
+
+-- 指定固定分片键值 (shardKey0) 和动态分片键值 (shardKey1) 
+INSERT INTO MySinkTable PARTITION(shardKey0 = 'value0') SELECT 1, 'value1' 'INIT';
+```
+{{< hint warning >}}
+限制：尽管 MongoDB 4.2 及之后版本中分片键的值不再是不可变的，
+使用 MongoDB Connector upsert 写入分片集合需要确保分片键的值保持不可变。
+因为在 upsert 模式下，只能获取更新后的分片键值，无法获取原始分片键的值添加至 filter 中，
+这可能导致重复记录的错误。
+{{< /hint >}}
+
 ### 过滤器下推
 
 MongoDB 支持将 Flink SQL 的简单比较和逻辑过滤器下推以优化查询。

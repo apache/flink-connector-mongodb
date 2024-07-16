@@ -44,7 +44,6 @@ import org.apache.flink.util.CollectionUtil;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.UpdateOptions;
@@ -54,6 +53,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -72,6 +72,10 @@ import java.util.stream.Stream;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.DEFAULT_JSON_WRITER_SETTINGS;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.CHUNK_SIZE_FIELD;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.CONFIG_DATABASE;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.SETTINGS_COLLECTION;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.VALUE_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for using Mongo Source. */
@@ -94,12 +98,6 @@ class MongoSourceITCase {
     @RegisterExtension final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
 
     private static MongoClient mongoClient;
-
-    private static final String ADMIN_DATABASE = "admin";
-    private static final String CONFIG_DATABASE = "config";
-    private static final String SETTINGS_COLLECTION = "settings";
-    private static final String CHUNK_SIZE_FIELD = "chunksize";
-    private static final String VALUE_FIELD = "value";
 
     private static final String TEST_DATABASE = "test_source";
     private static final String TEST_COLLECTION = "test_coll";
@@ -132,38 +130,26 @@ class MongoSourceITCase {
         initTestData(TEST_HASHED_KEY_SHARDED_COLLECTION);
 
         // create unique index {f0: 1, f1: 1}.
-        mongoClient
-                .getDatabase(TEST_DATABASE)
-                .getCollection(TEST_SHARDED_COLLECTION)
-                .createIndex(
-                        BsonDocument.parse("{ f0: 1, f1: 1 }"), new IndexOptions().unique(true));
-
-        MongoDatabase admin = mongoClient.getDatabase(ADMIN_DATABASE);
-        // shard test collection with sharded key { f0: 1, f1: 1 }
-        admin.runCommand(
-                BsonDocument.parse(String.format("{ enableSharding: '%s'}", TEST_DATABASE)));
-        admin.runCommand(
-                BsonDocument.parse(
-                        String.format(
-                                "{ shardCollection : '%s.%s', key : { f0: 1, f1: 1 }}",
-                                TEST_DATABASE, TEST_SHARDED_COLLECTION)));
+        Bson indexKeys = BsonDocument.parse("{ f0: 1, f1: 1 }");
+        MongoTestUtil.createIndex(
+                mongoClient,
+                TEST_DATABASE,
+                TEST_SHARDED_COLLECTION,
+                indexKeys,
+                new IndexOptions().unique(true));
+        MongoTestUtil.shardCollection(
+                mongoClient, TEST_DATABASE, TEST_SHARDED_COLLECTION, indexKeys);
 
         // create hashed index {f1: 'hashed'}.
-        mongoClient
-                .getDatabase(TEST_DATABASE)
-                .getCollection(TEST_HASHED_KEY_SHARDED_COLLECTION)
-                .createIndex(BsonDocument.parse("{ f1: 'hashed' }"), new IndexOptions());
-
-        // shard test collection with hashed sharded key { f1: 'hashed' }
-        admin.runCommand(
-                BsonDocument.parse(
-                        String.format(
-                                "{ enableSharding: '%s'}", TEST_HASHED_KEY_SHARDED_COLLECTION)));
-        admin.runCommand(
-                BsonDocument.parse(
-                        String.format(
-                                "{ shardCollection : '%s.%s', key : { f1: 'hashed' }}",
-                                TEST_DATABASE, TEST_HASHED_KEY_SHARDED_COLLECTION)));
+        Bson hashedIndexKeys = BsonDocument.parse("{ f1: 'hashed' }");
+        MongoTestUtil.createIndex(
+                mongoClient,
+                TEST_DATABASE,
+                TEST_HASHED_KEY_SHARDED_COLLECTION,
+                hashedIndexKeys,
+                new IndexOptions());
+        MongoTestUtil.shardCollection(
+                mongoClient, TEST_DATABASE, TEST_HASHED_KEY_SHARDED_COLLECTION, hashedIndexKeys);
     }
 
     @AfterAll

@@ -24,46 +24,59 @@ import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters.RowDataToBsonConverter;
 import org.apache.flink.connector.mongodb.table.serialization.MongoRowDataSerializationSchema;
+import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkV2Provider;
+import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.data.RowData;
-import org.apache.flink.table.types.DataType;
 import org.apache.flink.table.types.logical.RowType;
 import org.apache.flink.util.function.SerializableFunction;
 
+import org.bson.BsonDocument;
 import org.bson.BsonValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A {@link DynamicTableSink} for MongoDB. */
 @Internal
-public class MongoDynamicTableSink implements DynamicTableSink {
+public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitioning {
+
+    private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSink.class);
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
     @Nullable private final Integer parallelism;
     private final boolean isUpsert;
-    private final DataType physicalRowDataType;
-    private final SerializableFunction<RowData, BsonValue> keyExtractor;
+    private final ResolvedSchema resolvedSchema;
+    private final String[] partitionKeys;
+    private final SerializableFunction<RowData, BsonValue> primaryKeyExtractor;
+    private final SerializableFunction<RowData, BsonDocument> shardKeysExtractor;
 
     public MongoDynamicTableSink(
             MongoConnectionOptions connectionOptions,
             MongoWriteOptions writeOptions,
             @Nullable Integer parallelism,
-            boolean isUpsert,
-            DataType physicalRowDataType,
-            SerializableFunction<RowData, BsonValue> keyExtractor) {
+            ResolvedSchema resolvedSchema,
+            String[] partitionKeys) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);
         this.parallelism = parallelism;
-        this.isUpsert = isUpsert;
-        this.physicalRowDataType = checkNotNull(physicalRowDataType);
-        this.keyExtractor = checkNotNull(keyExtractor);
+        this.resolvedSchema = checkNotNull(resolvedSchema);
+        this.partitionKeys = checkNotNull(partitionKeys);
+        this.isUpsert = resolvedSchema.getPrimaryKey().isPresent();
+        this.primaryKeyExtractor =
+                MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(resolvedSchema);
+        this.shardKeysExtractor =
+                MongoShardKeysExtractor.createShardKeysExtractor(resolvedSchema, partitionKeys);
     }
 
     @Override
@@ -79,10 +92,11 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     public SinkRuntimeProvider getSinkRuntimeProvider(Context context) {
         final RowDataToBsonConverter rowDataToBsonConverter =
                 RowDataToBsonConverters.createConverter(
-                        (RowType) physicalRowDataType.getLogicalType());
+                        (RowType) resolvedSchema.toPhysicalRowDataType().getLogicalType());
 
         final MongoRowDataSerializationSchema serializationSchema =
-                new MongoRowDataSerializationSchema(rowDataToBsonConverter, keyExtractor);
+                new MongoRowDataSerializationSchema(
+                        rowDataToBsonConverter, primaryKeyExtractor, shardKeysExtractor);
 
         final MongoSink<RowData> mongoSink =
                 MongoSink.<RowData>builder()
@@ -100,14 +114,15 @@ public class MongoDynamicTableSink implements DynamicTableSink {
     }
 
     @Override
+    public void applyStaticPartition(Map<String, String> partition) {
+        // The value of the partition keys is obtained at runtime, just print static partition here.
+        LOG.info("Applied static partition: {}", partition);
+    }
+
+    @Override
     public MongoDynamicTableSink copy() {
         return new MongoDynamicTableSink(
-                connectionOptions,
-                writeOptions,
-                parallelism,
-                isUpsert,
-                physicalRowDataType,
-                keyExtractor);
+                connectionOptions, writeOptions, parallelism, resolvedSchema, partitionKeys);
     }
 
     @Override
@@ -128,12 +143,19 @@ public class MongoDynamicTableSink implements DynamicTableSink {
                 && Objects.equals(writeOptions, that.writeOptions)
                 && Objects.equals(parallelism, that.parallelism)
                 && Objects.equals(isUpsert, that.isUpsert)
-                && Objects.equals(physicalRowDataType, that.physicalRowDataType);
+                && Objects.equals(resolvedSchema, that.resolvedSchema)
+                && Arrays.equals(partitionKeys, that.partitionKeys);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(
-                connectionOptions, writeOptions, parallelism, isUpsert, physicalRowDataType);
+        return 31
+                        * Objects.hash(
+                                connectionOptions,
+                                writeOptions,
+                                parallelism,
+                                isUpsert,
+                                resolvedSchema)
+                + Arrays.hashCode(partitionKeys);
     }
 }

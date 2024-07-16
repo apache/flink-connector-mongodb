@@ -18,7 +18,7 @@
 package org.apache.flink.connector.mongodb.common.utils;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.connector.mongodb.table.MongoKeyExtractor;
+import org.apache.flink.connector.mongodb.table.MongoPrimaryKeyExtractor;
 import org.apache.flink.connector.mongodb.table.converter.RowDataToBsonConverters;
 import org.apache.flink.table.api.ValidationException;
 import org.apache.flink.table.types.DataType;
@@ -93,7 +93,7 @@ public class MongoValidationUtils {
      *   <li>Starting in version 4.2, MongoDB removes the Index Key Limit.
      * </ul>
      *
-     * <p>As of now it is extracted by {@link MongoKeyExtractor} according to the primary key
+     * <p>As of now it is extracted by {@link MongoPrimaryKeyExtractor} according to the primary key
      * specified by the Flink table schema.
      *
      * <ul>

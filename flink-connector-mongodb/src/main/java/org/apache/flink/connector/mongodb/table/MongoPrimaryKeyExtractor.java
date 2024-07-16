@@ -40,16 +40,16 @@ import java.util.Optional;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
-/** An extractor for a MongoDB key from a {@link RowData}. */
+/** An extractor for a MongoDB primary key from a {@link RowData}. */
 @Internal
-public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValue> {
+public class MongoPrimaryKeyExtractor implements SerializableFunction<RowData, BsonValue> {
 
     private static final long serialVersionUID = 1L;
 
     public static final String RESERVED_ID = ID_FIELD;
 
-    private static final AppendOnlyKeyExtractor APPEND_ONLY_KEY_EXTRACTOR =
-            new AppendOnlyKeyExtractor();
+    private static final AppendOnlyPrimaryKeyExtractor APPEND_ONLY_KEY_EXTRACTOR =
+            new AppendOnlyPrimaryKeyExtractor();
 
     private final int[] primaryKeyIndexes;
 
@@ -57,7 +57,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
     private final FieldGetter primaryKeyGetter;
 
-    private MongoKeyExtractor(LogicalType primaryKeyType, int[] primaryKeyIndexes) {
+    private MongoPrimaryKeyExtractor(LogicalType primaryKeyType, int[] primaryKeyIndexes) {
         this.primaryKeyIndexes = primaryKeyIndexes;
         this.primaryKeyConverter = RowDataToBsonConverters.createFieldDataConverter(primaryKeyType);
 
@@ -85,7 +85,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
         return keyValue;
     }
 
-    public static SerializableFunction<RowData, BsonValue> createKeyExtractor(
+    public static SerializableFunction<RowData, BsonValue> createPrimaryKeyExtractor(
             ResolvedSchema resolvedSchema) {
 
         Optional<UniqueConstraint> primaryKey = resolvedSchema.getPrimaryKey();
@@ -125,7 +125,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
 
         MongoValidationUtils.validatePrimaryKey(primaryKeyType);
 
-        return new MongoKeyExtractor(primaryKeyType.getLogicalType(), primaryKeyIndexes);
+        return new MongoPrimaryKeyExtractor(primaryKeyType.getLogicalType(), primaryKeyIndexes);
     }
 
     private static boolean isCompoundPrimaryKey(int[] primaryKeyIndexes) {
@@ -141,7 +141,7 @@ public class MongoKeyExtractor implements SerializableFunction<RowData, BsonValu
      * use static class instead of lambda because the maven shade plugin cannot relocate classes in
      * SerializedLambdas (MSHADE-260).
      */
-    private static class AppendOnlyKeyExtractor
+    private static class AppendOnlyPrimaryKeyExtractor
             implements SerializableFunction<RowData, BsonValue> {
         private static final long serialVersionUID = 1L;
 
