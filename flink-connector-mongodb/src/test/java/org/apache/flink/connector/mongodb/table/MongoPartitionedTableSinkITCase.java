@@ -54,11 +54,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MongoPartitionedTableSinkITCase {
 
     @RegisterExtension
-    static final MongoShardedContainers MONGO_SHARDED_CONTAINER =
+    private static final MongoShardedContainers MONGO_SHARDED_CONTAINER =
             MongoTestUtil.createMongoDBShardedContainers(Network.newNetwork());
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(1)

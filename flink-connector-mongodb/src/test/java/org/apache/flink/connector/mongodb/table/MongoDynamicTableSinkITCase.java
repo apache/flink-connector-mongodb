@@ -87,7 +87,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT tests for {@link MongoDynamicTableSink}. */
 @Testcontainers
-public class MongoDynamicTableSinkITCase {
+class MongoDynamicTableSinkITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSinkITCase.class);
 
@@ -96,7 +96,7 @@ public class MongoDynamicTableSinkITCase {
             MongoTestUtil.createMongoDBContainer(LOG);
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(1)
@@ -105,19 +105,19 @@ public class MongoDynamicTableSinkITCase {
     private MongoClient mongoClient;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         if (mongoClient != null) {
             mongoClient.close();
         }
     }
 
     @Test
-    public void testSinkWithAllSupportedTypes() throws ExecutionException, InterruptedException {
+    void testSinkWithAllSupportedTypes() throws ExecutionException, InterruptedException {
         String database = "test";
         String collection = "sink_with_all_supported_types";
 
@@ -215,7 +215,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testRoundTripReadAndSink() throws ExecutionException, InterruptedException {
+    void testRoundTripReadAndSink() throws ExecutionException, InterruptedException {
         String database = "test";
         String sourceCollection = "test_round_trip_source";
         String sinkCollection = "test_round_trip_sink";
@@ -297,7 +297,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithAllRowKind() throws ExecutionException, InterruptedException {
+    void testSinkWithAllRowKind() throws ExecutionException, InterruptedException {
         String database = "test";
         String collection = "test_sink_with_all_row_kind";
 
@@ -349,7 +349,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithReservedId() throws Exception {
+    void testSinkWithReservedId() throws Exception {
         String database = "test";
         String collection = "sink_with_reserved_id";
 
@@ -385,7 +385,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithoutPrimaryKey() throws Exception {
+    void testSinkWithoutPrimaryKey() throws Exception {
         String database = "test";
         String collection = "sink_without_primary_key";
 
@@ -411,7 +411,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithNonCompositePrimaryKey() throws Exception {
+    void testSinkWithNonCompositePrimaryKey() throws Exception {
         String database = "test";
         String collection = "sink_with_non_composite_pk";
 
@@ -440,7 +440,7 @@ public class MongoDynamicTableSinkITCase {
     }
 
     @Test
-    public void testSinkWithCompositePrimaryKey() throws Exception {
+    void testSinkWithCompositePrimaryKey() throws Exception {
         String database = "test";
         String collection = "sink_with_composite_pk";
 

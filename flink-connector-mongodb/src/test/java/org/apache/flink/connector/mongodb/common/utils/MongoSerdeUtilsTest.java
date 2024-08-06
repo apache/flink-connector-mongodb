@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoSerdeUtilsTest {
 
     @Test
-    public void testSerializeList() throws IOException {
+    void testSerializeList() throws IOException {
         List<String> expected = Arrays.asList("config.collections", "config.chunks");
 
         byte[] serialized = serializeList(expected);
@@ -46,7 +46,7 @@ class MongoSerdeUtilsTest {
     }
 
     @Test
-    public void testSerializeMap() throws IOException {
+    void testSerializeMap() throws IOException {
         Map<String, String> expected = new HashMap<>();
         expected.put("k0", "v0");
         expected.put("k1", "v1");

@@ -68,7 +68,7 @@ class MongoE2ECase {
     private static final int TEST_ORDERS_COUNT = 5;
 
     @Container
-    static final MongoDBContainer MONGO_CONTAINER =
+    private static final MongoDBContainer MONGO_CONTAINER =
             new MongoDBContainer(MONGO_4_0)
                     .withLogConsumer(new Slf4jLogConsumer(LOG))
                     .withNetwork(NETWORK)
@@ -82,7 +82,7 @@ class MongoE2ECase {
                     .build();
 
     @RegisterExtension
-    public static final FlinkContainers FLINK =
+    private static final FlinkContainers FLINK =
             FlinkContainers.builder()
                     .withFlinkContainersSettings(
                             FlinkContainersSettings.builder().numTaskManagers(2).build())
@@ -104,7 +104,7 @@ class MongoE2ECase {
     }
 
     @Test
-    public void testUpsertSink() throws Exception {
+    void testUpsertSink() throws Exception {
         MongoDatabase db = mongoClient.getDatabase("test_upsert");
 
         List<Document> orders = mockOrders();
@@ -118,7 +118,7 @@ class MongoE2ECase {
     }
 
     @Test
-    public void testAppendOnlySink() throws Exception {
+    void testAppendOnlySink() throws Exception {
         MongoDatabase db = mongoClient.getDatabase("test_append_only");
 
         List<Document> orders = mockOrders();
