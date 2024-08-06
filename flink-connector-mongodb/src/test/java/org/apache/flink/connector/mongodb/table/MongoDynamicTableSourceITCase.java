@@ -81,6 +81,7 @@ import java.util.stream.Collectors;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FILTER_HANDLING_POLICY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -241,9 +242,13 @@ class MongoDynamicTableSourceITCase {
         }
     }
 
-    @Test
-    void testFilter() {
-        tEnv.executeSql(createTestDDl(null));
+    @ParameterizedTest
+    @EnumSource(FilterHandlingPolicy.class)
+    void testFilter(FilterHandlingPolicy filterHandlingPolicy) {
+        tEnv.executeSql(
+                createTestDDl(
+                        Collections.singletonMap(
+                                FILTER_HANDLING_POLICY.key(), filterHandlingPolicy.name())));
 
         // we create a VIEW here to test column remapping, i.e. would filter push down work if we
         // create a view that depends on our source table

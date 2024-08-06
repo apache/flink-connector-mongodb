@@ -17,7 +17,10 @@
 
 package org.apache.flink.connector.mongodb.table;
 
+import org.apache.flink.table.api.DataTypes;
+import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.TableConfig;
+import org.apache.flink.table.api.TableDescriptor;
 import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.planner.utils.StreamTableTestUtil;
 import org.apache.flink.table.planner.utils.TableTestBase;
@@ -28,53 +31,79 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.rules.TestName;
 
 import java.time.ZoneId;
+import java.util.Collections;
+import java.util.Map;
 
 /** Plan tests for Mongo connector, for example, testing projection push down. */
-public class MongoTablePlanTest extends TableTestBase {
+class MongoTablePlanTest extends TableTestBase {
 
     private final StreamTableTestUtil util = streamTestUtil(TableConfig.getDefault());
 
     private TestInfo testInfo;
 
     @BeforeEach
-    public void setup(TestInfo testInfo) {
+    void setup(TestInfo testInfo) {
         this.testInfo = testInfo;
         TableEnvironment tEnv = util.tableEnv();
         tEnv.getConfig().setLocalTimeZone(ZoneId.of("UTC"));
-        tEnv.executeSql(
-                "CREATE TABLE mongo ("
-                        + "id BIGINT,"
-                        + "description VARCHAR(200),"
-                        + "boolean_col BOOLEAN,"
-                        + "timestamp_col TIMESTAMP_LTZ(0),"
-                        + "timestamp3_col TIMESTAMP_LTZ(3),"
-                        + "int_col INTEGER,"
-                        + "double_col DOUBLE,"
-                        + "decimal_col DECIMAL(10, 4)"
-                        + ") WITH ("
-                        + "  'connector'='mongodb',"
-                        + "  'uri'='mongodb://127.0.0.1:27017',"
-                        + "  'database'='test_db',"
-                        + "  'collection'='test_coll'"
-                        + ")");
     }
 
     @Test
-    public void testFilterPushdown() {
+    void testFilterPushdown() {
+        createTestTable();
         util.verifyExecPlan(
                 "SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND timestamp3_col <> TIMESTAMP '2022-09-07 10:25:28.127' OR double_col >= -1000.23");
     }
 
     @Test
-    public void testFilterPartialPushdown() {
+    void testFilterPartialPushdown() {
+        createTestTable();
         util.verifyExecPlan(
                 "SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND boolean_col = (decimal_col > 2.0)");
     }
 
     @Test
-    public void testFilterCannotPushdown() {
+    void testFilterCannotPushdown() {
+        createTestTable();
         util.verifyExecPlan(
                 "SELECT id, timestamp3_col, int_col FROM mongo WHERE id IS NOT NULL OR double_col = decimal_col");
+    }
+
+    @Test
+    void testNeverFilterPushdown() {
+        createTestTable(
+                Collections.singletonMap(
+                        MongoConnectorOptions.FILTER_HANDLING_POLICY.key(),
+                        FilterHandlingPolicy.NEVER.name()));
+        util.verifyExecPlan(
+                "SELECT id, timestamp3_col, int_col FROM mongo WHERE id = 900001 AND decimal_col > 1.0");
+    }
+
+    private void createTestTable() {
+        createTestTable(Collections.emptyMap());
+    }
+
+    private void createTestTable(Map<String, String> extraOptions) {
+        TableDescriptor.Builder builder =
+                TableDescriptor.forConnector("mongodb")
+                        .option("uri", "mongodb://127.0.0.1:27017")
+                        .option("database", "test_db")
+                        .option("collection", "test_coll")
+                        .schema(
+                                Schema.newBuilder()
+                                        .column("id", DataTypes.BIGINT())
+                                        .column("description", DataTypes.VARCHAR(200))
+                                        .column("boolean_col", DataTypes.BOOLEAN())
+                                        .column("timestamp_col", DataTypes.TIMESTAMP_LTZ(0))
+                                        .column("timestamp3_col", DataTypes.TIMESTAMP_LTZ(3))
+                                        .column("int_col", DataTypes.INT())
+                                        .column("double_col", DataTypes.DOUBLE())
+                                        .column("decimal_col", DataTypes.DECIMAL(10, 4))
+                                        .build());
+
+        extraOptions.forEach(builder::option);
+
+        util.tableEnv().createTable("mongo", builder.build());
     }
 
     // A workaround to get the test method name for flink versions not completely migrated to JUnit5

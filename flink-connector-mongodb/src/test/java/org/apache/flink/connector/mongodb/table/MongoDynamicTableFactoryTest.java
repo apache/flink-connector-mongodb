@@ -46,6 +46,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUF
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FILTER_HANDLING_POLICY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
@@ -89,6 +90,7 @@ public class MongoDynamicTableFactoryTest {
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
                         LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
+                        FILTER_HANDLING_POLICY.defaultValue(),
                         SCHEMA.toPhysicalRowDataType());
         assertThat(actualSource).isEqualTo(expectedSource);
     }
@@ -115,6 +117,7 @@ public class MongoDynamicTableFactoryTest {
         properties.put(SCAN_PARTITION_STRATEGY.key(), "split-vector");
         properties.put(SCAN_PARTITION_SIZE.key(), "128m");
         properties.put(SCAN_PARTITION_SAMPLES.key(), "5");
+        properties.put(FILTER_HANDLING_POLICY.key(), "never");
 
         DynamicTableSource actual = createTableSource(SCHEMA, properties);
 
@@ -135,6 +138,7 @@ public class MongoDynamicTableFactoryTest {
                         null,
                         LookupOptions.MAX_RETRIES.defaultValue(),
                         LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
+                        FilterHandlingPolicy.NEVER,
                         SCHEMA.toPhysicalRowDataType());
 
         assertThat(actual).isEqualTo(expected);
@@ -162,6 +166,7 @@ public class MongoDynamicTableFactoryTest {
                         DefaultLookupCache.fromConfig(Configuration.fromMap(properties)),
                         10,
                         20,
+                        FILTER_HANDLING_POLICY.defaultValue(),
                         SCHEMA.toPhysicalRowDataType());
 
         assertThat(actual).isEqualTo(expected);
