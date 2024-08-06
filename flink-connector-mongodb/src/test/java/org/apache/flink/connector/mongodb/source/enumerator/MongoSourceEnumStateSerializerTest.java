@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 
 /** Unit tests for {@link MongoSourceEnumStateSerializer}. */
-public class MongoSourceEnumStateSerializerTest {
+class MongoSourceEnumStateSerializerTest {
 
     @Test
     void serializeAndDeserializeMongoSourceEnumState() throws Exception {

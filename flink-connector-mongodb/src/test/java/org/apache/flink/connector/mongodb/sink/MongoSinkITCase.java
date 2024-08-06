@@ -57,7 +57,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for {@link MongoSink}. */
 @Testcontainers
-public class MongoSinkITCase {
+class MongoSinkITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoSinkITCase.class);
 
@@ -66,13 +66,14 @@ public class MongoSinkITCase {
             MongoTestUtil.createMongoDBContainer(LOG);
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(1)
                             .build());
 
-    @RegisterExtension final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
+    @RegisterExtension
+    private final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
 
     private static final String TEST_DATABASE = "test_sink";
 

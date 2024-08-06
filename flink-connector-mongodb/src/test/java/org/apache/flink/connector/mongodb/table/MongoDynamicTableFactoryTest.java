@@ -66,7 +66,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * Test for {@link MongoDynamicTableSource} and {@link MongoDynamicTableSink} created by {@link
  * MongoDynamicTableFactory}.
  */
-public class MongoDynamicTableFactoryTest {
+class MongoDynamicTableFactoryTest {
 
     private static final ResolvedSchema SCHEMA =
             new ResolvedSchema(
@@ -80,7 +80,7 @@ public class MongoDynamicTableFactoryTest {
                     UniqueConstraint.primaryKey("name", Arrays.asList("bbb", "aaa")));
 
     @Test
-    public void testMongoSourceCommonProperties() {
+    void testMongoSourceCommonProperties() {
         DynamicTableSource actualSource = createTableSource(SCHEMA, getRequiredOptions());
 
         MongoDynamicTableSource expectedSource =
@@ -96,7 +96,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoSinkCommonProperties() {
+    void testMongoSinkCommonProperties() {
         DynamicTableSink actualSink = createTableSink(SCHEMA, getRequiredOptions());
 
         MongoDynamicTableSink expectedSink =
@@ -110,7 +110,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoReadProperties() {
+    void testMongoReadProperties() {
         Map<String, String> properties = getRequiredOptions();
         properties.put(SCAN_FETCH_SIZE.key(), "1024");
         properties.put(SCAN_CURSOR_NO_TIMEOUT.key(), "false");
@@ -145,7 +145,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoLookupProperties() {
+    void testMongoLookupProperties() {
         Map<String, String> properties = getRequiredOptions();
         properties.put(LookupOptions.CACHE_TYPE.key(), "PARTIAL");
         properties.put(LookupOptions.PARTIAL_CACHE_EXPIRE_AFTER_WRITE.key(), "10s");
@@ -173,7 +173,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoSinkProperties() {
+    void testMongoSinkProperties() {
         Map<String, String> properties = getRequiredOptions();
         properties.put(BUFFER_FLUSH_MAX_ROWS.key(), "1001");
         properties.put(BUFFER_FLUSH_INTERVAL.key(), "2min");
@@ -201,7 +201,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoSinkWithParallelism() {
+    void testMongoSinkWithParallelism() {
         Map<String, String> properties = getRequiredOptions();
         properties.put("sink.parallelism", "2");
 
@@ -219,7 +219,7 @@ public class MongoDynamicTableFactoryTest {
     }
 
     @Test
-    public void testMongoValidation() {
+    void testMongoValidation() {
         // fetch size lower than 1
         assertSourceValidationRejects(
                 SCAN_FETCH_SIZE.key(), "0", "The fetch size must be larger than 0.");

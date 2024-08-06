@@ -50,10 +50,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Tests for {@link MongoPrimaryKeyExtractor}. */
-public class MongoPrimaryKeyExtractorTest {
+class MongoPrimaryKeyExtractorTest {
 
     @Test
-    public void testSinglePrimaryKey() {
+    void testSinglePrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -70,7 +70,7 @@ public class MongoPrimaryKeyExtractorTest {
     }
 
     @Test
-    public void testObjectIdPrimaryKey() {
+    void testObjectIdPrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -92,7 +92,7 @@ public class MongoPrimaryKeyExtractorTest {
     }
 
     @Test
-    public void testAmbiguousPrimaryKey() {
+    void testAmbiguousPrimaryKey() {
         ResolvedSchema schema0 =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -119,7 +119,7 @@ public class MongoPrimaryKeyExtractorTest {
     }
 
     @Test
-    public void testNoPrimaryKey() {
+    void testNoPrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -136,7 +136,7 @@ public class MongoPrimaryKeyExtractorTest {
     }
 
     @Test
-    public void testCompoundPrimaryKey() {
+    void testCompoundPrimaryKey() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(
@@ -165,7 +165,7 @@ public class MongoPrimaryKeyExtractorTest {
     }
 
     @Test
-    public void testPrimaryKeyWithSupportedTypes() {
+    void testPrimaryKeyWithSupportedTypes() {
         ResolvedSchema schema =
                 new ResolvedSchema(
                         Arrays.asList(

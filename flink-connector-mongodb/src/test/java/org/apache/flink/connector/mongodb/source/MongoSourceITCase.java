@@ -85,17 +85,18 @@ class MongoSourceITCase {
     private static final int PARALLELISM = 2;
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(PARALLELISM)
                             .build());
 
     @RegisterExtension
-    static final MongoShardedContainers MONGO_SHARDED_CONTAINER =
+    private static final MongoShardedContainers MONGO_SHARDED_CONTAINER =
             MongoTestUtil.createMongoDBShardedContainers(Network.newNetwork());
 
-    @RegisterExtension final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
+    @RegisterExtension
+    private final SharedObjectsExtension sharedObjects = SharedObjectsExtension.create();
 
     private static MongoClient mongoClient;
 

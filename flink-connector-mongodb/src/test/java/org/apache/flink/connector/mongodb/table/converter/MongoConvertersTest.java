@@ -60,10 +60,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link BsonToRowDataConverters} and {@link RowDataToBsonConverters}. */
-public class MongoConvertersTest {
+class MongoConvertersTest {
 
     @Test
-    public void testConvertBsonToRowData() {
+    void testConvertBsonToRowData() {
         DataType rowType =
                 DataTypes.ROW(
                         DataTypes.FIELD("_id", DataTypes.STRING().notNull()),
@@ -184,7 +184,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonNullToRowDataWithNonNullableConstraints() {
+    void testConvertBsonNullToRowDataWithNonNullableConstraints() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.STRING().notNull()));
 
         BsonDocument docWithNullValue = new BsonDocument("f0", new BsonNull());
@@ -198,7 +198,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonNumberAndBooleanToSqlString() {
+    void testConvertBsonNumberAndBooleanToSqlString() {
         DataType rowType =
                 DataTypes.ROW(
                         DataTypes.FIELD("f0", DataTypes.STRING()),
@@ -231,7 +231,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlBoolean() {
+    void testConvertBsonToSqlBoolean() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.BOOLEAN()));
 
         BsonDocument document = new BsonDocument("f0", BsonBoolean.FALSE);
@@ -246,7 +246,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlTinyInt() {
+    void testConvertBsonToSqlTinyInt() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.TINYINT()));
         assertThatThrownBy(
                         () ->
@@ -256,7 +256,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlSmallInt() {
+    void testConvertBsonToSqlSmallInt() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.SMALLINT()));
         assertThatThrownBy(
                         () ->
@@ -266,7 +266,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlInt() {
+    void testConvertBsonToSqlInt() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.INT()));
 
         BsonDocument document = new BsonDocument("f0", new BsonInt32(-1));
@@ -281,7 +281,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlBigInt() {
+    void testConvertBsonToSqlBigInt() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.BIGINT()));
 
         BsonDocument document = new BsonDocument("f0", new BsonInt64(127L));
@@ -296,7 +296,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlDouble() {
+    void testConvertBsonToSqlDouble() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.DOUBLE()));
 
         BsonDocument document = new BsonDocument("f0", new BsonDouble(127.11d));
@@ -311,7 +311,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlFloat() {
+    void testConvertBsonToSqlFloat() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.FLOAT()));
         assertThatThrownBy(
                         () ->
@@ -321,7 +321,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonToSqlDecimal() {
+    void testConvertBsonToSqlDecimal() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.DECIMAL(10, 2)));
 
         BsonDocument document =
@@ -339,7 +339,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertBsonInfiniteDecimalToSqlNumber() {
+    void testConvertBsonInfiniteDecimalToSqlNumber() {
         BsonDecimal128 positiveInfinity = new BsonDecimal128(Decimal128.POSITIVE_INFINITY);
         BsonDecimal128 negativeInfinity = new BsonDecimal128(Decimal128.NEGATIVE_INFINITY);
 
@@ -361,7 +361,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertRowDataToBson() {
+    void testConvertRowDataToBson() {
         DataType rowType =
                 DataTypes.ROW(
                         DataTypes.FIELD("_id", DataTypes.STRING().notNull()),
@@ -426,7 +426,7 @@ public class MongoConvertersTest {
     }
 
     @Test
-    public void testConvertRowDataNullValueToBsonWithNonNullableConstraints() {
+    void testConvertRowDataNullValueToBsonWithNonNullableConstraints() {
         DataType rowType = DataTypes.ROW(DataTypes.FIELD("f0", DataTypes.STRING().notNull()));
 
         RowData rowData = GenericRowData.of((StringData) null);

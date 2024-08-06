@@ -61,14 +61,14 @@ import static org.assertj.core.api.Assertions.fail;
 
 /** Tests for {@link MongoWriter}. */
 @Testcontainers
-public class MongoWriterITCase {
+class MongoWriterITCase {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoWriterITCase.class);
 
     private static final String TEST_DATABASE = "test_writer";
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(2)

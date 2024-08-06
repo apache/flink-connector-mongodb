@@ -93,7 +93,7 @@ class MongoDynamicTableSourceITCase {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSinkITCase.class);
 
     @RegisterExtension
-    static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
+    private static final MiniClusterExtension MINI_CLUSTER_RESOURCE =
             new MiniClusterExtension(
                     new MiniClusterResourceConfiguration.Builder()
                             .setNumberTaskManagers(1)
