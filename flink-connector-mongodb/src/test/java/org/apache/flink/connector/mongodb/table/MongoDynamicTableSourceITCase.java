@@ -65,6 +65,7 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -101,7 +102,7 @@ class MongoDynamicTableSourceITCase {
 
     @Container
     private static final MongoDBContainer MONGO_CONTAINER =
-            MongoTestUtil.createMongoDBContainer(LOG);
+            MongoTestUtil.createMongoDBContainer().withLogConsumer(new Slf4jLogConsumer(LOG));
 
     private static final String TEST_DATABASE = "test";
     private static final String TEST_COLLECTION = "mongo_table_source";

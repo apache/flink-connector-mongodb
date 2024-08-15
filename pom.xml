@@ -50,7 +50,7 @@ under the License.
 	</scm>
 
 	<properties>
-		<mongodb.version>5.1.1</mongodb.version>
+		<mongodb.driver.version>5.1.1</mongodb.driver.version>
 
 		<flink.version>1.18.0</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
@@ -159,7 +159,7 @@ under the License.
 			<dependency>
 				<groupId>org.mongodb</groupId>
 				<artifactId>mongodb-driver-sync</artifactId>
-				<version>${mongodb.version}</version>
+				<version>${mongodb.driver.version}</version>
 			</dependency>
 
 			<!-- Flink dependencies -->
@@ -367,6 +367,11 @@ under the License.
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<systemPropertyVariables>
+						<mongodb.version>${mongodb.version}</mongodb.version>
+					</systemPropertyVariables>
+				</configuration>
 			</plugin>
 
 			<plugin>
@@ -397,6 +402,37 @@ under the License.
 					 Don't upgrade it in this profile because it formats code differently.
 					 Re-evaluate once support for Java 8 is dropped. -->
 				<spotless.skip>true</spotless.skip>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mongodb4</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<mongodb.version>4.0.28</mongodb.version>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mongodb5</id>
+			<properties>
+				<mongodb.version>5.0.28</mongodb.version>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mongodb6</id>
+			<properties>
+				<mongodb.version>6.0.16</mongodb.version>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mongodb7</id>
+			<properties>
+				<mongodb.version>7.0.12</mongodb.version>
 			</properties>
 		</profile>
 	</profiles>
