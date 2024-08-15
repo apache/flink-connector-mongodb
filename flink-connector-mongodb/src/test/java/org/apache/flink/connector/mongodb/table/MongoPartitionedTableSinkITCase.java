@@ -23,6 +23,7 @@ import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.table.api.DataTypes;
 import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 
@@ -51,6 +52,7 @@ import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/** IT tests for {@link SupportsPartitioning} feature of {@link MongoDynamicTableSink}. */
 class MongoPartitionedTableSinkITCase {
 
     @RegisterExtension

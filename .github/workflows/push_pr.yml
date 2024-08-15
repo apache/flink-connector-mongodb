@@ -28,14 +28,25 @@ jobs:
   compile_and_test:
     strategy:
       matrix:
-        flink: [ 1.18-SNAPSHOT ]
-        jdk: [ '8, 11, 17' ]
+        mongodb: [ mongodb4, mongodb5, mongodb6, mongodb7 ]
+        flink: [ 1.19-SNAPSHOT, 1.20-SNAPSHOT ]
+        jdk: [ '8, 11, 17, 21' ]
         include:
-          - flink: 1.19-SNAPSHOT
-            jdk: '8, 11, 17, 21'
-          - flink: 1.20-SNAPSHOT
-            jdk: '8, 11, 17, 21'
+          - mongodb: mongodb4
+            flink: 1.18-SNAPSHOT
+            jdk: '8, 11, 17'
+          - mongodb: mongodb5
+            flink: 1.18-SNAPSHOT
+            jdk: '8, 11, 17'
+          - mongodb: mongodb6
+            flink: 1.18-SNAPSHOT
+            jdk: '8, 11, 17'
+          - mongodb: mongodb7
+            flink: 1.18-SNAPSHOT
+            jdk: '8, 11, 17'
+
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
       flink_version: ${{ matrix.flink }}
       jdk_version: ${{ matrix.jdk }}
+      optional_maven_profiles: ${{ matrix.mongodb }}

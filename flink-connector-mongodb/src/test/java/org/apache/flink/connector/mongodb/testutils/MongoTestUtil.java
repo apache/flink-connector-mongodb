@@ -28,10 +28,8 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.slf4j.Logger;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.Network;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
@@ -45,7 +43,7 @@ public class MongoTestUtil {
 
     public static final String MONGODB_HOSTNAME = "mongodb";
 
-    public static final String MONGO_4_0 = "mongo:4.0.10";
+    public static final String MONGO_IMAGE_PREFIX = "mongo:";
 
     public static final String ADMIN_DATABASE = "admin";
     public static final String CONFIG_DATABASE = "config";
@@ -58,12 +56,10 @@ public class MongoTestUtil {
     /**
      * Creates a preconfigured {@link MongoDBContainer}.
      *
-     * @param logger for test containers
      * @return configured MongoDB container
      */
-    public static MongoDBContainer createMongoDBContainer(Logger logger) {
-        return new MongoDBContainer(DockerImageName.parse(MONGO_4_0))
-                .withLogConsumer(new Slf4jLogConsumer(logger));
+    public static MongoDBContainer createMongoDBContainer() {
+        return new MongoDBContainer(mongoDockerImageName());
     }
 
     /**
@@ -73,7 +69,15 @@ public class MongoTestUtil {
      * @return configured MongoDB sharded containers
      */
     public static MongoShardedContainers createMongoDBShardedContainers(Network network) {
-        return new MongoShardedContainers(DockerImageName.parse(MONGO_4_0), network);
+        return new MongoShardedContainers(mongoDockerImageName(), network);
+    }
+
+    public static DockerImageName mongoDockerImageName() {
+        return DockerImageName.parse(MONGO_IMAGE_PREFIX + mongoVersion());
+    }
+
+    public static String mongoVersion() {
+        return System.getProperty("mongodb.version");
     }
 
     public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, Integer... ids) {
