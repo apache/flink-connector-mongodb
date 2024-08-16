@@ -28,6 +28,7 @@ import org.apache.flink.table.catalog.ResolvedSchema;
 import org.apache.flink.table.connector.ChangelogMode;
 import org.apache.flink.table.connector.sink.DynamicTableSink;
 import org.apache.flink.table.connector.sink.SinkV2Provider;
+import org.apache.flink.table.connector.sink.abilities.SupportsOverwrite;
 import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
 import org.apache.flink.table.data.RowData;
 import org.apache.flink.table.types.logical.RowType;
@@ -48,14 +49,15 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /** A {@link DynamicTableSink} for MongoDB. */
 @Internal
-public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitioning {
+public class MongoDynamicTableSink
+        implements DynamicTableSink, SupportsPartitioning, SupportsOverwrite {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDynamicTableSink.class);
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
     @Nullable private final Integer parallelism;
-    private final boolean isUpsert;
+    private final boolean supportUpsert;
     private final ResolvedSchema resolvedSchema;
     private final String[] partitionKeys;
     private final SerializableFunction<RowData, BsonValue> primaryKeyExtractor;
@@ -72,7 +74,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
         this.parallelism = parallelism;
         this.resolvedSchema = checkNotNull(resolvedSchema);
         this.partitionKeys = checkNotNull(partitionKeys);
-        this.isUpsert = resolvedSchema.getPrimaryKey().isPresent();
+        this.supportUpsert = resolvedSchema.getPrimaryKey().isPresent();
         this.primaryKeyExtractor =
                 MongoPrimaryKeyExtractor.createPrimaryKeyExtractor(resolvedSchema);
         this.shardKeysExtractor =
@@ -81,7 +83,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
 
     @Override
     public ChangelogMode getChangelogMode(ChangelogMode requestedMode) {
-        if (isUpsert) {
+        if (supportUpsert) {
             return ChangelogMode.upsert();
         } else {
             return ChangelogMode.insertOnly();
@@ -120,6 +122,14 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
     }
 
     @Override
+    public void applyOverwrite(boolean overwrite) {
+        if (overwrite && !supportUpsert) {
+            throw new IllegalStateException(
+                    "Overwrite sink requires specifying the table's primary key");
+        }
+    }
+
+    @Override
     public MongoDynamicTableSink copy() {
         return new MongoDynamicTableSink(
                 connectionOptions, writeOptions, parallelism, resolvedSchema, partitionKeys);
@@ -142,7 +152,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
         return Objects.equals(connectionOptions, that.connectionOptions)
                 && Objects.equals(writeOptions, that.writeOptions)
                 && Objects.equals(parallelism, that.parallelism)
-                && Objects.equals(isUpsert, that.isUpsert)
+                && Objects.equals(supportUpsert, that.supportUpsert)
                 && Objects.equals(resolvedSchema, that.resolvedSchema)
                 && Arrays.equals(partitionKeys, that.partitionKeys);
     }
@@ -154,7 +164,7 @@ public class MongoDynamicTableSink implements DynamicTableSink, SupportsPartitio
                                 connectionOptions,
                                 writeOptions,
                                 parallelism,
-                                isUpsert,
+                                supportUpsert,
                                 resolvedSchema)
                 + Arrays.hashCode(partitionKeys);
     }

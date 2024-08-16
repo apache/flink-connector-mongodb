@@ -43,4 +43,4 @@ CREATE TABLE orders_bak (
   'collection' = 'orders_bak'
 );
 
-INSERT INTO orders_bak SELECT * FROM orders;
+INSERT OVERWRITE orders_bak SELECT * FROM orders;
