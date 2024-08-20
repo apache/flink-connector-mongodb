@@ -19,6 +19,7 @@
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 
 import com.mongodb.MongoNamespace;
@@ -27,6 +28,8 @@ import com.mongodb.client.MongoCollection;
 import org.bson.BsonBoolean;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
+
+import javax.annotation.Nullable;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.AVG_OBJ_SIZE_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.COUNT_FIELD;
@@ -61,21 +64,36 @@ public class MongoSplitContext {
     /** The average size(bytes) of an object in the collection. */
     private final long avgObjSize;
 
-    public MongoSplitContext(
+    @VisibleForTesting
+    MongoSplitContext(
             MongoReadOptions readOptions,
             MongoClient mongoClient,
             MongoNamespace namespace,
             boolean sharded,
-            long count,
+            @Nullable Long count,
             long size,
             long avgObjSize) {
         this.readOptions = readOptions;
         this.mongoClient = mongoClient;
         this.namespace = namespace;
         this.sharded = sharded;
-        this.count = count;
         this.size = size;
-        this.avgObjSize = avgObjSize;
+
+        if (count == null) {
+            // Time series collections do not return a count and avgObjSize from the $collStats
+            // aggregation.
+            // We need to count the documents and calculate avgObjSize here.
+            long documentCount = countDocuments();
+            this.count = documentCount;
+            if (documentCount != 0L) {
+                this.avgObjSize = size / documentCount;
+            } else {
+                this.avgObjSize = avgObjSize;
+            }
+        } else {
+            this.count = count;
+            this.avgObjSize = avgObjSize;
+        }
     }
 
     public static MongoSplitContext of(
@@ -88,7 +106,9 @@ public class MongoSplitContext {
                 mongoClient,
                 namespace,
                 collStats.getBoolean(SHARDED_FIELD, BsonBoolean.FALSE).getValue(),
-                collStats.getNumber(COUNT_FIELD, new BsonInt64(0)).longValue(),
+                collStats.containsKey(COUNT_FIELD)
+                        ? collStats.getNumber(COUNT_FIELD).longValue()
+                        : null,
                 collStats.getNumber(SIZE_FIELD, new BsonInt64(0)).longValue(),
                 collStats.getNumber(AVG_OBJ_SIZE_FIELD, new BsonInt64(0)).longValue());
     }
@@ -126,6 +146,14 @@ public class MongoSplitContext {
 
     public long getCount() {
         return count;
+    }
+
+    @VisibleForTesting
+    long countDocuments() {
+        return mongoClient
+                .getDatabase(namespace.getDatabaseName())
+                .getCollection(namespace.getCollectionName())
+                .countDocuments();
     }
 
     public long getSize() {

@@ -27,6 +27,7 @@ import org.bson.BsonInt32;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
@@ -45,11 +46,45 @@ class MongoSampleSplitterTest {
     void testSplitEmptyCollection() {
         MongoSplitContext splitContext =
                 new MongoSplitContext(
-                        MongoReadOptions.builder().build(), null, TEST_NS, false, 0, 0, 0);
+                        MongoReadOptions.builder().build(), null, TEST_NS, false, 0L, 0, 0);
 
         assertSingleSplit(
                 new ArrayList<>(
                         MongoSampleSplitter.split(splitContext, (i1, i2) -> new ArrayList<>())));
+    }
+
+    @Test
+    void testSplitTimeSeriesCollection() {
+        long totalNumDocuments = 10000L;
+
+        MemorySize avgObjSize = new MemorySize(1600L);
+        MemorySize totalStorageSize = avgObjSize.multiply(totalNumDocuments);
+        MemorySize partitionSize = totalStorageSize.divide(3);
+
+        MongoSplitContext splitContext =
+                new MongoSplitContext(
+                        MongoReadOptions.builder().setPartitionSize(partitionSize).build(),
+                        null,
+                        TEST_NS,
+                        false,
+                        null,
+                        totalStorageSize.getBytes(),
+                        0) {
+                    @Override
+                    long countDocuments() {
+                        return totalNumDocuments;
+                    }
+                };
+
+        Collection<MongoScanSourceSplit> splits =
+                MongoSampleSplitter.split(
+                        splitContext,
+                        (context, numRequestedSamples) -> {
+                            assertThat(context.getCount()).isEqualTo(totalNumDocuments);
+                            assertThat(context.getAvgObjSize()).isEqualTo(avgObjSize.getBytes());
+                            return createSamples(numRequestedSamples);
+                        });
+        assertThat(splits).hasSize(4);
     }
 
     @Test

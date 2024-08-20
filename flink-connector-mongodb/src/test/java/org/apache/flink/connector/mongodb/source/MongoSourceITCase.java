@@ -44,11 +44,14 @@ import org.apache.flink.util.CollectionUtil;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.TimeSeriesOptions;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bson.BsonDateTime;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonString;
@@ -67,6 +70,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
@@ -77,6 +81,7 @@ import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.CONFIG_
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.SETTINGS_COLLECTION;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.VALUE_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 /** IT cases for using Mongo Source. */
 @Testcontainers
@@ -102,6 +107,7 @@ class MongoSourceITCase {
 
     private static final String TEST_DATABASE = "test_source";
     private static final String TEST_COLLECTION = "test_coll";
+    private static final String TEST_TIMESERIES_COLLECTION = "test_timeseries_collection";
     private static final String TEST_SHARDED_COLLECTION = "test_sharded_coll";
     private static final String TEST_HASHED_KEY_SHARDED_COLLECTION = "test_hashed_key_sharded_coll";
 
@@ -183,6 +189,41 @@ class MongoSourceITCase {
                                 .executeAndCollect());
 
         assertThat(results).hasSize(TEST_RECORD_SIZE - 10000);
+    }
+
+    @Test
+    void testPartitionStrategyOnTimeSeriesCollection() throws Exception {
+        assumeThat(MongoTestUtil.mongoVersion().isAtLeast(5, 0, 0))
+                .as("Time series collection is only supported in MongoDB 5.0.0 or later.")
+                .isTrue();
+
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .createCollection(
+                        TEST_TIMESERIES_COLLECTION,
+                        new CreateCollectionOptions()
+                                .timeSeriesOptions(new TimeSeriesOptions("f2"))
+                                .expireAfter(1, TimeUnit.HOURS));
+        initTestData(TEST_TIMESERIES_COLLECTION);
+
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+        MongoSource<RowData> mongoSource =
+                defaultSourceBuilder(TEST_TIMESERIES_COLLECTION)
+                        .setPartitionSize(MemorySize.parse("1mb"))
+                        .setSamplesPerPartition(3)
+                        .setPartitionStrategy(PartitionStrategy.SAMPLE)
+                        .build();
+
+        List<RowData> results =
+                CollectionUtil.iteratorToList(
+                        env.fromSource(
+                                        mongoSource,
+                                        WatermarkStrategy.noWatermarks(),
+                                        "MongoDB-Source")
+                                .executeAndCollect());
+
+        assertThat(results).hasSize(TEST_RECORD_SIZE);
     }
 
     @Test
@@ -283,7 +324,9 @@ class MongoSourceITCase {
 
     private static ResolvedSchema defaultSourceSchema() {
         return ResolvedSchema.of(
-                Column.physical("f0", DataTypes.INT()), Column.physical("f1", DataTypes.STRING()));
+                Column.physical("f0", DataTypes.INT()),
+                Column.physical("f1", DataTypes.STRING()),
+                Column.physical("f2", DataTypes.TIMESTAMP_LTZ(3)));
     }
 
     private static void initTestData(String collection) {
@@ -305,7 +348,8 @@ class MongoSourceITCase {
 
     private static BsonDocument createTestData(int id) {
         return new BsonDocument("f0", new BsonInt32(id))
-                .append("f1", new BsonString(RandomStringUtils.randomAlphabetic(32)));
+                .append("f1", new BsonString(RandomStringUtils.randomAlphabetic(32)))
+                .append("f2", new BsonDateTime(System.currentTimeMillis()));
     }
 
     private static class MongoJsonDeserializationSchema

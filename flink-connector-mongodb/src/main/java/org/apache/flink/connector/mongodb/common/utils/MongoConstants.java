@@ -23,6 +23,7 @@ import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonMaxKey;
 import org.bson.BsonMinKey;
+import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.json.JsonMode;
 import org.bson.json.JsonWriterSettings;
@@ -64,6 +65,8 @@ public class MongoConstants {
     public static final BsonValue BSON_MAX_KEY = new BsonMaxKey();
 
     public static final BsonDocument ID_HINT = new BsonDocument(ID_FIELD, new BsonInt32(1));
+
+    public static final BsonString HASHED_INDEX_TYPE = new BsonString("hashed");
 
     public static final JsonWriterSettings DEFAULT_JSON_WRITER_SETTINGS =
             JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build();
