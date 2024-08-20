@@ -34,6 +34,7 @@ import com.mongodb.MongoException;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -45,6 +46,10 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lt;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.HASHED_INDEX_TYPE;
 import static org.apache.flink.connector.mongodb.common.utils.MongoUtils.project;
 
 /** A split reader implements {@link SplitReader} for {@link MongoScanSourceSplit}. */
@@ -171,19 +176,40 @@ public class MongoScanSourceSplitReader implements MongoSourceSplitReader<MongoS
             LOG.debug("Opened cursor for split: {}", currentSplit);
             mongoClient = MongoClients.create(connectionOptions.getUri());
 
-            // Using MongoDB's cursor.min() and cursor.max() to limit an index bound.
-            // When the index range is the primary key, the bound is (min <= _id < max).
-            // Compound indexes and hash indexes bounds can also be supported in this way.
-            // Please refer to https://www.mongodb.com/docs/manual/reference/method/cursor.min/
-            FindIterable<BsonDocument> findIterable =
+            BsonDocument min = currentSplit.getMin();
+            BsonDocument max = currentSplit.getMax();
+            BsonDocument hint = currentSplit.getHint();
+            boolean isSplitByCompoundOrHashIndexes =
+                    hint.size() > 1 || hint.containsValue(HASHED_INDEX_TYPE);
+
+            MongoCollection<BsonDocument> collection =
                     mongoClient
                             .getDatabase(connectionOptions.getDatabase())
-                            .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                            .find(filter)
-                            .min(currentSplit.getMin())
-                            .max(currentSplit.getMax())
-                            .hint(currentSplit.getHint())
-                            .noCursorTimeout(readOptions.isNoCursorTimeout());
+                            .getCollection(connectionOptions.getCollection(), BsonDocument.class);
+
+            FindIterable<BsonDocument> findIterable;
+            if (isSplitByCompoundOrHashIndexes) {
+                // Using MongoDB's cursor.min() and cursor.max() to limit an index bound.
+                // When the index range is the primary key, the bound is (min <= _id < max).
+                // Compound indexes and hash indexes bounds can be supported in this way.
+                // Please refer to https://www.mongodb.com/docs/manual/reference/method/cursor.min/
+                findIterable =
+                        collection
+                                .find(filter)
+                                .min(min)
+                                .max(max)
+                                .hint(hint)
+                                .noCursorTimeout(readOptions.isNoCursorTimeout());
+            } else {
+                // Using MongoDB's $gte and $lt filters to limit split bounds.
+                // This method is suitable for most scenarios,
+                // but it does not support compound indexes and hash indexes bounds.
+                Bson filters = filter;
+                for (String key : hint.keySet()) {
+                    filters = and(filters, gte(key, min.get(key)), lt(key, max.get(key)));
+                }
+                findIterable = collection.find(filters);
+            }
 
             // Current split was partially read and recovered from checkpoint
             if (currentSplit.getOffset() > 0) {

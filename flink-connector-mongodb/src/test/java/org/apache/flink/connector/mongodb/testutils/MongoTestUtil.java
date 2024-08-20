@@ -76,8 +76,8 @@ public class MongoTestUtil {
         return DockerImageName.parse(MONGO_IMAGE_PREFIX + mongoVersion());
     }
 
-    public static String mongoVersion() {
-        return System.getProperty("mongodb.version");
+    public static MongoVersion mongoVersion() {
+        return MongoVersion.parse(System.getProperty("mongodb.version"));
     }
 
     public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, Integer... ids) {
