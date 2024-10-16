@@ -29,8 +29,8 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_BOUNDARY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -38,8 +38,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 class MongoSampleSplitterTest {
 
     private static final MongoNamespace TEST_NS = new MongoNamespace("test.test");
-    private static final BsonDocument MIN = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
-    private static final BsonDocument MAX = new BsonDocument(ID_FIELD, BSON_MAX_KEY);
 
     @Test
     void testSplitEmptyCollection() {
@@ -124,7 +122,7 @@ class MongoSampleSplitterTest {
         assertThat(splits.get(0))
                 .satisfies(
                         split -> {
-                            assertThat(split.getMin()).isEqualTo(MIN);
+                            assertThat(split.getMin()).isEqualTo(BSON_MIN_BOUNDARY);
                             assertThat(split.getMax()).isEqualTo(samples.get(1));
                         });
         assertThat(splits.get(1))
@@ -137,7 +135,7 @@ class MongoSampleSplitterTest {
                 .satisfies(
                         split -> {
                             assertThat(split.getMin()).isEqualTo(samples.get(3));
-                            assertThat(split.getMax()).isEqualTo(MAX);
+                            assertThat(split.getMax()).isEqualTo(BSON_MAX_BOUNDARY);
                         });
     }
 
@@ -151,7 +149,7 @@ class MongoSampleSplitterTest {
 
     private static void assertSingleSplit(List<MongoScanSourceSplit> splits) {
         assertThat(splits.size()).isEqualTo(1);
-        assertThat(splits.get(0).getMin()).isEqualTo(MIN);
-        assertThat(splits.get(0).getMax()).isEqualTo(MAX);
+        assertThat(splits.get(0).getMin()).isEqualTo(BSON_MIN_BOUNDARY);
+        assertThat(splits.get(0).getMax()).isEqualTo(BSON_MAX_BOUNDARY);
     }
 }

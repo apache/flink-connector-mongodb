@@ -179,6 +179,7 @@ public class MongoDynamicTableFactory
                 .setNoCursorTimeout(configuration.isNoCursorTimeout())
                 .setPartitionStrategy(configuration.getPartitionStrategy())
                 .setPartitionSize(configuration.getPartitionSize())
+                .setPartitionRecordSize(configuration.getPartitionRecordSize())
                 .setSamplesPerPartition(configuration.getSamplesPerPartition())
                 .build();
     }

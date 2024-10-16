@@ -27,6 +27,7 @@ import java.util.Objects;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_RECORD_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
@@ -49,17 +50,21 @@ public class MongoReadOptions implements Serializable {
 
     private final int samplesPerPartition;
 
+    private final int partitionRecordSize;
+
     private MongoReadOptions(
             int fetchSize,
             boolean noCursorTimeout,
             PartitionStrategy partitionStrategy,
             MemorySize partitionSize,
-            int samplesPerPartition) {
+            int samplesPerPartition,
+            int partitionRecordSize) {
         this.fetchSize = fetchSize;
         this.noCursorTimeout = noCursorTimeout;
         this.partitionStrategy = partitionStrategy;
         this.partitionSize = partitionSize;
         this.samplesPerPartition = samplesPerPartition;
+        this.partitionRecordSize = partitionRecordSize;
     }
 
     public int getFetchSize() {
@@ -80,6 +85,10 @@ public class MongoReadOptions implements Serializable {
 
     public int getSamplesPerPartition() {
         return samplesPerPartition;
+    }
+
+    public int getPartitionRecordSize() {
+        return partitionRecordSize;
     }
 
     @Override
@@ -114,6 +123,7 @@ public class MongoReadOptions implements Serializable {
         private PartitionStrategy partitionStrategy = SCAN_PARTITION_STRATEGY.defaultValue();
         private MemorySize partitionSize = SCAN_PARTITION_SIZE.defaultValue();
         private int samplesPerPartition = SCAN_PARTITION_SAMPLES.defaultValue();
+        private int partitionRecordSize = SCAN_PARTITION_RECORD_SIZE.defaultValue();
 
         private MongoReadOptionsBuilder() {}
 
@@ -200,6 +210,22 @@ public class MongoReadOptions implements Serializable {
         }
 
         /**
+         * Sets the number of records in each partition. This will only take effect when the
+         * partition strategy is set to Pagination.
+         *
+         * @param partitionRecordSize number of records in each partition.
+         * @return this builder
+         */
+        public MongoReadOptionsBuilder setPartitionRecordSize(int partitionRecordSize) {
+            checkArgument(
+                    !PartitionStrategy.PAGINATION.equals(partitionStrategy)
+                            || partitionRecordSize > 0,
+                    "The partition record size must be set in `pagination` partitioning strategy.");
+            this.partitionRecordSize = partitionRecordSize;
+            return this;
+        }
+
+        /**
          * Build the {@link MongoReadOptions}.
          *
          * @return a MongoReadOptions with the settings made for this builder.
@@ -210,7 +236,8 @@ public class MongoReadOptions implements Serializable {
                     noCursorTimeout,
                     partitionStrategy,
                     partitionSize,
-                    samplesPerPartition);
+                    samplesPerPartition,
+                    partitionRecordSize);
         }
     }
 }

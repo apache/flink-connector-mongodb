@@ -75,12 +75,13 @@ public class MongoConnectorOptions {
                     .enumType(PartitionStrategy.class)
                     .defaultValue(PartitionStrategy.DEFAULT)
                     .withDescription(
-                            "Specifies the partition strategy. Available strategies are single, sample, split-vector, sharded and default."
-                                    + "The single partition strategy treats the entire collection as a single partition."
-                                    + "The sample partition strategy samples the collection and generate partitions which is fast but possibly uneven."
-                                    + "The split-vector partition strategy uses the splitVector command to generate partitions for non-sharded collections which is fast and even. The splitVector permission is required."
-                                    + "The sharded partition strategy reads config.chunks (MongoDB splits a sharded collection into chunks, and the range of the chunks are stored within the collection) as the partitions directly."
-                                    + "The sharded partition strategy is only used for sharded collection which is fast and even. Read permission of config database is required."
+                            "Specifies the partition strategy. Available strategies are single, sample, split-vector, sharded, pagination and default. "
+                                    + "The single partition strategy treats the entire collection as a single partition. "
+                                    + "The sample partition strategy samples the collection and generate partitions which is fast but possibly uneven. "
+                                    + "The split-vector partition strategy uses the splitVector command to generate partitions for non-sharded collections which is fast and even. The splitVector permission is required. "
+                                    + "The sharded partition strategy reads config.chunks (MongoDB splits a sharded collection into chunks, and the range of the chunks are stored within the collection) as the partitions directly. "
+                                    + "The sharded partition strategy is only used for sharded collection which is fast and even. Read permission of config database is required. "
+                                    + "The pagination partition strategy splits records evenly. Each chunk will have exactly the same number of records. This could be configured by `scan.partition.record-size` option. "
                                     + "The default partition strategy uses sharded strategy for sharded collections otherwise using split vector strategy.");
 
     public static final ConfigOption<MemorySize> SCAN_PARTITION_SIZE =
@@ -98,6 +99,13 @@ public class MongoConnectorOptions {
                                     + "The sample partitioner samples the collection, projects and sorts by the partition fields. "
                                     + "Then uses every 'scan.partition.samples' as the value to use to calculate the partition boundaries."
                                     + "The total number of samples taken is calculated as: samples per partition * (count of documents / number of documents per partition.");
+
+    public static final ConfigOption<Integer> SCAN_PARTITION_RECORD_SIZE =
+            ConfigOptions.key("scan.partition.record-size")
+                    .intType()
+                    .defaultValue(0)
+                    .withDescription(
+                            "Specifies the number of records in each chunk. Only takes effect when `scan.partition.strategy` is `pagination`.");
 
     public static final ConfigOption<Duration> LOOKUP_RETRY_INTERVAL =
             ConfigOptions.key("lookup.retry.interval")

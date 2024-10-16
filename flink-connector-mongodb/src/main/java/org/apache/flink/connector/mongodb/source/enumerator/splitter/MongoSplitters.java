@@ -64,6 +64,8 @@ public class MongoSplitters {
                 return MongoSplitVectorSplitter.split(splitContext);
             case SHARDED:
                 return MongoShardedSplitter.split(splitContext);
+            case PAGINATION:
+                return MongoPaginationSplitter.split(splitContext);
             case DEFAULT:
             default:
                 return splitContext.isSharded()

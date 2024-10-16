@@ -55,6 +55,11 @@ public enum PartitionStrategy implements DescribedEnum {
             text(
                     "Read the chunk ranges from config.chunks collection and splits to multiple chunks. Only support sharded collections.")),
 
+    PAGINATION(
+            "pagination",
+            text(
+                    "Creating chunk records evenly by count. Each chunk will have exactly the same number of records.")),
+
     DEFAULT(
             "default",
             text(
