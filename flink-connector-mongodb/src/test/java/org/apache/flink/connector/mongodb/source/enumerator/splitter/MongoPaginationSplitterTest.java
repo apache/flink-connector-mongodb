@@ -246,9 +246,9 @@ class MongoPaginationSplitterTest {
         for (int i = 0; i < ranges.size(); i++) {
             results.add(
                     new MongoScanSourceSplit(
-                            "test.test_" + i,
-                            "test",
-                            "test",
+                            TEST_NS.getFullName() + "_" + i,
+                            TEST_NS.getDatabaseName(),
+                            TEST_NS.getCollectionName(),
                             new BsonDocument(ID_FIELD, ranges.get(i).f0),
                             new BsonDocument(ID_FIELD, ranges.get(i).f1),
                             ID_HINT));
