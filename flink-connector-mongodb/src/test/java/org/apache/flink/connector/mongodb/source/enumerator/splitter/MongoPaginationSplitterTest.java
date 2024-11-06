@@ -18,6 +18,7 @@
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.testutils.MongoShardedContainers;
@@ -44,12 +45,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** Unit tests for {@link MongoPaginationSplitter}. */
 class MongoPaginationSplitterTest {
@@ -72,7 +74,7 @@ class MongoPaginationSplitterTest {
                         .getDatabase(TEST_NS.getDatabaseName())
                         .getCollection(TEST_NS.getCollectionName())
                         .withDocumentClass(BsonDocument.class);
-        coll.insertMany(createRecords(TOTAL_RECORDS_COUNT));
+        coll.insertMany(initializeRecords());
     }
 
     @AfterAll
@@ -82,61 +84,24 @@ class MongoPaginationSplitterTest {
         }
     }
 
-    @Test
-    void testMissingArgument() {
-        MongoSplitContext splitContext =
-                new MongoSplitContext(
-                        MongoReadOptions.builder().build(), mongoClient, TEST_NS, false, 0, 0, 0);
-        assertThatThrownBy(() -> new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("The partition record size must be set to a positive integer.");
-    }
-
-    @Test
-    void testSplitEmptyCollection() {
-        MongoSplitContext splitContext =
-                new MongoSplitContext(
-                        MongoReadOptions.builder().setPartitionRecordSize(1).build(),
-                        mongoClient,
-                        TEST_NS,
-                        false,
-                        0,
-                        0,
-                        0);
-        assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
-                .isEqualTo(Collections.emptyList());
-    }
-
+    ///  Test cases that specifies number of records in each partition explicitly.
     @Test
     void testSingleSplitPartitions() {
-        MongoSplitContext splitContext =
-                new MongoSplitContext(
-                        MongoReadOptions.builder()
-                                .setPartitionRecordSize(TOTAL_RECORDS_COUNT)
-                                .build(),
-                        mongoClient,
-                        TEST_NS,
-                        false,
-                        TOTAL_RECORDS_COUNT,
-                        0,
-                        0);
+        MongoSplitContext splitContext = createSplitContext(TOTAL_RECORDS_COUNT);
         assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
-                .isEqualTo(
-                        createReferenceSplits(
-                                Collections.singletonList(Tuple2.of(BSON_MIN_KEY, BSON_MAX_KEY))));
+                .isEqualTo(SINGLE_SPLIT);
+    }
+
+    @Test
+    void testLargePartitionRecordSize() {
+        MongoSplitContext splitContext = createSplitContext(TOTAL_RECORDS_COUNT * 2);
+        assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                .isEqualTo(SINGLE_SPLIT);
     }
 
     @Test
     void testLargerSizedPartitions() {
-        MongoSplitContext splitContext =
-                new MongoSplitContext(
-                        MongoReadOptions.builder().setPartitionRecordSize(15).build(),
-                        mongoClient,
-                        TEST_NS,
-                        false,
-                        TOTAL_RECORDS_COUNT,
-                        0,
-                        0);
+        MongoSplitContext splitContext = createSplitContext(15);
         assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
                 .isEqualTo(
                         createReferenceSplits(
@@ -154,17 +119,62 @@ class MongoPaginationSplitterTest {
     @Test
     void testOffByOnePartitions() {
         {
+            MongoSplitContext splitContext = createSplitContext(TOTAL_RECORDS_COUNT - 1);
+            assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                    .isEqualTo(
+                            createReferenceSplits(
+                                    Arrays.asList(
+                                            Tuple2.of(
+                                                    BSON_MIN_KEY,
+                                                    new BsonInt64(TOTAL_RECORDS_COUNT - 1)),
+                                            Tuple2.of(
+                                                    new BsonInt64(TOTAL_RECORDS_COUNT - 1),
+                                                    BSON_MAX_KEY))));
+        }
+
+        {
+            MongoSplitContext splitContext = createSplitContext(TOTAL_RECORDS_COUNT);
+            assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                    .isEqualTo(SINGLE_SPLIT);
+        }
+    }
+
+    ///  Test cases that do not specify number of records, and estimates record size with
+    /// `avgObjSize`.
+    @Test
+    void testEstimatedSingleSplitPartitions() {
+        MongoSplitContext splitContext =
+                createSplitContext(MemorySize.ofMebiBytes(16), MemorySize.ZERO);
+        assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                .isEqualTo(SINGLE_SPLIT);
+    }
+
+    @Test
+    void testEstimatedLargerSizedPartitions() {
+        MongoSplitContext splitContext =
+                createSplitContext(MemorySize.ofMebiBytes(50), MemorySize.ofMebiBytes(3));
+
+        assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                .isEqualTo(
+                        createReferenceSplits(
+                                Arrays.asList(
+                                        Tuple2.of(BSON_MIN_KEY, new BsonInt64(16)),
+                                        Tuple2.of(new BsonInt64(16), new BsonInt64(32)),
+                                        Tuple2.of(new BsonInt64(32), new BsonInt64(48)),
+                                        Tuple2.of(new BsonInt64(48), new BsonInt64(64)),
+                                        Tuple2.of(new BsonInt64(64), new BsonInt64(80)),
+                                        Tuple2.of(new BsonInt64(80), new BsonInt64(96)),
+                                        Tuple2.of(new BsonInt64(96), new BsonInt64(112)),
+                                        Tuple2.of(new BsonInt64(112), BSON_MAX_KEY))));
+    }
+
+    @Test
+    void testEstimatedOffByOnePartitions() {
+        {
             MongoSplitContext splitContext =
-                    new MongoSplitContext(
-                            MongoReadOptions.builder()
-                                    .setPartitionRecordSize(TOTAL_RECORDS_COUNT - 1)
-                                    .build(),
-                            mongoClient,
-                            TEST_NS,
-                            false,
-                            TOTAL_RECORDS_COUNT,
-                            0,
-                            0);
+                    createSplitContext(
+                            MemorySize.ofMebiBytes(TOTAL_RECORDS_COUNT - 1),
+                            MemorySize.ofMebiBytes(1));
             assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
                     .isEqualTo(
                             createReferenceSplits(
@@ -179,26 +189,23 @@ class MongoPaginationSplitterTest {
 
         {
             MongoSplitContext splitContext =
-                    new MongoSplitContext(
-                            MongoReadOptions.builder()
-                                    .setPartitionRecordSize(TOTAL_RECORDS_COUNT)
-                                    .build(),
-                            mongoClient,
-                            TEST_NS,
-                            false,
-                            TOTAL_RECORDS_COUNT,
-                            0,
-                            0);
+                    createSplitContext(
+                            MemorySize.ofMebiBytes(TOTAL_RECORDS_COUNT), MemorySize.ofMebiBytes(1));
             assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
-                    .isEqualTo(
-                            createReferenceSplits(
-                                    Collections.singletonList(
-                                            Tuple2.of(BSON_MIN_KEY, BSON_MAX_KEY))));
+                    .isEqualTo(SINGLE_SPLIT);
         }
     }
 
-    private static List<BsonDocument> createRecords(int samplesCount) {
-        return IntStream.range(0, samplesCount)
+    @Test
+    void testEstimateWithoutAvgObjSize() {
+        MongoSplitContext splitContext =
+                createSplitContext(MemorySize.ofMebiBytes(1), MemorySize.ZERO);
+        assertThat(new ArrayList<>(MongoPaginationSplitter.split(splitContext)))
+                .isEqualTo(SINGLE_SPLIT);
+    }
+
+    private static List<BsonDocument> initializeRecords() {
+        return IntStream.range(0, MongoPaginationSplitterTest.TOTAL_RECORDS_COUNT)
                 .mapToObj(
                         idx ->
                                 new BsonDocument("_id", new BsonInt64(idx))
@@ -206,6 +213,30 @@ class MongoPaginationSplitterTest {
                                                 "str",
                                                 new BsonString(String.format("Record #%d", idx))))
                 .collect(Collectors.toList());
+    }
+
+    private static MongoSplitContext createSplitContext(
+            MemorySize partitionSize, MemorySize avgObjSize) {
+        long avgObjSizeInBytes = avgObjSize.getBytes();
+        return new MongoSplitContext(
+                MongoReadOptions.builder().setPartitionSize(partitionSize).build(),
+                mongoClient,
+                TEST_NS,
+                false,
+                TOTAL_RECORDS_COUNT,
+                (long) TOTAL_RECORDS_COUNT * avgObjSizeInBytes,
+                avgObjSizeInBytes);
+    }
+
+    private static MongoSplitContext createSplitContext(int partitionRecordSize) {
+        return new MongoSplitContext(
+                MongoReadOptions.builder().setPartitionRecordSize(partitionRecordSize).build(),
+                mongoClient,
+                TEST_NS,
+                false,
+                MongoPaginationSplitterTest.TOTAL_RECORDS_COUNT,
+                0,
+                0);
     }
 
     private static List<MongoScanSourceSplit> createReferenceSplits(
@@ -224,4 +255,14 @@ class MongoPaginationSplitterTest {
         }
         return results;
     }
+
+    private static final List<MongoScanSourceSplit> SINGLE_SPLIT =
+            Collections.singletonList(
+                    new MongoScanSourceSplit(
+                            TEST_NS.getFullName(),
+                            TEST_NS.getDatabaseName(),
+                            TEST_NS.getCollectionName(),
+                            BSON_MIN_BOUNDARY,
+                            BSON_MAX_BOUNDARY,
+                            ID_HINT));
 }
