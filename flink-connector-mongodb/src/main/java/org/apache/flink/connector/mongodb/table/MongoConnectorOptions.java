@@ -103,9 +103,10 @@ public class MongoConnectorOptions {
     public static final ConfigOption<Integer> SCAN_PARTITION_RECORD_SIZE =
             ConfigOptions.key("scan.partition.record-size")
                     .intType()
-                    .defaultValue(0)
+                    .noDefaultValue()
                     .withDescription(
-                            "Specifies the number of records in each chunk. Only takes effect when `scan.partition.strategy` is `pagination`.");
+                            "Specifies the number of records in each chunk. Only takes effect when `scan.partition.strategy` is `pagination`. "
+                                    + "This option will be automatically inferred from `scan.partition.size` if absent.");
 
     public static final ConfigOption<Duration> LOOKUP_RETRY_INTERVAL =
             ConfigOptions.key("lookup.retry.interval")

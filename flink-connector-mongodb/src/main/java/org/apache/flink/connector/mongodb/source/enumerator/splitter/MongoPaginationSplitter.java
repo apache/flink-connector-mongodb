@@ -18,8 +18,8 @@
 package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 
 import org.apache.flink.annotation.Internal;
+import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
-import org.apache.flink.util.Preconditions;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.client.model.Aggregates;
@@ -27,6 +27,8 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -41,20 +43,43 @@ import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_
 @Internal
 public class MongoPaginationSplitter {
 
-    private MongoPaginationSplitter() {}
+    private static final Logger LOG = LoggerFactory.getLogger(MongoPaginationSplitter.class);
 
     public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
-        int partitionRecordSize = splitContext.getReadOptions().getPartitionRecordSize();
-        Preconditions.checkArgument(
-                partitionRecordSize > 0,
-                "The partition record size must be set to a positive integer.");
+        MongoReadOptions readOptions = splitContext.getReadOptions();
+        MongoNamespace namespace = splitContext.getMongoNamespace();
+
+        // If partition record size isn't present, we'll use the partition size option and average
+        // object size to calculate number of records in each partitioned split.
+        Integer partitionRecordSize = readOptions.getPartitionRecordSize();
+        if (partitionRecordSize == null) {
+            long avgObjSizeInBytes = splitContext.getAvgObjSize();
+            if (avgObjSizeInBytes == 0) {
+                LOG.info(
+                        "{} seems to be an empty collection, Returning a single partition.",
+                        namespace);
+                return MongoSingleSplitter.split(splitContext);
+            }
+
+            partitionRecordSize =
+                    Math.toIntExact(readOptions.getPartitionSize().getBytes() / avgObjSizeInBytes);
+        }
+
+        long totalNumOfDocuments = splitContext.getCount();
+
+        if (partitionRecordSize >= totalNumOfDocuments) {
+            LOG.info(
+                    "Fewer documents ({}) than the number of documents per partition ({}), Returning a single partition.",
+                    totalNumOfDocuments,
+                    partitionRecordSize);
+            return MongoSingleSplitter.split(splitContext);
+        }
 
         int numberOfPartitions =
-                (int) (Math.ceil(splitContext.getCount() / (double) partitionRecordSize));
+                (int) (Math.ceil(totalNumOfDocuments / (double) partitionRecordSize));
 
         BsonDocument lastUpperBound = null;
         List<MongoScanSourceSplit> paginatedSplits = new ArrayList<>();
-        MongoNamespace namespace = splitContext.getMongoNamespace();
 
         for (int splitNum = 0; splitNum < numberOfPartitions; splitNum++) {
             List<Bson> pipeline = new ArrayList<>();

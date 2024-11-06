@@ -91,7 +91,7 @@ public class MongoConfiguration {
         return config.get(SCAN_PARTITION_SAMPLES);
     }
 
-    public int getPartitionRecordSize() {
+    public Integer getPartitionRecordSize() {
         return config.get(SCAN_PARTITION_RECORD_SIZE);
     }
 
