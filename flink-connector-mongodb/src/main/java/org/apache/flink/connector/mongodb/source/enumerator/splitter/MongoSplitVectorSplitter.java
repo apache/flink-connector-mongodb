@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
@@ -90,7 +90,7 @@ public class MongoSplitVectorSplitter {
         }
 
         // Complete right bound: (lastKey, maxKey)
-        splitKeys.add(new BsonDocument(ID_FIELD, BSON_MAX_KEY));
+        splitKeys.add(BSON_MAX_BOUNDARY);
 
         List<MongoScanSourceSplit> sourceSplits = new ArrayList<>(splitKeys.size());
 

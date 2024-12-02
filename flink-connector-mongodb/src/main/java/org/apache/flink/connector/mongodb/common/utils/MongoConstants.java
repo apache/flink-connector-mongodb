@@ -65,6 +65,9 @@ public class MongoConstants {
 
     public static final BsonDocument ID_HINT = new BsonDocument(ID_FIELD, new BsonInt32(1));
 
+    public static final BsonDocument BSON_MIN_BOUNDARY = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
+    public static final BsonDocument BSON_MAX_BOUNDARY = new BsonDocument(ID_FIELD, BSON_MAX_KEY);
+
     public static final JsonWriterSettings DEFAULT_JSON_WRITER_SETTINGS =
             JsonWriterSettings.builder().outputMode(JsonMode.EXTENDED).build();
 

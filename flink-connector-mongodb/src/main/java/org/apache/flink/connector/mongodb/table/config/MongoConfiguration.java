@@ -38,6 +38,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FIL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_RECORD_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
@@ -88,6 +89,10 @@ public class MongoConfiguration {
 
     public int getSamplesPerPartition() {
         return config.get(SCAN_PARTITION_SAMPLES);
+    }
+
+    public Integer getPartitionRecordSize() {
+        return config.get(SCAN_PARTITION_RECORD_SIZE);
     }
 
     // -----------------------------------Lookup Config----------------------------------------

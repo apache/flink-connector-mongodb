@@ -17,7 +17,6 @@
 
 package org.apache.flink.connector.mongodb.source.enumerator;
 
-import org.apache.flink.connector.mongodb.common.utils.MongoConstants;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
 import org.bson.BsonDocument;
@@ -29,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
 import static org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumStateSerializer.INSTANCE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -75,7 +75,7 @@ class MongoSourceEnumStateSerializerTest {
                 "db",
                 "coll",
                 new BsonDocument("_id", new BsonInt32(index)),
-                new BsonDocument("_id", MongoConstants.BSON_MAX_KEY),
+                BSON_MAX_BOUNDARY,
                 ID_HINT);
     }
 }

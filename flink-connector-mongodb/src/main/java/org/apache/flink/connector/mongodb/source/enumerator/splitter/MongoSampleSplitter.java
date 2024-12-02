@@ -36,8 +36,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_KEY;
-import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_KEY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MAX_BOUNDARY;
+import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.BSON_MIN_BOUNDARY;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_FIELD;
 import static org.apache.flink.connector.mongodb.common.utils.MongoConstants.ID_HINT;
 
@@ -109,10 +109,10 @@ public class MongoSampleSplitter {
     @VisibleForTesting
     static List<MongoScanSourceSplit> createSplits(
             List<BsonDocument> samples, int samplesPerPartition, MongoNamespace namespace) {
-        samples.add(new BsonDocument(ID_FIELD, BSON_MAX_KEY));
+        samples.add(BSON_MAX_BOUNDARY);
 
         List<MongoScanSourceSplit> sourceSplits = new ArrayList<>();
-        BsonDocument partitionStart = new BsonDocument(ID_FIELD, BSON_MIN_KEY);
+        BsonDocument partitionStart = BSON_MIN_BOUNDARY;
         int splitNum = 0;
         for (int i = samplesPerPartition - 1; i < samples.size(); i += samplesPerPartition) {
             sourceSplits.add(createSplit(namespace, splitNum++, partitionStart, samples.get(i)));
