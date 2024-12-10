@@ -51,6 +51,11 @@ under the License.
 
 	<properties>
 		<mongodb.driver.version>5.1.1</mongodb.driver.version>
+		<mongodb4.version>4.0.28</mongodb4.version>
+		<mongodb5.version>5.0.28</mongodb5.version>
+		<mongodb6.version>6.0.16</mongodb6.version>
+		<mongodb7.version>7.0.12</mongodb7.version>
+		<mongodb.version>${mongodb4.version}</mongodb.version>
 
 		<flink.version>1.18.0</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
@@ -404,32 +409,29 @@ under the License.
 
 		<profile>
 			<id>mongodb4</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-			</activation>
 			<properties>
-				<mongodb.version>4.0.28</mongodb.version>
+				<mongodb.version>${mongodb4.version}</mongodb.version>
 			</properties>
 		</profile>
 
 		<profile>
 			<id>mongodb5</id>
 			<properties>
-				<mongodb.version>5.0.28</mongodb.version>
+				<mongodb.version>${mongodb5.version}</mongodb.version>
 			</properties>
 		</profile>
 
 		<profile>
 			<id>mongodb6</id>
 			<properties>
-				<mongodb.version>6.0.16</mongodb.version>
+				<mongodb.version>${mongodb6.version}</mongodb.version>
 			</properties>
 		</profile>
 
 		<profile>
 			<id>mongodb7</id>
 			<properties>
-				<mongodb.version>7.0.12</mongodb.version>
+				<mongodb.version>${mongodb7.version}</mongodb.version>
 			</properties>
 		</profile>
 	</profiles>
