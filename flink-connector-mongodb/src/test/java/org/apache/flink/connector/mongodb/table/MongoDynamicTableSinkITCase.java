@@ -65,6 +65,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
@@ -85,6 +87,7 @@ import java.util.regex.Pattern;
 
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /** IT tests for {@link MongoDynamicTableSink}. */
 @Testcontainers
@@ -349,8 +352,9 @@ class MongoDynamicTableSinkITCase {
         assertThat(actual).isEqualTo(expected);
     }
 
-    @Test
-    void testSinkWithReservedId() throws Exception {
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSinkWithReservedId(boolean overwrite) throws Exception {
         String database = "test";
         String collection = "sink_with_reserved_id";
 
@@ -368,7 +372,7 @@ class MongoDynamicTableSinkITCase {
 
         ObjectId objectId = new ObjectId();
         tEnv.fromValues(row(objectId.toHexString(), "r1"), row("str", "r2"))
-                .executeInsert("mongo_sink")
+                .executeInsert("mongo_sink", overwrite)
                 .await();
 
         MongoCollection<Document> coll =
@@ -383,6 +387,27 @@ class MongoDynamicTableSinkITCase {
                     new Document("_id", "str").append("f1", "r2")
                 };
         assertThat(actual).containsExactlyInAnyOrder(expected);
+    }
+
+    @Test
+    void testOverwriteSinkWithoutPrimaryKey() {
+        String database = "test";
+        String collection = "overwrite_sink_without_primary_key";
+
+        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+
+        tEnv.executeSql(
+                String.format(
+                        "CREATE TABLE mongo_sink (" + "f1 STRING NOT NULL\n" + ")\n" + "WITH (%s)",
+                        getConnectorSql(database, collection)));
+
+        assertThatThrownBy(
+                        () ->
+                                tEnv.fromValues(row("d1"), row("d1"))
+                                        .executeInsert("mongo_sink", true)
+                                        .await())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Overwrite sink requires specifying the table's primary key");
     }
 
     @Test
