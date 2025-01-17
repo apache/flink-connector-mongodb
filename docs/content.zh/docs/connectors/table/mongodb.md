@@ -347,11 +347,14 @@ lookup cache 的主要目的是用于提高时态表关联 MongoDB 连接器的�
 默认情况下，flink 会缓存主键的空查询结果，你可以通过将 `lookup.partial-cache.caching-missing-key` 设置为 false 来切换行为。
 
 ### 幂等写入
-如果在 DDL 中定义了主键，MongoDB sink 将使用 upsert 语义而不是普通的 INSERT 语句。
-我们将 DDL 中声明的主键进行组合作为 MongoDB 保留主键 _id，使用 upsert 模式进行写入，来保证写入的幂等性。
+如果在 DDL 中定义了主键，MongoDB connector 将使用 UPSERT 模式 `db.connection.update(<query>, <update>, { upsert: true })` 写入 MongoDB 
+而不是 INSERT 模式 `db.connection.insert()`。 我们将 DDL 中声明的主键进行组合作为 MongoDB 保留主键 _id，使用 UPSERT 模式进行写入，来保证写入的幂等性。
+
+当使用 `INSERT OVERWRITE` 写入 MongoDB Table 时，会强制使用 UPSERT 模式写入 MongoDB。
+因此，当DDL中没有定义 MongoDB Table 的主键时，会拒绝写入。
 
 如果出现故障，Flink 作业会从上次成功的 checkpoint 恢复并重新处理，这可能导致在恢复过程中重复处理消息。
-强烈推荐使用 upsert 模式，因为如果需要重复处理记录，它有助于避免违反数据库主键约束和产生重复数据。
+强烈推荐使用 UPSERT 模式，因为如果需要重复处理记录，它有助于避免违反数据库主键约束和产生重复数据。
 
 ### [Upsert 写入分片集合](https://www.mongodb.com/docs/manual/reference/method/db.collection.updateOne/#upsert-on-a-sharded-collection)
 
