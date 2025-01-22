@@ -57,7 +57,7 @@ under the License.
 		<mongodb7.version>7.0.12</mongodb7.version>
 		<mongodb.version>${mongodb4.version}</mongodb.version>
 
-		<flink.version>1.18.0</flink.version>
+		<flink.version>1.20.0</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
 		<scala-library.version>2.12.7</scala-library.version>
 		<junit5.version>5.8.1</junit5.version>
