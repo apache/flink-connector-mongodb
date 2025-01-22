@@ -31,19 +31,6 @@ jobs:
         mongodb: [ mongodb4, mongodb5, mongodb6, mongodb7 ]
         flink: [ 1.19-SNAPSHOT, 1.20-SNAPSHOT ]
         jdk: [ '8, 11, 17, 21' ]
-        include:
-          - mongodb: mongodb4
-            flink: 1.18-SNAPSHOT
-            jdk: '8, 11, 17'
-          - mongodb: mongodb5
-            flink: 1.18-SNAPSHOT
-            jdk: '8, 11, 17'
-          - mongodb: mongodb6
-            flink: 1.18-SNAPSHOT
-            jdk: '8, 11, 17'
-          - mongodb: mongodb7
-            flink: 1.18-SNAPSHOT
-            jdk: '8, 11, 17'
 
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
     with:
