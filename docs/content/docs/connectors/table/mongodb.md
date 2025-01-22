@@ -377,9 +377,14 @@ by setting `lookup.partial-cache.caching-missing-key` to false.
 
 ### Idempotent Writes
 
-MongoDB sink will use upsert semantics rather than plain INSERT statements if primary key is defined 
-in DDL. We composite the primary key fields as the document _id which is the reserved primary key of
+MongoDB connector use upsert writing mode `db.connection.update(<query>, <update>, { upsert: true })` 
+rather than insert writing mode `db.connection.insert()` if primary key is defined in DDL.
+We composite the primary key fields as the document _id which is the reserved primary key of
 MongoDB. Use upsert mode to write rows into MongoDB, which provides idempotence.
+
+When using the `INSERT OVERWRITE` statement to write to a MongoDB table, it forces the use of the upsert mode 
+to write to MongoDB. Therefore, if the primary key of the MongoDB table is not defined in the DDL, 
+the write operation will be rejected.
 
 If there are failures, the Flink job will recover and re-process from last successful checkpoint, 
 which can lead to re-processing messages during recovery. The upsert mode is highly recommended as 
