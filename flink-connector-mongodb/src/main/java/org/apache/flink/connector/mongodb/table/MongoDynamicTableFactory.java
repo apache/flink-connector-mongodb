@@ -47,6 +47,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FIL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_RECORD_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
@@ -87,6 +88,7 @@ public class MongoDynamicTableFactory
         optionalOptions.add(SCAN_PARTITION_STRATEGY);
         optionalOptions.add(SCAN_PARTITION_SIZE);
         optionalOptions.add(SCAN_PARTITION_SAMPLES);
+        optionalOptions.add(SCAN_PARTITION_RECORD_SIZE);
         optionalOptions.add(BUFFER_FLUSH_MAX_ROWS);
         optionalOptions.add(BUFFER_FLUSH_INTERVAL);
         optionalOptions.add(DELIVERY_GUARANTEE);
