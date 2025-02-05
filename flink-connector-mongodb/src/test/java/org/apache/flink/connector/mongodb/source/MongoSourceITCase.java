@@ -266,7 +266,8 @@ class MongoSourceITCase {
                 Arguments.of(PartitionStrategy.SPLIT_VECTOR, TEST_COLLECTION),
                 Arguments.of(PartitionStrategy.SAMPLE, TEST_COLLECTION),
                 Arguments.of(PartitionStrategy.SHARDED, TEST_SHARDED_COLLECTION),
-                Arguments.of(PartitionStrategy.SHARDED, TEST_HASHED_KEY_SHARDED_COLLECTION));
+                Arguments.of(PartitionStrategy.SHARDED, TEST_HASHED_KEY_SHARDED_COLLECTION),
+                Arguments.of(PartitionStrategy.PAGINATION, TEST_COLLECTION));
     }
 
     private static MongoSourceBuilder<RowData> defaultSourceBuilder(String collection) {
