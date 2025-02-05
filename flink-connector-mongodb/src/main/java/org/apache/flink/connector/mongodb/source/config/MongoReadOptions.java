@@ -104,12 +104,18 @@ public class MongoReadOptions implements Serializable {
         return noCursorTimeout == that.noCursorTimeout
                 && partitionStrategy == that.partitionStrategy
                 && samplesPerPartition == that.samplesPerPartition
-                && Objects.equals(partitionSize, that.partitionSize);
+                && Objects.equals(partitionSize, that.partitionSize)
+                && Objects.equals(partitionRecordSize, that.partitionRecordSize);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(noCursorTimeout, partitionStrategy, partitionSize, samplesPerPartition);
+        return Objects.hash(
+                noCursorTimeout,
+                partitionStrategy,
+                partitionSize,
+                samplesPerPartition,
+                partitionRecordSize);
     }
 
     public static MongoReadOptionsBuilder builder() {
@@ -219,6 +225,9 @@ public class MongoReadOptions implements Serializable {
          */
         public MongoReadOptionsBuilder setPartitionRecordSize(
                 @Nullable Integer partitionRecordSize) {
+            checkArgument(
+                    partitionRecordSize == null || partitionRecordSize > 0,
+                    "The record size per partition must be larger than 0.");
             this.partitionRecordSize = partitionRecordSize;
             return this;
         }
