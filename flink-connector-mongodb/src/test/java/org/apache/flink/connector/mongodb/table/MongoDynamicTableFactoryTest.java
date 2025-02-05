@@ -278,6 +278,12 @@ class MongoDynamicTableFactoryTest {
                 "0ms",
                 "The 'lookup.retry.interval' must be larger than 0.");
 
+        // record size per partition should be larger than 0
+        assertSourceValidationRejects(
+                SCAN_PARTITION_RECORD_SIZE.key(),
+                "0",
+                "The record size per partition must be larger than 0.");
+
         // sink retries shouldn't be negative
         assertSinkValidationRejects(
                 SINK_MAX_RETRIES.key(),
