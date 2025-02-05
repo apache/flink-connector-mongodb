@@ -50,6 +50,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FIL
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.LOOKUP_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_CURSOR_NO_TIMEOUT;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_FETCH_SIZE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_RECORD_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
@@ -129,6 +130,35 @@ class MongoDynamicTableFactoryTest {
                         .setPartitionStrategy(PartitionStrategy.SPLIT_VECTOR)
                         .setPartitionSize(MemorySize.ofMebiBytes(128))
                         .setSamplesPerPartition(5)
+                        .build();
+
+        MongoDynamicTableSource expected =
+                new MongoDynamicTableSource(
+                        connectionOptions,
+                        readOptions,
+                        null,
+                        LookupOptions.MAX_RETRIES.defaultValue(),
+                        LOOKUP_RETRY_INTERVAL.defaultValue().toMillis(),
+                        FilterHandlingPolicy.NEVER,
+                        SCHEMA.toPhysicalRowDataType());
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void testMongoPaginationPartitionProperties() {
+        Map<String, String> properties = getRequiredOptions();
+        properties.put(SCAN_PARTITION_STRATEGY.key(), "pagination");
+        properties.put(SCAN_PARTITION_RECORD_SIZE.key(), "42");
+        properties.put(FILTER_HANDLING_POLICY.key(), "never");
+
+        DynamicTableSource actual = createTableSource(SCHEMA, properties);
+
+        MongoConnectionOptions connectionOptions = getConnectionOptions();
+        MongoReadOptions readOptions =
+                MongoReadOptions.builder()
+                        .setPartitionStrategy(PartitionStrategy.PAGINATION)
+                        .setPartitionRecordSize(42)
                         .build();
 
         MongoDynamicTableSource expected =
@@ -247,6 +277,12 @@ class MongoDynamicTableFactoryTest {
                 LOOKUP_RETRY_INTERVAL.key(),
                 "0ms",
                 "The 'lookup.retry.interval' must be larger than 0.");
+
+        // record size per partition should be larger than 0
+        assertSourceValidationRejects(
+                SCAN_PARTITION_RECORD_SIZE.key(),
+                "0",
+                "The record size per partition must be larger than 0.");
 
         // sink retries shouldn't be negative
         assertSinkValidationRejects(
