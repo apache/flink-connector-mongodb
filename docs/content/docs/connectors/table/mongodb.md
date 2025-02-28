@@ -212,7 +212,7 @@ Connector Options
       "lookup.cache" must be set to "PARTIAL" to use this option. See the following <a href="#lookup-cache">Lookup Cache</a> section for more details. </td>
     </tr>
     <tr>
-      <td><h5>lookup.partial-cache.caching-missing-key</h5></td>
+      <td><h5>lookup.partial-cache.cache-missing-key</h5></td>
       <td>optional</td>
       <td>no</td>
       <td style="word-wrap: break-word;">true</td>
@@ -373,7 +373,7 @@ have a better fresh data, but this may increase the number of requests send to d
 So this is a balance between throughput and correctness.
 
 By default, flink will cache the empty query result for a Primary key, you can toggle the behaviour
-by setting `lookup.partial-cache.caching-missing-key` to false.
+by setting `lookup.partial-cache.cache-missing-key` to false.
 
 ### Idempotent Writes
 
