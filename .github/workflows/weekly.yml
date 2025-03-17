@@ -38,11 +38,11 @@ jobs:
           jdk: '8, 11, 17, 21',
           branch: main
         },{
-          flink: 1.19.1,
+          flink: 1.19.2,
           jdk: '8, 11, 17, 21',
-          branch: v1.2
+          branch: v2.0
         }, {
-          flink: 1.20.0,
+          flink: 1.20.1,
           jdk: '8, 11, 17, 21',
           branch: main
         }]
