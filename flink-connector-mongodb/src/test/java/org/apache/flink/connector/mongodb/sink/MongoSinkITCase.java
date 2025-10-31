@@ -18,8 +18,9 @@
 package org.apache.flink.connector.mongodb.sink;
 
 import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.state.CheckpointListener;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
@@ -101,9 +102,10 @@ class MongoSinkITCase {
             throws Exception {
         final String collection = "test-sink-with-delivery-" + deliveryGuarantee;
         final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = new Configuration();
+        config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
         env.execute();

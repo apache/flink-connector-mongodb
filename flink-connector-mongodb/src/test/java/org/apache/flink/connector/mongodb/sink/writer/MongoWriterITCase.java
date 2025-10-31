@@ -243,7 +243,8 @@ class MongoWriterITCase {
 
         MongoSerializationSchema<Document> testSerializationSchema =
                 (element, context) -> {
-                    assertThat(context.getInitContext().getSubtaskId()).isEqualTo(0);
+                    assertThat(context.getInitContext().getTaskInfo().getIndexOfThisSubtask())
+                            .isEqualTo(0);
                     assertThat(context.getWriteOptions()).isEqualTo(expectOptions);
                     assertThat(context.processTime())
                             .isEqualTo(

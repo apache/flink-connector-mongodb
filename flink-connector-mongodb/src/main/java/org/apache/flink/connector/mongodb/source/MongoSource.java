@@ -26,9 +26,7 @@ import org.apache.flink.api.connector.source.SourceReaderContext;
 import org.apache.flink.api.connector.source.SplitEnumerator;
 import org.apache.flink.api.connector.source.SplitEnumeratorContext;
 import org.apache.flink.api.java.typeutils.ResultTypeQueryable;
-import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.MongoSourceEnumState;
@@ -134,8 +132,6 @@ public class MongoSource<OUT>
 
     @Override
     public SourceReader<OUT, MongoSourceSplit> createReader(SourceReaderContext readerContext) {
-        FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementsQueue =
-                new FutureCompletingBlockingQueue<>();
 
         MongoSourceReaderContext mongoReaderContext =
                 new MongoSourceReaderContext(readerContext, limit);
@@ -150,7 +146,6 @@ public class MongoSource<OUT>
                                 mongoReaderContext);
 
         return new MongoSourceReader<>(
-                elementsQueue,
                 splitReaderSupplier,
                 new MongoRecordEmitter<>(deserializationSchema),
                 mongoReaderContext);

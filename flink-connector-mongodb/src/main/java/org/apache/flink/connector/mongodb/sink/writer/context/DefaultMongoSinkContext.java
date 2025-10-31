@@ -18,23 +18,23 @@
 package org.apache.flink.connector.mongodb.sink.writer.context;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 
 /** Default {@link MongoSinkContext} implementation. */
 @Internal
 public class DefaultMongoSinkContext implements MongoSinkContext {
 
-    private final Sink.InitContext initContext;
+    private final WriterInitContext initContext;
     private final MongoWriteOptions writeOptions;
 
-    public DefaultMongoSinkContext(Sink.InitContext initContext, MongoWriteOptions writeOptions) {
+    public DefaultMongoSinkContext(WriterInitContext initContext, MongoWriteOptions writeOptions) {
         this.initContext = initContext;
         this.writeOptions = writeOptions;
     }
 
     @Override
-    public Sink.InitContext getInitContext() {
+    public WriterInitContext getInitContext() {
         return initContext;
     }
 
