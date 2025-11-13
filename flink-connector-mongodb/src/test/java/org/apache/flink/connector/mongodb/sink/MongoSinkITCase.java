@@ -104,7 +104,8 @@ class MongoSinkITCase {
         final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
         Configuration config = new Configuration();
         config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(config);
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);

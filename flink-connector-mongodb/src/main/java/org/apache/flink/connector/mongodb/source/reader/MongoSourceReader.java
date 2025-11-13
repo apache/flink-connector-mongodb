@@ -51,7 +51,8 @@ public class MongoSourceReader<OUT>
             RecordEmitter<BsonDocument, OUT, MongoSourceSplitState> recordEmitter,
             MongoSourceReaderContext readerContext) {
         super(
-                new SingleThreadFetcherManager<>(splitReaderSupplier, readerContext.getConfiguration()),
+                new SingleThreadFetcherManager<>(
+                        splitReaderSupplier, readerContext.getConfiguration()),
                 recordEmitter,
                 readerContext.getConfiguration(),
                 readerContext);
