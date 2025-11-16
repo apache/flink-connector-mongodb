@@ -127,6 +127,28 @@ public class MongoSinkBuilder<IN> {
     }
 
     /**
+     * Set the ordered write {@link com.mongodb.client.model.BulkWriteOptions}.
+     *
+     * @param ordered describes the write behaviour
+     * @return this builder
+     */
+    public MongoSinkBuilder<IN> setOrderedWrites(boolean ordered) {
+        writeOptionsBuilder.setOrderedWrites(ordered);
+        return this;
+    }
+
+    /**
+     * Set the bypass document validation {@link com.mongodb.client.model.BulkWriteOptions}.
+     *
+     * @param bypassDocumentValidation describes document validation behaviour
+     * @return this builder
+     */
+    public MongoSinkBuilder<IN> setBypassDocumentValidation(boolean bypassDocumentValidation) {
+        writeOptionsBuilder.setBypassDocumentValidation(bypassDocumentValidation);
+        return this;
+    }
+
+    /**
      * Sets the serialization schema which is invoked on every record to convert it to MongoDB bulk
      * request.
      *

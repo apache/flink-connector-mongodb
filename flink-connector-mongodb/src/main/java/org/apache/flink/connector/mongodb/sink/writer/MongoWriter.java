@@ -38,6 +38,7 @@ import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 import com.mongodb.MongoException;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.model.BulkWriteOptions;
 import com.mongodb.client.model.WriteModel;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
@@ -213,7 +214,12 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 mongoClient
                         .getDatabase(connectionOptions.getDatabase())
                         .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                        .bulkWrite(bulkRequests);
+                        .bulkWrite(
+                                bulkRequests,
+                                new BulkWriteOptions()
+                                        .ordered(writeOptions.isOrderedWrites())
+                                        .bypassDocumentValidation(
+                                                writeOptions.isBypassDocumentValidation()));
                 ackTime = System.currentTimeMillis();
                 bulkRequests.clear();
                 break;

@@ -115,6 +115,18 @@ public class MongoConnectorOptions {
                     .withDescription(
                             "Specifies the retry time interval if lookup records from database failed.");
 
+    public static final ConfigOption<Boolean> SINK_ORDERED_WRITES =
+            ConfigOptions.key("sink.orderedWrites")
+                    .booleanType()
+                    .defaultValue(true)
+                    .withDescription("Specifies mongodb bulk write ordered option");
+
+    public static final ConfigOption<Boolean> SINK_BYPASS_VALIDATION =
+            ConfigOptions.key("sink.bypassDocumentValidation")
+                    .booleanType()
+                    .defaultValue(false)
+                    .withDescription("Specifies mongodb bulk write option to bypass validation");
+
     public static final ConfigOption<Integer> BUFFER_FLUSH_MAX_ROWS =
             ConfigOptions.key("sink.buffer-flush.max-rows")
                     .intType()
