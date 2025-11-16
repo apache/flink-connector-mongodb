@@ -93,6 +93,34 @@ class MongoSinkITCase {
         }
     }
 
+    @Test
+    void unorderedWrite() throws Exception {
+        final String collection = "test-sink-with-unordered-write";
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, false, true);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
+
+        env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
+        env.execute();
+        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+    }
+
+    @Test
+    void bypassDocumentValidation() throws Exception {
+        final String collection = "test-sink-with-bypass-doc-validation";
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
+
+        env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
+        env.execute();
+        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+    }
+
     @ParameterizedTest
     @EnumSource(
             value = DeliveryGuarantee.class,
@@ -101,7 +129,7 @@ class MongoSinkITCase {
     void testWriteToMongoWithDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)
             throws Exception {
         final String collection = "test-sink-with-delivery-" + deliveryGuarantee;
-        final MongoSink<Document> sink = createSink(collection, deliveryGuarantee);
+        final MongoSink<Document> sink = createSink(collection, deliveryGuarantee, true, false);
         Configuration config = new Configuration();
         config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
         final StreamExecutionEnvironment env =
@@ -116,7 +144,8 @@ class MongoSinkITCase {
     @Test
     void testRecovery() throws Exception {
         final String collection = "test-recovery-mongo-sink";
-        final MongoSink<Document> sink = createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE);
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
 
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.enableCheckpointing(100L);
@@ -134,13 +163,18 @@ class MongoSinkITCase {
     }
 
     private static MongoSink<Document> createSink(
-            String collection, DeliveryGuarantee deliveryGuarantee) {
+            String collection,
+            DeliveryGuarantee deliveryGuarantee,
+            boolean ordered,
+            boolean bypassDocumentValidation) {
         return MongoSink.<Document>builder()
                 .setUri(MONGO_CONTAINER.getConnectionString())
                 .setDatabase(TEST_DATABASE)
                 .setCollection(collection)
                 .setBatchSize(5)
                 .setDeliveryGuarantee(deliveryGuarantee)
+                .setOrderedWrites(ordered)
+                .setBypassDocumentValidation(bypassDocumentValidation)
                 .setSerializationSchema(new UpsertSerializationSchema())
                 .build();
     }
