@@ -87,11 +87,35 @@ public class MongoTestUtil {
         assertThat(idsAreWritten).isEmpty();
     }
 
-    public static void assertThatIdsAreWritten(MongoCollection<Document> coll, Integer... ids) {
+    public static void assertThatIdsAreNotWritten(MongoCollection<Document> coll, String... ids) {
+        List<String> idsAreWritten = new ArrayList<>();
+        coll.find(Filters.in("_id", ids)).map(d -> d.getString("_id")).into(idsAreWritten);
+
+        assertThat(idsAreWritten).isEmpty();
+    }
+
+    public static void assertThatIdsAreWrittenInAnyOrder(
+            MongoCollection<Document> coll, Integer... ids) {
         List<Integer> actualIds = new ArrayList<>();
         coll.find(Filters.in("_id", ids)).map(d -> d.getInteger("_id")).into(actualIds);
 
         assertThat(actualIds).containsExactlyInAnyOrder(ids);
+    }
+
+    public static void assertThatIdsAreWrittenInAnyOrder(
+            MongoCollection<Document> coll, String... ids) {
+        List<String> actualIds = new ArrayList<>();
+        coll.find(Filters.in("_id", ids)).map(d -> d.getString("_id")).into(actualIds);
+
+        assertThat(actualIds).containsExactlyInAnyOrder(ids);
+    }
+
+    public static void assertThatIdsAreWrittenInOrder(
+            MongoCollection<Document> coll, Integer... ids) {
+        List<Integer> actualIds = new ArrayList<>();
+        coll.find(Filters.in("_id", ids)).map(d -> d.getInteger("_id")).into(actualIds);
+
+        assertThat(actualIds).containsExactly(ids);
     }
 
     public static void assertThatIdsAreWrittenWithMaxWaitTime(
@@ -104,7 +128,7 @@ public class MongoTestUtil {
             }
             Thread.sleep(1000L);
         }
-        assertThatIdsAreWritten(coll, ids);
+        assertThatIdsAreWrittenInAnyOrder(coll, ids);
     }
 
     public static String getConnectorSql(

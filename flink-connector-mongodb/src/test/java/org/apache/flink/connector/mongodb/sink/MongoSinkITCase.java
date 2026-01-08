@@ -24,6 +24,7 @@ import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
+import org.apache.flink.runtime.client.JobExecutionException;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.test.junit5.MiniClusterExtension;
@@ -33,12 +34,18 @@ import org.apache.flink.testutils.junit.SharedReference;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.CreateCollectionOptions;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.model.ValidationAction;
+import com.mongodb.client.model.ValidationOptions;
 import com.mongodb.client.model.WriteModel;
 import org.bson.BsonDocument;
+import org.bson.BsonType;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -53,7 +60,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInAnyOrder;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInOrder;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for {@link MongoSink}. */
@@ -93,22 +102,8 @@ class MongoSinkITCase {
     }
 
     @Test
-    void unorderedWrite() throws Exception {
-        final String collection = "test-sink-with-unordered-write";
-        final MongoSink<Document> sink =
-                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, false, true);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
-
-        env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
-        env.execute();
-        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
-    }
-
-    @Test
-    void bypassDocumentValidation() throws Exception {
-        final String collection = "test-sink-with-bypass-doc-validation";
+    void testOrderedWrite() throws Exception {
+        final String collection = "test-sink-with-ordered-write";
         final MongoSink<Document> sink =
                 createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -117,7 +112,72 @@ class MongoSinkITCase {
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
         env.execute();
-        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+        assertThatIdsAreWrittenInOrder(collectionOf(collection), 1, 2, 3, 4, 5);
+    }
+
+    @Test
+    void testUnorderedWrite() throws Exception {
+        final String collection = "test-sink-with-unordered-write";
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, false, false);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
+
+        env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
+        env.execute();
+        assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5);
+    }
+
+    @Test
+    void testDocumentValidation() throws Exception {
+        final String collection = "test-sink-with-doc-validation";
+        // Create collection with validation
+        ValidationOptions validationOptions =
+                new ValidationOptions().validator(Filters.type("_id", BsonType.INT64));
+        validationOptions.validationAction(ValidationAction.ERROR);
+        CreateCollectionOptions createCollectionOptions = new CreateCollectionOptions();
+        createCollectionOptions.validationOptions(validationOptions);
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .createCollection(collection, createCollectionOptions);
+
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
+
+        String[] data = new String[] {"1", "2", "3", "4", "5", "A"};
+        env.fromData(data).map(id -> new Document("_id", id).append("f1", "d_" + id)).sinkTo(sink);
+        Assertions.assertThrows(JobExecutionException.class, env::execute);
+
+        assertThatIdsAreNotWritten(collectionOf(collection), data);
+    }
+
+    @Test
+    void testBypassDocumentValidation() throws Exception {
+        final String collection = "test-sink-with-bypass-doc-validation";
+        // Create collection with validation
+        ValidationOptions validationOptions =
+                new ValidationOptions().validator(Filters.type("_id", BsonType.INT64));
+        validationOptions.validationAction(ValidationAction.ERROR);
+        CreateCollectionOptions createCollectionOptions = new CreateCollectionOptions();
+        createCollectionOptions.validationOptions(validationOptions);
+        mongoClient
+                .getDatabase(TEST_DATABASE)
+                .createCollection(collection, createCollectionOptions);
+
+        final MongoSink<Document> sink =
+                createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, true);
+        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.enableCheckpointing(100L);
+        env.setRestartStrategy(RestartStrategies.noRestart());
+
+        String[] data = new String[] {"1", "2", "3", "4", "5", "A"};
+        env.fromData(data).map(id -> new Document("_id", id).append("f1", "d_" + id)).sinkTo(sink);
+        env.execute();
+        assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), data);
     }
 
     @ParameterizedTest
@@ -135,7 +195,7 @@ class MongoSinkITCase {
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
         env.execute();
-        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+        assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5);
     }
 
     @Test
@@ -155,7 +215,7 @@ class MongoSinkITCase {
                 .sinkTo(sink);
 
         env.execute();
-        assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+        assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5);
         assertThat(failed.get()).isTrue();
     }
 
