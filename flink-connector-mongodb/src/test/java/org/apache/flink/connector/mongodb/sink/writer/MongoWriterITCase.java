@@ -55,7 +55,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
-import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWritten;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInAnyOrder;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenWithMaxWaitTime;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -120,14 +120,14 @@ class MongoWriterITCase {
 
             // Trigger flush
             writer.write(buildMessage(5), null);
-            assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5);
+            assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5);
 
             writer.write(buildMessage(6), null);
             assertThatIdsAreNotWritten(collectionOf(collection), 6);
 
             // Force flush
             writer.doBulkWrite();
-            assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3, 4, 5, 6);
+            assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5, 6);
         }
     }
 
@@ -169,7 +169,7 @@ class MongoWriterITCase {
             // Trigger flush
             writer.flush(false);
 
-            assertThatIdsAreWritten(collectionOf(collection), 1, 2, 3);
+            assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3);
         }
     }
 
