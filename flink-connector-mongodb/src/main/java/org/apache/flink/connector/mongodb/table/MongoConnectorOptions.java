@@ -116,13 +116,13 @@ public class MongoConnectorOptions {
                             "Specifies the retry time interval if lookup records from database failed.");
 
     public static final ConfigOption<Boolean> SINK_ORDERED_WRITES =
-            ConfigOptions.key("sink.orderedWrites")
+            ConfigOptions.key("sink.ordered-writes")
                     .booleanType()
                     .defaultValue(true)
                     .withDescription("Specifies mongodb bulk write ordered option");
 
     public static final ConfigOption<Boolean> SINK_BYPASS_VALIDATION =
-            ConfigOptions.key("sink.bypassDocumentValidation")
+            ConfigOptions.key("sink.bypass-document-validation")
                     .booleanType()
                     .defaultValue(false)
                     .withDescription("Specifies mongodb bulk write option to bypass validation");
