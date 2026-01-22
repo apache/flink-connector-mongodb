@@ -26,7 +26,9 @@ import java.util.Objects;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_BYPASS_VALIDATION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_ORDERED_WRITES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.util.Preconditions.checkArgument;
 import static org.apache.flink.util.Preconditions.checkNotNull;
@@ -40,6 +42,8 @@ public final class MongoWriteOptions implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    private final boolean orderedWrites;
+    private final boolean bypassDocumentValidation;
     private final int batchSize;
     private final long batchIntervalMs;
     private final int maxRetries;
@@ -47,16 +51,28 @@ public final class MongoWriteOptions implements Serializable {
     private final DeliveryGuarantee deliveryGuarantee;
 
     private MongoWriteOptions(
+            boolean orderedWrites,
+            boolean bypassDocumentValidation,
             int batchSize,
             long batchIntervalMs,
             int maxRetries,
             long retryIntervalMs,
             DeliveryGuarantee deliveryGuarantee) {
+        this.orderedWrites = orderedWrites;
+        this.bypassDocumentValidation = bypassDocumentValidation;
         this.batchSize = batchSize;
         this.batchIntervalMs = batchIntervalMs;
         this.maxRetries = maxRetries;
         this.retryIntervalMs = retryIntervalMs;
         this.deliveryGuarantee = deliveryGuarantee;
+    }
+
+    public boolean isOrderedWrites() {
+        return orderedWrites;
+    }
+
+    public boolean isBypassDocumentValidation() {
+        return bypassDocumentValidation;
     }
 
     public int getBatchSize() {
@@ -88,7 +104,9 @@ public final class MongoWriteOptions implements Serializable {
             return false;
         }
         MongoWriteOptions that = (MongoWriteOptions) o;
-        return batchSize == that.batchSize
+        return orderedWrites == that.orderedWrites
+                && bypassDocumentValidation == that.bypassDocumentValidation
+                && batchSize == that.batchSize
                 && batchIntervalMs == that.batchIntervalMs
                 && maxRetries == that.maxRetries
                 && retryIntervalMs == that.retryIntervalMs
@@ -98,7 +116,13 @@ public final class MongoWriteOptions implements Serializable {
     @Override
     public int hashCode() {
         return Objects.hash(
-                batchSize, batchIntervalMs, maxRetries, retryIntervalMs, deliveryGuarantee);
+                orderedWrites,
+                bypassDocumentValidation,
+                batchSize,
+                batchIntervalMs,
+                maxRetries,
+                retryIntervalMs,
+                deliveryGuarantee);
     }
 
     public static MongoWriteOptionsBuilder builder() {
@@ -108,6 +132,8 @@ public final class MongoWriteOptions implements Serializable {
     /** Builder for {@link MongoWriteOptions}. */
     @PublicEvolving
     public static class MongoWriteOptionsBuilder {
+        private boolean orderedWrites = SINK_ORDERED_WRITES.defaultValue();
+        private boolean bypassDocumentValidation = SINK_BYPASS_VALIDATION.defaultValue();
         private int batchSize = BUFFER_FLUSH_MAX_ROWS.defaultValue();
         private long batchIntervalMs = BUFFER_FLUSH_INTERVAL.defaultValue().toMillis();
         private int maxRetries = SINK_MAX_RETRIES.defaultValue();
@@ -115,6 +141,31 @@ public final class MongoWriteOptions implements Serializable {
         private DeliveryGuarantee deliveryGuarantee = DELIVERY_GUARANTEE.defaultValue();
 
         private MongoWriteOptionsBuilder() {}
+
+        /**
+         * Sets the mongodb bulk write option ordered {@link
+         * com.mongodb.client.model.BulkWriteOptions}.
+         *
+         * @param orderedWrites bulk write option
+         * @return this builder
+         */
+        public MongoWriteOptionsBuilder setOrderedWrites(boolean orderedWrites) {
+            this.orderedWrites = orderedWrites;
+            return this;
+        }
+
+        /**
+         * Sets the mongodb bulk write option bypassDocumentValidation {@link
+         * com.mongodb.client.model.BulkWriteOptions}.
+         *
+         * @param bypassDocumentValidation bulk write option to bypass document validation
+         * @return this builder
+         */
+        public MongoWriteOptionsBuilder setBypassDocumentValidation(
+                boolean bypassDocumentValidation) {
+            this.bypassDocumentValidation = bypassDocumentValidation;
+            return this;
+        }
 
         /**
          * Sets the maximum number of actions to buffer for each batch request. You can pass -1 to
@@ -195,7 +246,13 @@ public final class MongoWriteOptions implements Serializable {
          */
         public MongoWriteOptions build() {
             return new MongoWriteOptions(
-                    batchSize, batchIntervalMs, maxRetries, retryIntervalMs, deliveryGuarantee);
+                    orderedWrites,
+                    bypassDocumentValidation,
+                    batchSize,
+                    batchIntervalMs,
+                    maxRetries,
+                    retryIntervalMs,
+                    deliveryGuarantee);
         }
     }
 }
