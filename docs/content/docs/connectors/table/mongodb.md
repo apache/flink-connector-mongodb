@@ -299,7 +299,7 @@ Connector Options
       <td>Optional delivery guarantee when committing. The exactly-once guarantee is not supported yet.</td>
     </tr>
     <tr>
-      <td><h5>ordered-writes</h5></td>
+      <td><h5>sink.ordered-writes</h5></td>
       <td>optional</td>
       <td>no</td>
       <td style="word-wrap: break-word;">(none)</td>
