@@ -79,6 +79,7 @@ under the License.
 		<module>flink-connector-mongodb</module>
 		<module>flink-sql-connector-mongodb</module>
 		<module>flink-connector-mongodb-e2e-tests</module>
+		<module>flink-connector-mongodb-table-tests</module>
 	</modules>
 
 	<dependencies>
