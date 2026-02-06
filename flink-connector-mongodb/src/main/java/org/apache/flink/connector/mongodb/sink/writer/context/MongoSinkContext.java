@@ -18,7 +18,7 @@
 package org.apache.flink.connector.mongodb.sink.writer.context;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 
@@ -27,7 +27,7 @@ import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializat
 public interface MongoSinkContext {
 
     /** Returns the current sink's init context. */
-    Sink.InitContext getInitContext();
+    WriterInitContext getInitContext();
 
     /** Returns the current process time in flink. */
     long processTime();

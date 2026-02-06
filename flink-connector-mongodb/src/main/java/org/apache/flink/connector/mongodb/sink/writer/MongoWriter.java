@@ -22,8 +22,8 @@ import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.functions.util.ListCollector;
 import org.apache.flink.api.common.operators.MailboxExecutor;
 import org.apache.flink.api.common.serialization.SerializationSchema;
-import org.apache.flink.api.connector.sink2.Sink;
 import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.context.DefaultMongoSinkContext;
@@ -89,7 +89,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
             MongoConnectionOptions connectionOptions,
             MongoWriteOptions writeOptions,
             boolean flushOnCheckpoint,
-            Sink.InitContext initContext,
+            WriterInitContext initContext,
             MongoSerializationSchema<IN> serializationSchema) {
         this.connectionOptions = checkNotNull(connectionOptions);
         this.writeOptions = checkNotNull(writeOptions);

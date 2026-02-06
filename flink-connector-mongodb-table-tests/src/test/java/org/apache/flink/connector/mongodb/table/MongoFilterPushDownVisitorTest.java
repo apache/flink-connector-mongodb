@@ -286,7 +286,7 @@ class MongoFilterPushDownVisitorTest {
         RexNodeExpression rexExp =
                 (RexNodeExpression) tbImpl.getParser().parseSqlExpression(sqlExp, sourceType, null);
 
-        RexNode cnf = FlinkRexUtil.toCnf(rexBuilder, -1, rexExp.getRexNode());
+        RexNode cnf = FlinkRexUtil.toCnf(rexBuilder, rexExp.getRexNode());
         // converts the cnf condition to a list of AND conditions
         List<RexNode> conjunctions = RelOptUtil.conjunctions(cnf);
 

@@ -19,11 +19,9 @@ package org.apache.flink.connector.mongodb.source.reader;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.base.source.reader.RecordEmitter;
-import org.apache.flink.connector.base.source.reader.RecordsWithSplitIds;
 import org.apache.flink.connector.base.source.reader.SingleThreadMultiplexSourceReaderBase;
 import org.apache.flink.connector.base.source.reader.fetcher.SingleThreadFetcherManager;
 import org.apache.flink.connector.base.source.reader.splitreader.SplitReader;
-import org.apache.flink.connector.base.source.reader.synchronization.FutureCompletingBlockingQueue;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplitState;
 import org.apache.flink.connector.mongodb.source.split.MongoSourceSplit;
@@ -49,13 +47,12 @@ public class MongoSourceReader<OUT>
     private static final Logger LOG = LoggerFactory.getLogger(MongoSourceReader.class);
 
     public MongoSourceReader(
-            FutureCompletingBlockingQueue<RecordsWithSplitIds<BsonDocument>> elementQueue,
             Supplier<SplitReader<BsonDocument, MongoSourceSplit>> splitReaderSupplier,
             RecordEmitter<BsonDocument, OUT, MongoSourceSplitState> recordEmitter,
             MongoSourceReaderContext readerContext) {
         super(
-                elementQueue,
-                new SingleThreadFetcherManager<>(elementQueue, splitReaderSupplier),
+                new SingleThreadFetcherManager<>(
+                        splitReaderSupplier, readerContext.getConfiguration()),
                 recordEmitter,
                 readerContext.getConfiguration(),
                 readerContext);

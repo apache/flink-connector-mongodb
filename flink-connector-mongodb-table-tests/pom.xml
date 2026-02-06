@@ -1,0 +1,79 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.apache.flink</groupId>
+		<artifactId>flink-connector-mongodb-parent</artifactId>
+		<version>2.1-SNAPSHOT</version>
+	</parent>
+	<artifactId>flink-connector-mongodb-table-tests</artifactId>
+
+	<!-- This module was added specifically to separate test cases which require direct access to planner scala module -->
+	<!-- The flink-connector-mongodb project should depend only on flink-table-planner-loader and not the scala project as recommend in flink docs -->
+	<name>Flink : Connectors : MongoDB : Table : Tests</name>
+	<packaging>jar</packaging>
+
+	<properties>
+		<surefire.module.config>
+			--add-opens=java.base/java.util=ALL-UNNAMED
+			--add-opens=java.base/java.lang=ALL-UNNAMED
+		</surefire.module.config>
+	</properties>
+
+
+	<dependencies>
+		<!-- Core -->
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-base</artifactId>
+			<version>${flink.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-streaming-java</artifactId>
+			<version>${flink.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-mongodb</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<!-- Tests -->
+
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>mongodb</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-connector-test-utils</artifactId>
+			<version>${flink.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<!-- Table API integration tests -->
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+			<version>${flink.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-table-planner_${scala.binary.version}</artifactId>
+			<version>${flink.version}</version>
+			<type>test-jar</type>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+</project>
