@@ -107,9 +107,11 @@ class MongoSinkITCase {
         final String collection = "test-sink-with-ordered-write";
         final MongoSink<Document> sink =
                 createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = new Configuration();
+        config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
         env.execute();
@@ -121,9 +123,11 @@ class MongoSinkITCase {
         final String collection = "test-sink-with-unordered-write";
         final MongoSink<Document> sink =
                 createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, false, false);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = new Configuration();
+        config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
 
         env.fromSequence(1, 5).map(new TestMapFunction()).sinkTo(sink);
         env.execute();
@@ -145,9 +149,11 @@ class MongoSinkITCase {
 
         final MongoSink<Document> sink =
                 createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, false);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = new Configuration();
+        config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
 
         String[] data = new String[] {"1", "2", "3", "4", "5", "A"};
         env.fromData(data).map(id -> new Document("_id", id).append("f1", "d_" + id)).sinkTo(sink);
@@ -171,9 +177,11 @@ class MongoSinkITCase {
 
         final MongoSink<Document> sink =
                 createSink(collection, DeliveryGuarantee.AT_LEAST_ONCE, true, true);
-        final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration config = new Configuration();
+        config.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        final StreamExecutionEnvironment env =
+                StreamExecutionEnvironment.getExecutionEnvironment(config);
         env.enableCheckpointing(100L);
-        env.setRestartStrategy(RestartStrategies.noRestart());
 
         String[] data = new String[] {"1", "2", "3", "4", "5", "A"};
         env.fromData(data).map(id -> new Document("_id", id).append("f1", "d_" + id)).sinkTo(sink);
