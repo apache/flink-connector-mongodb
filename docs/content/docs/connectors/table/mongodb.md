@@ -302,7 +302,7 @@ Connector Options
       <td><h5>sink.ordered-writes</h5></td>
       <td>optional</td>
       <td>no</td>
-      <td style="word-wrap: break-word;">(true)</td>
+      <td style="word-wrap: break-word;">true</td>
       <td>Boolean</td>
       <td>Defines MongoDB driver option to perform ordered writes. By default, this is true indicating ordered writes.</td>
     </tr>
@@ -310,7 +310,7 @@ Connector Options
       <td><h5>sink.bypass-document-validation</h5></td>
       <td>optional</td>
       <td>no</td>
-      <td style="word-wrap: break-word;">(false)</td>
+      <td style="word-wrap: break-word;">false</td>
       <td>Boolean</td>
       <td>Defines MongoDB driver option to bypass document validation. By default, this is false indicating validation of documents.</td>
     </tr>
