@@ -297,7 +297,23 @@ Connector Options
       <td style="word-wrap: break-word;">at-lease-once</td>
       <td><p>Enum</p>Possible values: none, at-least-once</td>
       <td>Optional delivery guarantee when committing. The exactly-once guarantee is not supported yet.</td>
-    </tr> 
+    </tr>
+    <tr>
+      <td><h5>sink.ordered-writes</h5></td>
+      <td>optional</td>
+      <td>no</td>
+      <td style="word-wrap: break-word;">true</td>
+      <td>Boolean</td>
+      <td>Defines MongoDB driver option to perform ordered writes. By default, this is true indicating ordered writes.</td>
+    </tr>
+    <tr>
+      <td><h5>sink.bypass-document-validation</h5></td>
+      <td>optional</td>
+      <td>no</td>
+      <td style="word-wrap: break-word;">false</td>
+      <td>Boolean</td>
+      <td>Defines MongoDB driver option to bypass document validation. By default, this is false indicating validation of documents.</td>
+    </tr>
     </tbody>
 </table>
 
