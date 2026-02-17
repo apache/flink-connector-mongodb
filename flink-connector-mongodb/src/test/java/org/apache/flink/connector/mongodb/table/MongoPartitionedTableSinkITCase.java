@@ -136,8 +136,14 @@ class MongoPartitionedTableSinkITCase {
         createPartitionedTable(tEnv, database, collection, primaryKeys, Arrays.asList("b", "c"));
 
         // update the shard key value should be failed.
+
+        // The exception during close were moved from job execution result in below flink commit.
+        // The suppressedException field contained the original failure
+        // As such there is no way to determine the root cause of failure
+        // Checking for generic failure until fink is fixed for it.
+        // https://github.com/apache/flink/pull/26861/changes#diff-b84174e55cb1999d99ad60cdeded7be20ff4978472bfc785c5a77b6270f47b56L947
         assertThatThrownBy(() -> tEnv.fromValues(testValues).executeInsert("mongo_sink").await())
-                .hasStackTraceContaining("Writing records to MongoDB failed");
+                .hasStackTraceContaining("Job execution failed");
     }
 
     @Test
