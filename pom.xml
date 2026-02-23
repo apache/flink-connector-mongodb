@@ -62,7 +62,7 @@ under the License.
 		<scala-library.version>2.12.7</scala-library.version>
 		<junit5.version>5.8.1</junit5.version>
 		<assertj.version>3.21.0</assertj.version>
-		<testcontainers.version>1.18.3</testcontainers.version>
+		<testcontainers.version>1.21.4</testcontainers.version> <!-- Upgrade required since build server doesn't support docker 1.33 api -->
 		<commons-compress.version>1.26.1</commons-compress.version>
 
 		<japicmp.skip>false</japicmp.skip>
