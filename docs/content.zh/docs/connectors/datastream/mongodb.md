@@ -111,13 +111,24 @@ Flink 的 MongoDB Source 可以通过 `MongoSource.<OutputType>builder()` 构造
     * 可选。默认值：`10`。
     * 仅用于 `SAMPLE` 抽样分区策略，设置每个分区的样本数量。抽样分区器根据分区键对集合进行随机采样的方式计算分区边界。
       `总的样本数量 = 每个分区的样本数量 * (文档总数 / 每个分区的文档数量)`
-9. _setLimit(int limit)_
+9. _setPartitionRecordSize(int partitionRecordSize)_
+    * Optional.
+    * Sets the number of records in each partition. This only takes effect when the partition
+      strategy is `PAGINATION`. When set, `setPartitionSize()` is ignored and this exact record
+      count is used per split.
+10. _setFilter(Bson filter)_
+    * Optional.
+    * Sets the filter of documents to read. For the `PAGINATION` partition strategy, the filter's
+      equality predicates are also used to compute split boundaries with an index-backed query when
+      a supporting index exists (the filter's equality fields followed by a trailing `_id`). See the
+      <a href="#分区策略">Partition Strategies section</a> for detail.
+11. _setLimit(int limit)_
     * 可选。默认值：`-1`。
     * 限制每个 reader 最多读取文档的数量。如果我们设置了读取并行度大于 1，那么最多读取的文档数量等于 `并行度 * 限制数量`。
-10. _setProjectedFields(String... projectedFields)_
+12. _setProjectedFields(String... projectedFields)_
     * 可选。
     * 设置读取文档的部分字段。如果没有设置，会读取文档的全部字段。
-11. __setDeserializationSchema(MongoDeserializationSchema<OutputType> deserializationSchema)__
+13. __setDeserializationSchema(MongoDeserializationSchema<OutputType> deserializationSchema)__
     * 必须。
     * 设置 `MongoDeserializationSchema` 用于解析 MongoDB BSON 类型的文档。
 
@@ -131,7 +142,33 @@ Flink 的 MongoDB Source 可以通过 `MongoSource.<OutputType>builder()` 构造
 - `SHARDED`：从 `config.chunks` 集合中直接读取分片集合的分片边界作为分区，不需要额外计算，快速且均匀。
   仅适用于已经分片的集合，需要 config 数据库的读取权限。
 - `PAGINATION`：按记录数均匀分割。每个分区将拥有完全相同的记录数量。可以通过 `setPartitionRecordSize()` 配置。
+  When a filter is set via `setFilter()`, split boundaries are computed with an index-backed
+  query over only the matching documents, if a *supporting index* exists whose leading fields are
+  equality fields of the filter (`{a: X}` or `{a: {$eq: X}}`, including within `$and`) followed by
+  a trailing `_id: 1` field. For example, a filter of `{a: X, b: Y}` is supported by an index of
+  `{a: 1, b: 1, _id: 1}`. Hidden, partial, collated, hashed/text/geo indexes and indexes with a
+  descending `_id` are not used, and regex, array or embedded document values are not treated as
+  equality predicates. Without a supporting index, split boundaries are computed over the `_id`
+  index of the entire collection.
 - `DEFAULT`：对分片集合使用 `SHARDED` 策略，对未分片集合使用 `SPLIT_VECTOR` 策略。
+
+{{< hint info >}}
+**Tip:** For sharded collections, include the shard key as a trailing field in the supporting
+index used by the `PAGINATION` filter. This lets MongoDB target the relevant shards for the
+boundary queries instead of broadcasting to all shards. For example, a filter of `{a: X, b: Y}`
+on a collection sharded by `shardKey` benefits from an index such as:
+
+```json
+{
+    "key": {
+        "a": 1,
+        "b": 1,
+        "_id": 1,
+        "shardKey": 1
+    }
+}
+```
+{{< /hint >}}
 
 ## MongoDB Sink
 下面的例子介绍了如何构建一个 MongoDB Sink：

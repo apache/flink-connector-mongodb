@@ -161,6 +161,18 @@ public class MongoSourceBuilder<OUT> {
     }
 
     /**
+     * Sets the number of records in each partition. This will only take effect when the partition
+     * strategy is {@link PartitionStrategy#PAGINATION}. If set this will not use partitionSize.
+     *
+     * @param partitionRecordSize number of records in each partition.
+     * @return this builder
+     */
+    public MongoSourceBuilder<OUT> setPartitionRecordSize(int partitionRecordSize) {
+        readOptionsBuilder.setPartitionRecordSize(partitionRecordSize);
+        return this;
+    }
+
+    /**
      * Sets the limit of documents to read. If limit is not set or set to -1, the documents of the
      * entire collection will be read.
      *
@@ -181,6 +193,7 @@ public class MongoSourceBuilder<OUT> {
      */
     public MongoSourceBuilder<OUT> setFilter(Bson filter) {
         this.filter = checkNotNull(filter, "The filter must not be null");
+        readOptionsBuilder.setFilter(filter);
         return this;
     }
 

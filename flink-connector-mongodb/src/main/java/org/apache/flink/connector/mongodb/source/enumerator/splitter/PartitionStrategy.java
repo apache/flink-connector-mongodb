@@ -36,6 +36,10 @@ import static org.apache.flink.configuration.description.TextElement.text;
  *       range of the chunks are stored within the collection) as the partitions directly. The
  *       sharded strategy only used for sharded collection which is fast and even. Read permission
  *       of config database is required.
+ *   <li>pagination: reads the _id index to create even chunks via a pagination query. If a filter
+ *       is provided and a supporting index exists where equality fields are followed by _id: 1,
+ *       then that index is used instead. Example if filter {a: X, b: Y}, then a supporting index
+ *       has the following fields: {a: 1, b: 1, _id: 1}
  *   <li>default: uses sharded strategy for sharded collections otherwise using split vector
  *       strategy.
  * </ul>
@@ -58,7 +62,7 @@ public enum PartitionStrategy implements DescribedEnum {
     PAGINATION(
             "pagination",
             text(
-                    "Creating chunk records evenly by count. Each chunk will have exactly the same number of records.")),
+                    "Creating chunk records evenly by count. Each chunk will have exactly the same number of records. Uses the DB filter's equality fields when a supporting index exists.")),
 
     DEFAULT(
             "default",

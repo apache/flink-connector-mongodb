@@ -20,6 +20,8 @@ package org.apache.flink.connector.mongodb.source.enumerator.splitter;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.source.split.MongoScanSourceSplit;
 
+import org.bson.BsonDocument;
+
 import java.util.Collection;
 
 import static java.util.Collections.singletonList;
@@ -34,14 +36,23 @@ public class MongoSingleSplitter {
     private MongoSingleSplitter() {}
 
     public static Collection<MongoScanSourceSplit> split(MongoSplitContext splitContext) {
+        return split(splitContext, BSON_MIN_BOUNDARY, BSON_MAX_BOUNDARY, ID_HINT);
+    }
+
+    public static Collection<MongoScanSourceSplit> split(
+            MongoSplitContext splitContext,
+            BsonDocument minBoundary,
+            BsonDocument maxBoundary,
+            BsonDocument indexHint) {
+
         MongoScanSourceSplit singleSplit =
                 new MongoScanSourceSplit(
                         splitContext.getMongoNamespace().getFullName(),
                         splitContext.getDatabaseName(),
                         splitContext.getCollectionName(),
-                        BSON_MIN_BOUNDARY,
-                        BSON_MAX_BOUNDARY,
-                        ID_HINT);
+                        minBoundary,
+                        maxBoundary,
+                        indexHint);
 
         return singletonList(singleSplit);
     }

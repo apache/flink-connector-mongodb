@@ -119,16 +119,27 @@ Flink's MongoDB source is created by using the static builder `MongoSource.<Outp
       partition fields. Then uses every `samplesPerPartition` as the value to use to calculate the
       partition boundaries. The total number of samples taken is:
       `samples per partition * ( count of documents / number of documents per partition)`.
-9. _setLimit(int limit)_
+9. _setPartitionRecordSize(int partitionRecordSize)_
+    * Optional.
+    * Sets the number of records in each partition. This only takes effect when the partition
+      strategy is `PAGINATION`. When set, `setPartitionSize()` is ignored and this exact record
+      count is used per split.
+10. _setFilter(Bson filter)_
+    * Optional.
+    * Sets the filter of documents to read. For the `PAGINATION` partition strategy, the filter's
+      equality predicates are also used to compute split boundaries with an index-backed query when
+      a supporting index exists (the filter's equality fields followed by a trailing `_id`). See the
+      <a href="#partition-strategies">Partition Strategies section</a> for detail.
+11. _setLimit(int limit)_
     * Optional. Default: `-1`.
     * Sets the limit of documents for each reader to read. If limit is not set or set to -1, 
       the documents of the entire collection will be read. If we set the parallelism of reading to
       be greater than 1, the maximum documents to read is equal to the `parallelism * limit`.
-10. _setProjectedFields(String... projectedFields)_
+12. _setProjectedFields(String... projectedFields)_
     * Optional.
     * Sets the projection fields of documents to read. If projected fields is not set, all fields of
       the collection will be read.
-11. __setDeserializationSchema(MongoDeserializationSchema<OutputType> deserializationSchema)__
+13. __setDeserializationSchema(MongoDeserializationSchema<OutputType> deserializationSchema)__
     * Required.
     * A `MongoDeserializationSchema` is required for parsing MongoDB BSON documents.
 
@@ -146,8 +157,34 @@ The following partition strategies are provided:
   of config database is required.
 - `PAGINATION`: splits records evenly by count. Each chunk will have exactly the same number
   of records. This can be configured by `setPartitionRecordSize()`.
+  When a filter is set via `setFilter()`, split boundaries are computed with an index-backed
+  query over only the matching documents, if a *supporting index* exists whose leading fields are
+  equality fields of the filter (`{a: X}` or `{a: {$eq: X}}`, including within `$and`) followed by
+  a trailing `_id: 1` field. For example, a filter of `{a: X, b: Y}` is supported by an index of
+  `{a: 1, b: 1, _id: 1}`. Hidden, partial, collated, hashed/text/geo indexes and indexes with a
+  descending `_id` are not used, and regex, array or embedded document values are not treated as
+  equality predicates. Without a supporting index, split boundaries are computed over the `_id`
+  index of the entire collection.
 - `DEFAULT`: uses sharded strategy for sharded collections otherwise using split vector
   strategy.
+
+{{< hint info >}}
+**Tip:** For sharded collections, include the shard key as a trailing field in the supporting
+index used by the `PAGINATION` filter. This lets MongoDB target the relevant shards for the
+boundary queries instead of broadcasting to all shards. For example, a filter of `{a: X, b: Y}`
+on a collection sharded by `shardKey` benefits from an index such as:
+
+```json
+{
+    "key": {
+        "a": 1,
+        "b": 1,
+        "_id": 1,
+        "shardKey": 1
+    }
+}
+```
+{{< /hint >}}
 
 ## MongoDB Sink
 The example below shows how to configure and create a sink:
