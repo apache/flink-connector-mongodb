@@ -21,6 +21,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.ReadableConfig;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.mongodb.sink.config.DuplicateKeyStrategy;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.table.FilterHandlingPolicy;
 import org.apache.flink.table.connector.source.lookup.LookupOptions;
@@ -42,6 +43,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_DUPLICATE_KEY_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
@@ -127,6 +129,10 @@ public class MongoConfiguration {
 
     public DeliveryGuarantee getDeliveryGuarantee() {
         return config.get(DELIVERY_GUARANTEE);
+    }
+
+    public DuplicateKeyStrategy getDuplicateKeyStrategy() {
+        return config.get(SINK_DUPLICATE_KEY_STRATEGY);
     }
 
     @Nullable

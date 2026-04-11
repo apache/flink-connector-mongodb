@@ -22,6 +22,7 @@ import org.apache.flink.configuration.ConfigOption;
 import org.apache.flink.configuration.ConfigOptions;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.base.DeliveryGuarantee;
+import org.apache.flink.connector.mongodb.sink.config.DuplicateKeyStrategy;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 
 import java.time.Duration;
@@ -160,6 +161,16 @@ public class MongoConnectorOptions {
                     .defaultValue(Duration.ofMillis(1000L))
                     .withDescription(
                             "Specifies the retry time interval if writing records to database failed.");
+
+    public static final ConfigOption<DuplicateKeyStrategy> SINK_DUPLICATE_KEY_STRATEGY =
+            ConfigOptions.key("sink.duplicate-key-strategy")
+                    .enumType(DuplicateKeyStrategy.class)
+                    .defaultValue(DuplicateKeyStrategy.FAIL)
+                    .withDescription(
+                            "Specifies how duplicate key errors (E11000) are handled during bulk writes. "
+                                    + "'fail' retries the batch unchanged and fails after maxRetries (default). "
+                                    + "'skip-duplicates' skips duplicate records and re-queues remaining "
+                                    + "operations for ordered writes.");
 
     public static final ConfigOption<FilterHandlingPolicy> FILTER_HANDLING_POLICY =
             ConfigOptions.key("filter.handling.policy")

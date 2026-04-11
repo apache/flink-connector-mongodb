@@ -27,6 +27,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUF
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.BUFFER_FLUSH_MAX_ROWS;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DELIVERY_GUARANTEE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_BYPASS_VALIDATION;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_DUPLICATE_KEY_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_ORDERED_WRITES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
@@ -49,6 +50,7 @@ public final class MongoWriteOptions implements Serializable {
     private final int maxRetries;
     private final long retryIntervalMs;
     private final DeliveryGuarantee deliveryGuarantee;
+    private final DuplicateKeyStrategy duplicateKeyStrategy;
 
     private MongoWriteOptions(
             boolean orderedWrites,
@@ -57,7 +59,8 @@ public final class MongoWriteOptions implements Serializable {
             long batchIntervalMs,
             int maxRetries,
             long retryIntervalMs,
-            DeliveryGuarantee deliveryGuarantee) {
+            DeliveryGuarantee deliveryGuarantee,
+            DuplicateKeyStrategy duplicateKeyStrategy) {
         this.orderedWrites = orderedWrites;
         this.bypassDocumentValidation = bypassDocumentValidation;
         this.batchSize = batchSize;
@@ -65,6 +68,7 @@ public final class MongoWriteOptions implements Serializable {
         this.maxRetries = maxRetries;
         this.retryIntervalMs = retryIntervalMs;
         this.deliveryGuarantee = deliveryGuarantee;
+        this.duplicateKeyStrategy = duplicateKeyStrategy;
     }
 
     public boolean isOrderedWrites() {
@@ -95,6 +99,10 @@ public final class MongoWriteOptions implements Serializable {
         return deliveryGuarantee;
     }
 
+    public DuplicateKeyStrategy getDuplicateKeyStrategy() {
+        return duplicateKeyStrategy;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -110,7 +118,8 @@ public final class MongoWriteOptions implements Serializable {
                 && batchIntervalMs == that.batchIntervalMs
                 && maxRetries == that.maxRetries
                 && retryIntervalMs == that.retryIntervalMs
-                && deliveryGuarantee == that.deliveryGuarantee;
+                && deliveryGuarantee == that.deliveryGuarantee
+                && duplicateKeyStrategy == that.duplicateKeyStrategy;
     }
 
     @Override
@@ -122,7 +131,8 @@ public final class MongoWriteOptions implements Serializable {
                 batchIntervalMs,
                 maxRetries,
                 retryIntervalMs,
-                deliveryGuarantee);
+                deliveryGuarantee,
+                duplicateKeyStrategy);
     }
 
     public static MongoWriteOptionsBuilder builder() {
@@ -139,6 +149,8 @@ public final class MongoWriteOptions implements Serializable {
         private int maxRetries = SINK_MAX_RETRIES.defaultValue();
         private long retryIntervalMs = SINK_RETRY_INTERVAL.defaultValue().toMillis();
         private DeliveryGuarantee deliveryGuarantee = DELIVERY_GUARANTEE.defaultValue();
+        private DuplicateKeyStrategy duplicateKeyStrategy =
+                SINK_DUPLICATE_KEY_STRATEGY.defaultValue();
 
         private MongoWriteOptionsBuilder() {}
 
@@ -240,6 +252,18 @@ public final class MongoWriteOptions implements Serializable {
         }
 
         /**
+         * Sets the strategy for handling duplicate key errors (E11000) during bulk writes.
+         *
+         * @param duplicateKeyStrategy the duplicate key handling strategy.
+         * @return this builder
+         */
+        public MongoWriteOptionsBuilder setDuplicateKeyStrategy(
+                DuplicateKeyStrategy duplicateKeyStrategy) {
+            this.duplicateKeyStrategy = checkNotNull(duplicateKeyStrategy);
+            return this;
+        }
+
+        /**
          * Build the {@link MongoWriteOptions}.
          *
          * @return a MongoWriteOptions with the settings made for this builder.
@@ -252,7 +276,8 @@ public final class MongoWriteOptions implements Serializable {
                     batchIntervalMs,
                     maxRetries,
                     retryIntervalMs,
-                    deliveryGuarantee);
+                    deliveryGuarantee,
+                    duplicateKeyStrategy);
         }
     }
 }

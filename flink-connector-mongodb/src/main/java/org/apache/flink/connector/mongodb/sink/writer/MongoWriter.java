@@ -25,6 +25,7 @@ import org.apache.flink.api.common.serialization.SerializationSchema;
 import org.apache.flink.api.connector.sink2.SinkWriter;
 import org.apache.flink.api.connector.sink2.WriterInitContext;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.sink.config.DuplicateKeyStrategy;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.context.DefaultMongoSinkContext;
 import org.apache.flink.connector.mongodb.sink.writer.context.MongoSinkContext;
@@ -35,7 +36,9 @@ import org.apache.flink.util.Collector;
 import org.apache.flink.util.FlinkRuntimeException;
 import org.apache.flink.util.concurrent.ExecutorThreadFactory;
 
+import com.mongodb.MongoBulkWriteException;
 import com.mongodb.MongoException;
+import com.mongodb.bulk.BulkWriteError;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.model.BulkWriteOptions;
@@ -46,12 +49,15 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_DUPLICATE_KEY_STRATEGY;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -63,6 +69,17 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
 public class MongoWriter<IN> implements SinkWriter<IN> {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoWriter.class);
+    private static final int DUPLICATE_KEY_ERROR_CODE = 11000;
+
+    /** Result of inspecting a {@link MongoBulkWriteException} in SKIP_DUPLICATES mode. */
+    private enum HandleResult {
+        /** All write errors were duplicate key errors and were skipped. Batch cleared. */
+        DUPLICATES_SKIPPED,
+        /** Duplicates removed and remaining operations re-queued. Retry immediately. */
+        REMAINING_REQUEUED,
+        /** Non-duplicate errors remain. Count against maxRetries and retry after sleep. */
+        NEEDS_RETRY
+    }
 
     private final MongoConnectionOptions connectionOptions;
     private final MongoWriteOptions writeOptions;
@@ -206,37 +223,258 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
             return;
         }
 
+        if (writeOptions.getDuplicateKeyStrategy() == DuplicateKeyStrategy.SKIP_DUPLICATES) {
+            doBulkWriteSkipDuplicates();
+        } else {
+            doBulkWriteFailOnDuplicates();
+        }
+    }
+
+    /**
+     * Bulk write with FAIL strategy for duplicate keys. Retries the batch unchanged up to
+     * maxRetries. If duplicate key errors (E11000) are detected when retries are exhausted, throws
+     * an {@link IOException} with a suggestion to use SKIP_DUPLICATES or upsert mode.
+     */
+    private void doBulkWriteFailOnDuplicates() throws IOException {
         int maxRetries = writeOptions.getMaxRetries();
         long retryIntervalMs = writeOptions.getRetryIntervalMs();
         for (int i = 0; i <= maxRetries; i++) {
             try {
                 lastSendTime = System.currentTimeMillis();
-                mongoClient
-                        .getDatabase(connectionOptions.getDatabase())
-                        .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                        .bulkWrite(
-                                bulkRequests,
-                                new BulkWriteOptions()
-                                        .ordered(writeOptions.isOrderedWrites())
-                                        .bypassDocumentValidation(
-                                                writeOptions.isBypassDocumentValidation()));
+                executeBulkWrite();
                 ackTime = System.currentTimeMillis();
                 bulkRequests.clear();
                 break;
+            } catch (MongoBulkWriteException e) {
+                LOG.debug("Bulk Write to MongoDB failed, retry attempt = {}", i, e);
+                if (i >= maxRetries) {
+                    LOG.error("Bulk Write to MongoDB failed", e);
+                    if (hasDuplicateKeyError(e)) {
+                        throw new IOException(
+                                "Bulk write failed with duplicate key error (E11000). "
+                                        + "If using AT_LEAST_ONCE delivery with insert mode, "
+                                        + "consider using upsert mode or setting '"
+                                        + SINK_DUPLICATE_KEY_STRATEGY.key()
+                                        + "' = '"
+                                        + DuplicateKeyStrategy.SKIP_DUPLICATES
+                                        + "'.",
+                                e);
+                    }
+                    throw new IOException(e);
+                }
+                sleepBeforeRetry(retryIntervalMs, i, e);
             } catch (MongoException e) {
                 LOG.debug("Bulk Write to MongoDB failed, retry times = {}", i, e);
                 if (i >= maxRetries) {
                     LOG.error("Bulk Write to MongoDB failed", e);
                     throw new IOException(e);
                 }
-                try {
-                    Thread.sleep(retryIntervalMs * (i + 1));
-                } catch (InterruptedException ex) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException(
-                            "Unable to flush; interrupted while doing another attempt", e);
-                }
+                sleepBeforeRetry(retryIntervalMs, i, e);
             }
+        }
+    }
+
+    /**
+     * Bulk write with duplicate key handling (SKIP_DUPLICATES mode). Catches {@link
+     * MongoBulkWriteException} and inspects per-operation write errors. Skips duplicate key errors
+     * (E11000) and re-queues remaining operations for ordered writes.
+     */
+    private void doBulkWriteSkipDuplicates() throws IOException {
+        int maxRetries = writeOptions.getMaxRetries();
+        long retryIntervalMs = writeOptions.getRetryIntervalMs();
+        // Safety bound: each REMAINING_REQUEUED iteration must shrink bulkRequests.
+        // Track previous size to detect non-progress and prevent unbounded looping.
+        int previousBatchSize = bulkRequests.size();
+        for (int i = 0; i <= maxRetries; i++) {
+            try {
+                lastSendTime = System.currentTimeMillis();
+                executeBulkWrite();
+                ackTime = System.currentTimeMillis();
+                bulkRequests.clear();
+                break;
+            } catch (MongoBulkWriteException e) {
+                HandleResult result = handleBulkWriteException(e);
+                if (result == HandleResult.DUPLICATES_SKIPPED) {
+                    break;
+                }
+                if (result == HandleResult.REMAINING_REQUEUED) {
+                    if (bulkRequests.isEmpty()) {
+                        break;
+                    }
+                    if (bulkRequests.size() >= previousBatchSize) {
+                        // No progress — bulkRequests did not shrink. Fail to avoid
+                        // an infinite loop.
+                        LOG.error(
+                                "Bulk write duplicate stripping made no progress "
+                                        + "(batch size {} unchanged). Failing.",
+                                previousBatchSize);
+                        throw new IOException(e);
+                    }
+                    previousBatchSize = bulkRequests.size();
+                    // Don't count against maxRetries — duplicates are not transient
+                    i--;
+                    continue;
+                }
+                LOG.debug("Bulk Write to MongoDB failed, retry times = {}", i, e);
+                if (i >= maxRetries) {
+                    LOG.error("Bulk Write to MongoDB failed", e);
+                    throw new IOException(e);
+                }
+                sleepBeforeRetry(retryIntervalMs, i, e);
+            } catch (MongoException e) {
+                LOG.debug("Bulk Write to MongoDB failed, retry times = {}", i, e);
+                if (i >= maxRetries) {
+                    LOG.error("Bulk Write to MongoDB failed", e);
+                    throw new IOException(e);
+                }
+                sleepBeforeRetry(retryIntervalMs, i, e);
+            }
+        }
+    }
+
+    private void executeBulkWrite() {
+        mongoClient
+                .getDatabase(connectionOptions.getDatabase())
+                .getCollection(connectionOptions.getCollection(), BsonDocument.class)
+                .bulkWrite(
+                        bulkRequests,
+                        new BulkWriteOptions()
+                                .ordered(writeOptions.isOrderedWrites())
+                                .bypassDocumentValidation(
+                                        writeOptions.isBypassDocumentValidation()));
+    }
+
+    /**
+     * Handles a {@link MongoBulkWriteException} by inspecting individual write errors. Skips
+     * duplicate key errors (code 11000) which are expected during AT_LEAST_ONCE replay after
+     * recovery. For ordered writes, re-queues remaining operations after the error index.
+     */
+    private HandleResult handleBulkWriteException(MongoBulkWriteException e) {
+        List<BulkWriteError> writeErrors = e.getWriteErrors();
+        if (writeErrors.isEmpty()) {
+            return HandleResult.NEEDS_RETRY;
+        }
+
+        boolean allDuplicateKey = true;
+        int duplicateKeyCount = 0;
+        Set<Integer> errorIndices = new HashSet<>();
+        for (BulkWriteError error : writeErrors) {
+            errorIndices.add(error.getIndex());
+            if (error.getCode() == DUPLICATE_KEY_ERROR_CODE) {
+                duplicateKeyCount++;
+            } else {
+                allDuplicateKey = false;
+            }
+        }
+
+        boolean ordered = writeOptions.isOrderedWrites();
+
+        if (allDuplicateKey) {
+            return handleAllDuplicateKeys(errorIndices, ordered);
+        }
+
+        return handleMixedErrors(writeErrors, errorIndices, duplicateKeyCount, ordered);
+    }
+
+    private HandleResult handleAllDuplicateKeys(Set<Integer> errorIndices, boolean ordered) {
+        int totalOps = bulkRequests.size();
+        int duplicates = errorIndices.size();
+
+        if (ordered) {
+            // With ordered=true, MongoDB stops at the first error and reports only
+            // that one error. So errorIndices always has exactly one element here.
+            // Operations after the error index were never attempted and must be
+            // re-queued.
+            int maxErrorIndex = 0;
+            for (int idx : errorIndices) {
+                maxErrorIndex = Math.max(maxErrorIndex, idx);
+            }
+            int remainingOps = totalOps - maxErrorIndex - 1;
+
+            if (remainingOps > 0) {
+                List<WriteModel<BsonDocument>> remainingRequests =
+                        new ArrayList<>(bulkRequests.subList(maxErrorIndex + 1, totalOps));
+                LOG.info(
+                        "Bulk write had {} duplicate key errors out of {} operations. "
+                                + "{} operations never attempted (ordered=true). Re-queuing.",
+                        duplicates,
+                        totalOps,
+                        remainingOps);
+                bulkRequests.clear();
+                bulkRequests.addAll(remainingRequests);
+                return HandleResult.REMAINING_REQUEUED;
+            }
+        }
+
+        // For unordered writes, MongoDB attempts ALL operations. Non-duplicate records
+        // already succeeded in the same bulkWrite call. Nothing to re-queue.
+        LOG.info(
+                "Bulk write had {} duplicate key errors out of {} operations. "
+                        + "All non-duplicate operations succeeded. Skipping duplicates.",
+                duplicates,
+                totalOps);
+        bulkRequests.clear();
+        return HandleResult.DUPLICATES_SKIPPED;
+    }
+
+    private HandleResult handleMixedErrors(
+            List<BulkWriteError> writeErrors,
+            Set<Integer> errorIndices,
+            int duplicateKeyCount,
+            boolean ordered) {
+        int totalOps = bulkRequests.size();
+        List<WriteModel<BsonDocument>> retryRequests = new ArrayList<>();
+
+        // Keep non-duplicate failed operations for retry
+        for (BulkWriteError error : writeErrors) {
+            if (error.getCode() != DUPLICATE_KEY_ERROR_CODE && error.getIndex() < totalOps) {
+                retryRequests.add(bulkRequests.get(error.getIndex()));
+            }
+        }
+
+        if (ordered) {
+            // Re-queue remaining operations (ordered=true stops at first error)
+            int maxErrorIndex = 0;
+            for (int idx : errorIndices) {
+                maxErrorIndex = Math.max(maxErrorIndex, idx);
+            }
+            if (maxErrorIndex + 1 < totalOps) {
+                retryRequests.addAll(bulkRequests.subList(maxErrorIndex + 1, totalOps));
+            }
+        }
+
+        int nonDuplicateErrors = errorIndices.size() - duplicateKeyCount;
+        LOG.info(
+                "Bulk write had {} errors ({} duplicate key, {} other) out of {} operations. "
+                        + "Retrying {} operations.",
+                errorIndices.size(),
+                duplicateKeyCount,
+                nonDuplicateErrors,
+                totalOps,
+                retryRequests.size());
+
+        bulkRequests.clear();
+        bulkRequests.addAll(retryRequests);
+        return HandleResult.NEEDS_RETRY;
+    }
+
+    private static boolean hasDuplicateKeyError(MongoBulkWriteException e) {
+        for (BulkWriteError error : e.getWriteErrors()) {
+            if (error.getCode() == DUPLICATE_KEY_ERROR_CODE) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void sleepBeforeRetry(long retryIntervalMs, int retryCount, MongoException cause)
+            throws IOException {
+        try {
+            Thread.sleep(retryIntervalMs * (retryCount + 1));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IOException(
+                    "Unable to flush; interrupted while doing another attempt", cause);
         }
     }
 

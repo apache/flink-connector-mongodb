@@ -21,6 +21,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.sink.config.DuplicateKeyStrategy;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.source.config.MongoReadOptions;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
@@ -54,6 +55,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_DUPLICATE_KEY_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
@@ -244,6 +246,25 @@ class MongoDynamicTableFactoryTest {
         MongoDynamicTableSink expected =
                 new MongoDynamicTableSink(
                         connectionOptions, writeOptions, 2, SCHEMA, new String[0]);
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    void testMongoSinkWithDuplicateKeyStrategy() {
+        Map<String, String> properties = getRequiredOptions();
+        properties.put(SINK_DUPLICATE_KEY_STRATEGY.key(), "skip-duplicates");
+
+        DynamicTableSink actual = createTableSink(SCHEMA, properties);
+
+        MongoWriteOptions writeOptions =
+                MongoWriteOptions.builder()
+                        .setDuplicateKeyStrategy(DuplicateKeyStrategy.SKIP_DUPLICATES)
+                        .build();
+
+        MongoDynamicTableSink expected =
+                new MongoDynamicTableSink(
+                        getConnectionOptions(), writeOptions, null, SCHEMA, new String[0]);
 
         assertThat(actual).isEqualTo(expected);
     }

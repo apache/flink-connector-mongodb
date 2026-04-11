@@ -51,6 +51,7 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_DUPLICATE_KEY_STRATEGY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
@@ -94,6 +95,7 @@ public class MongoDynamicTableFactory
         optionalOptions.add(DELIVERY_GUARANTEE);
         optionalOptions.add(SINK_MAX_RETRIES);
         optionalOptions.add(SINK_RETRY_INTERVAL);
+        optionalOptions.add(SINK_DUPLICATE_KEY_STRATEGY);
         optionalOptions.add(SINK_PARALLELISM);
         optionalOptions.add(LookupOptions.CACHE_TYPE);
         optionalOptions.add(LookupOptions.MAX_RETRIES);
@@ -193,6 +195,7 @@ public class MongoDynamicTableFactory
                 .setMaxRetries(configuration.getSinkMaxRetries())
                 .setRetryIntervalMs(configuration.getSinkRetryIntervalMs())
                 .setDeliveryGuarantee(configuration.getDeliveryGuarantee())
+                .setDuplicateKeyStrategy(configuration.getDuplicateKeyStrategy())
                 .build();
     }
 }

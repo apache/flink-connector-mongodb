@@ -20,6 +20,7 @@ package org.apache.flink.connector.mongodb.sink;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.mongodb.common.config.MongoConnectionOptions;
+import org.apache.flink.connector.mongodb.sink.config.DuplicateKeyStrategy;
 import org.apache.flink.connector.mongodb.sink.config.MongoWriteOptions;
 import org.apache.flink.connector.mongodb.sink.writer.serializer.MongoSerializationSchema;
 import org.apache.flink.util.InstantiationUtil;
@@ -145,6 +146,17 @@ public class MongoSinkBuilder<IN> {
      */
     public MongoSinkBuilder<IN> setBypassDocumentValidation(boolean bypassDocumentValidation) {
         writeOptionsBuilder.setBypassDocumentValidation(bypassDocumentValidation);
+        return this;
+    }
+
+    /**
+     * Sets the strategy for handling duplicate key errors (E11000) during bulk writes.
+     *
+     * @param duplicateKeyStrategy the duplicate key handling strategy.
+     * @return this builder
+     */
+    public MongoSinkBuilder<IN> setDuplicateKeyStrategy(DuplicateKeyStrategy duplicateKeyStrategy) {
+        writeOptionsBuilder.setDuplicateKeyStrategy(duplicateKeyStrategy);
         return this;
     }
 

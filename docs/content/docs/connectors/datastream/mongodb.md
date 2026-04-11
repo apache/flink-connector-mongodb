@@ -210,7 +210,12 @@ Flink's MongoDB sink is created by using the static builder `MongoSink.<InputTyp
 8. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
     * Optional. Default: `false`
     * Defines MongoDB driver option to bypass document validation. 
-9. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
+9. _setDuplicateKeyStrategy(DuplicateKeyStrategy duplicateKeyStrategy)_
+    * Optional. Default: `DuplicateKeyStrategy.FAIL`.
+    * Specifies how duplicate key errors (E11000) are handled during bulk writes.
+      `FAIL` retries the batch unchanged and fails after maxRetries.
+      `SKIP_DUPLICATES` skips duplicate records and re-queues remaining operations for ordered writes.
+10. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * Required.
     * A `MongoSerializationSchema` is required for parsing input record to MongoDB 
       [WriteModel](https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/bulkWrite/).

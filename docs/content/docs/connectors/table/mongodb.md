@@ -314,6 +314,14 @@ Connector Options
       <td>Boolean</td>
       <td>Defines MongoDB driver option to bypass document validation. By default, this is false indicating validation of documents.</td>
     </tr>
+    <tr>
+      <td><h5>sink.duplicate-key-strategy</h5></td>
+      <td>optional</td>
+      <td>no</td>
+      <td style="word-wrap: break-word;">fail</td>
+      <td><p>Enum</p>Possible values: fail, skip-duplicates</td>
+      <td>Specifies how duplicate key errors (E11000) are handled during bulk writes. 'fail' retries the batch unchanged and fails after maxRetries (default). 'skip-duplicates' skips duplicate records and re-queues remaining operations for ordered writes.</td>
+    </tr>
     </tbody>
 </table>
 

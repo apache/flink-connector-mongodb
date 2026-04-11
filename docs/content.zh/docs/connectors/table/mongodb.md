@@ -292,6 +292,14 @@ ON myTopic.key = MyUserTable._id;
       <td><p>Enum</p>可选值: none, at-least-once</td>
       <td>设置投递保证。仅一次（exactly-once）的投递保证暂不支持。</td>
     </tr> 
+    <tr>
+      <td><h5>sink.duplicate-key-strategy</h5></td>
+      <td>可选</td>
+      <td>否</td>
+      <td style="word-wrap: break-word;">fail</td>
+      <td><p>Enum</p>可选值: fail, skip-duplicates</td>
+      <td>设置批量写入时重复键错误（E11000）的处理策略。'fail' 重试未修改的批次并在达到最大重试次数后失败（默认值）。'skip-duplicates' 跳过重复记录并为有序写入重新排队未尝试的操作。</td>
+    </tr>
     </tbody>
 </table>
 

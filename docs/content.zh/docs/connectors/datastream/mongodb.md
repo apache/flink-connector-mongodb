@@ -188,7 +188,12 @@ Flink 的 MongoDB Source 可以通过 `MongoSink.<InputType>builder()` 构造器
 7. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
     * 可选。默认值：`DeliveryGuarantee.AT_LEAST_ONCE`.
     * 设置投递保证。 仅一次（EXACTLY_ONCE）的投递保证暂不支持。
-8. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
+8. _setDuplicateKeyStrategy(DuplicateKeyStrategy duplicateKeyStrategy)_
+    * 可选。默认值：`DuplicateKeyStrategy.FAIL`。
+    * 设置批量写入时重复键错误（E11000）的处理策略。
+      `FAIL` 重试未修改的批次并在达到最大重试次数后失败。
+      `SKIP_DUPLICATES` 跳过重复记录并为有序写入重新排队未尝试的操作。
+9. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * 必须。
     * 设置 `MongoSerializationSchema` 将输入类型转换为 MongoDB
       [WriteModel](https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/bulkWrite/)。
