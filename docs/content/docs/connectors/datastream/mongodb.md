@@ -40,7 +40,9 @@ The example below shows how to configure and create a source:
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.MongoSource;
+import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.deserializer.MongoDeserializationSchema;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 
@@ -144,6 +146,8 @@ The following partition strategies are provided:
   range of the chunks are stored within the collection) as the partitions directly. The
   sharded strategy only used for sharded collection which is fast and even. Read permission
   of config database is required.
+- `PAGINATION`: creates chunk records evenly by count. Each chunk will have exactly the same
+  number of records.
 - `DEFAULT`: uses sharded strategy for sharded collections otherwise using split vector
   strategy.
 
@@ -207,10 +211,10 @@ Flink's MongoDB sink is created by using the static builder `MongoSink.<InputTyp
 8. _setOrderedWrites(boolean ordered)_
     * Optional. Default: `true`
     * Defines MongoDB driver option to perform ordered writes.
-8. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
+9. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
     * Optional. Default: `false`
     * Defines MongoDB driver option to bypass document validation. 
-9. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
+10. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * Required.
     * A `MongoSerializationSchema` is required for parsing input record to MongoDB 
       [WriteModel](https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/bulkWrite/).

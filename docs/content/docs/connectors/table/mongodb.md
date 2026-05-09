@@ -294,7 +294,7 @@ Connector Options
       <td><h5>sink.delivery-guarantee</h5></td>
       <td>optional</td>
       <td>no</td>
-      <td style="word-wrap: break-word;">at-lease-once</td>
+      <td style="word-wrap: break-word;">at-least-once</td>
       <td><p>Enum</p>Possible values: none, at-least-once</td>
       <td>Optional delivery guarantee when committing. The exactly-once guarantee is not supported yet.</td>
     </tr>
@@ -366,6 +366,8 @@ feature for MongoDB collection. The following partition strategies are provided:
   range of the chunks are stored within the collection) as the partitions directly. The
   sharded strategy only used for sharded collection which is fast and even. Read permission
   of config database is required.
+- `pagination`: creates chunk records evenly by count. Each chunk will have exactly the same
+  number of records.
 - `default`: uses sharded strategy for sharded collections otherwise using split vector
   strategy.
 

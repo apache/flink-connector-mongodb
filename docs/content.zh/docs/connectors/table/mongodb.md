@@ -38,8 +38,7 @@ MongoDB 连接器提供了从 MongoDB 中读取和写入数据的能力。
 
 依赖
 ------------
-In order to use the MongoDB connector the following dependencies are required for both projects 
-using a build automation tool (such as Maven or SBT) and SQL Client with SQL JAR bundles.
+使用 MongoDB 连接器需要以下依赖。这些依赖适用于使用构建工具（如 Maven 或 SBT）的项目和带有 SQL JAR 包的 SQL 客户端。
 
 {{< sql_connector_download_table "mongodb" >}}
 
@@ -288,9 +287,25 @@ ON myTopic.key = MyUserTable._id;
       <td><h5>sink.delivery-guarantee</h5></td>
       <td>可选</td>
       <td>否</td>
-      <td style="word-wrap: break-word;">at-lease-once</td>
+      <td style="word-wrap: break-word;">at-least-once</td>
       <td><p>Enum</p>可选值: none, at-least-once</td>
       <td>设置投递保证。仅一次（exactly-once）的投递保证暂不支持。</td>
+    </tr>
+    <tr>
+      <td><h5>sink.ordered-writes</h5></td>
+      <td>可选</td>
+      <td>否</td>
+      <td style="word-wrap: break-word;">true</td>
+      <td>Boolean</td>
+      <td>设置 MongoDB 驱动的有序写入选项。默认为 true，表示按顺序写入。</td>
+    </tr>
+    <tr>
+      <td><h5>sink.bypass-document-validation</h5></td>
+      <td>可选</td>
+      <td>否</td>
+      <td style="word-wrap: break-word;">false</td>
+      <td>Boolean</td>
+      <td>设置 MongoDB 驱动的跳过文档校验选项。默认为 false，表示对文档进行校验。</td>
     </tr> 
     </tbody>
 </table>
@@ -331,6 +346,7 @@ MongoDB 连接器通过将 DDL 声明的主键进行组合，来生成文档的�
   仅适用于未分片集合，需要 splitVector 权限。
 - `sharded`: 从 `config.chunks` 集合中直接读取分片集合的分片边界作为分区，不需要额外计算，快速且均匀。
   仅适用于已经分片的集合，需要 config 数据库的读取权限。
+- `pagination`: 按数量均匀创建分区。每个分区将具有完全相同的记录数。
 - `default`: 对分片集合使用 `sharded` 策略，对未分片集合使用 `split-vector` 策略。
 
 ### Lookup Cache
