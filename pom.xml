@@ -60,16 +60,19 @@ under the License.
 		<flink.version>2.1.2</flink.version>
 		<scala.binary.version>2.12</scala.binary.version>
 		<scala-library.version>2.12.7</scala-library.version>
-		<junit5.version>5.8.1</junit5.version>
+		<junit5.version>5.13.3</junit5.version>
 		<assertj.version>3.27.7</assertj.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
-		<commons-compress.version>1.26.1</commons-compress.version>
+		<commons-compress.version>1.27.1</commons-compress.version>
+		<commons-lang3.version>3.18.0</commons-lang3.version>
+		<commons-io.version>2.19.0</commons-io.version>
+		<snappy-java.version>1.1.10.7</snappy-java.version>
 
 		<japicmp.skip>false</japicmp.skip>
 		<japicmp.referenceVersion>3.0.0-1.16</japicmp.referenceVersion>
 
 		<slf4j.version>1.7.36</slf4j.version>
-		<log4j.version>2.17.2</log4j.version>
+		<log4j.version>2.25.4</log4j.version>
 
 		<flink.parent.artifactId>flink-connector-mongodb-parent</flink.parent.artifactId>
 		<spotless.skip>false</spotless.skip>
@@ -271,21 +274,21 @@ under the License.
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.14.0</version>
+				<version>${commons-lang3.version}</version>
 			</dependency>
 
 			<!-- For dependency convergence  -->
 			<dependency>
 				<groupId>commons-io</groupId>
 				<artifactId>commons-io</artifactId>
-				<version>2.15.1</version>
+				<version>${commons-io.version}</version>
 			</dependency>
 
 			<!-- For dependency convergence  -->
 			<dependency>
 				<groupId>org.xerial.snappy</groupId>
 				<artifactId>snappy-java</artifactId>
-				<version>1.1.10.4</version>
+				<version>${snappy-java.version}</version>
 			</dependency>
 			
 			<!-- For dependency convergence -->
