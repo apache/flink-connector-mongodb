@@ -28,7 +28,7 @@ jobs:
   compile_and_test:
     strategy:
       matrix:
-        mongodb: [ mongodb4, mongodb5, mongodb6, mongodb7 ]
+        mongodb: [ mongodb4, mongodb5, mongodb6, mongodb7, mongodb8 ]
         flink: [ 2.1.2, 2.2.1 ]
         jdk: [ '11','17', '21' ]
 
