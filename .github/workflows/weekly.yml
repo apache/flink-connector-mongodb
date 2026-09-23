@@ -30,19 +30,19 @@ jobs:
     strategy:
       matrix:
         flink_branches: [ {
-          flink: 2.1-SNAPSHOT,
-          jdk: '11, 17, 21',
+          flink: 2.4-SNAPSHOT,
           branch: main
         }, {
-          flink: 2.2-SNAPSHOT,
-          jdk: '11, 17, 21',
+          flink: 2.3.0,
           branch: main
-        },{
-          flink: 1.19.2,
-          jdk: '8, 11, 17, 21',
-          branch: v2.0
         }, {
-          flink: 1.20.1,
+          flink: 2.2.1,
+          branch: main
+        }, {
+          flink: 2.1.3,
+          branch: main
+        }, {
+          flink: 1.20.5,
           jdk: '8, 11, 17, 21',
           branch: v2.0
         }]
@@ -50,5 +50,5 @@ jobs:
     with:
       flink_version: ${{ matrix.flink_branches.flink }}
       connector_branch: ${{ matrix.flink_branches.branch }}
-      jdk_version: ${{ matrix.flink_branches.jdk || '8, 11' }}
+      jdk_version: ${{ matrix.flink_branches.jdk || '11, 17, 21' }}
       run_dependency_convergence: false
