@@ -1,75 +1,51 @@
 <!--
-*Thank you very much for contributing to the Apache Flink MongoDB connector - we are happy that you want to help us improve Flink. To help the community review your contribution in the best possible way, please go through the checklist below, which will get the contribution into a shape in which it can be best reviewed.*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
 
-*Please understand that we do not do this to make contributions to Flink a hassle. In order to uphold a high standard of quality for code contributions, while at the same time managing a large number of contributions, we need contributors to prepare the contributions well, and give reviewers enough contextual information for the review. Please also understand that contributions that do not follow this guide will take longer to review and thus typically be picked up with lower priority by the community.*
+  http://www.apache.org/licenses/LICENSE-2.0
 
-## Contribution Checklist
-
-  - Make sure that the pull request corresponds to a [JIRA issue](https://issues.apache.org/jira/projects/FLINK/issues). Exceptions are made for typos in JavaDoc or documentation files, which need no JIRA issue.
-
-  - Name the pull request in the form "[FLINK-XXXX] [component] Title of the pull request", where *FLINK-XXXX* should be replaced by the actual issue number. Skip *component* if you are unsure about which is the best component.
-  Typo fixes that have no associated JIRA issue should be named following this pattern: `[hotfix] [docs] Fix typo in event time introduction` or `[hotfix] [javadocs] Expand JavaDoc for PuncuatedWatermarkGenerator`.
-
-  - Fill out the template below to describe the changes contributed by the pull request. That will give reviewers the context they need to do the review.
-
-  - Make sure that the change passes the automated tests, i.e., `mvn clean verify` passes. GitHub Actions runs the same build for every push and pull request against the Flink and MongoDB versions listed in `.github/workflows/push_pr.yml`.
-
-  - Each pull request should address only one issue, not mix up code from multiple issues.
-
-  - Each commit in the pull request has a meaningful commit message (including the JIRA id)
-
-  - Once all items of the checklist are addressed, remove the above text and this checklist, leaving only the filled out template below.
-
-
-**(The sections below can be removed for hotfixes of typos)**
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
 -->
 
-## What is the purpose of the change
+<!--
+Thank you for contributing to the Apache Flink Kudu connector.
+Please follow the Flink contribution guide:
+https://flink.apache.org/how-to-contribute/contribute-code/
 
-*(For example: This pull request makes the MongoDB sink retry a bulk write when it fails with a retriable MongoDB error, instead of failing the job immediately.)*
+Use a title in the form "[FLINK-XXXX][Connectors/Kudu] Description"
+and link the corresponding Jira issue below. Documentation typo fixes do not
+require a Jira issue.
+-->
 
+## Purpose of the change
+
+<!-- Link the Jira issue and explain the problem this change addresses. -->
 
 ## Brief change log
 
-*(for example:)*
-  - *`MongoWriter` classifies bulk-write exceptions as retriable or fatal*
-  - *A retriable failure is retried with backoff before being surfaced*
-  - *A metric counts retried writes*
-
+<!-- Summarize the changes that reviewers should focus on. -->
 
 ## Verifying this change
 
-Please make sure both new and modified tests in this PR follow [the conventions for tests defined in our code quality guide](https://flink.apache.org/how-to-contribute/code-style-and-quality-common/#7-testing).
+<!-- Describe the tests or manual checks performed and their results. -->
 
-*(Please pick either of the following options)*
+## Impact and documentation
 
-This change is a trivial rework / code cleanup without any test coverage.
-
-*(or)*
-
-This change is already covered by existing tests, such as *(please describe tests)*.
-
-*(or)*
-
-This change added tests and can be verified as follows:
-
-*(example:)*
-  - *Added a unit test for the retry classification in `MongoWriterTest`*
-  - *Extended `MongoSinkITCase` with a transient failure injected via a Testcontainers toxiproxy*
-  - *Manually verified the change by running a job against a 3-node replica set, killing the primary mid-batch, and checking no records were lost or duplicated.*
-
-## Does this pull request potentially affect one of the following parts:
-
-  - Dependencies (does it add or upgrade a dependency, including `mongodb.driver.version` or `flink.version`): (yes / no)
-  - The public API, i.e., is any changed class annotated with `@Public(Evolving)` or `@Experimental`, or are the Table options changed: (yes / no)
-  - Checkpointed state or its serializers (source split state, enumerator state): (yes / no / don't know)
-  - The MongoDB CI test matrix (`mongodb4`/`mongodb5`/`mongodb6`/`mongodb7` profiles in `.github/workflows/push_pr.yml`): (yes / no)
-
-## Documentation
-
-  - Does this pull request introduce a new feature? (yes / no)
-  - If yes, how is the feature documented? (not applicable / docs / JavaDocs / not documented)
-  - If the docs changed, are both `docs/content` and `docs/content.zh` updated? (yes / no / not applicable)
+<!--
+Describe any changes to dependencies, public APIs, or connector behavior.
+For user-facing changes, explain how the documentation has been updated.
+If neither applies, state "Not applicable".
+-->
 
 ---
 
