@@ -35,14 +35,17 @@ import org.apache.flink.testutils.junit.SharedReference;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.ValidationAction;
 import com.mongodb.client.model.ValidationOptions;
 import com.mongodb.client.model.WriteModel;
 import org.bson.BsonDocument;
+import org.bson.BsonInt32;
 import org.bson.BsonType;
 import org.bson.Document;
 import org.junit.jupiter.api.AfterAll;
@@ -58,7 +61,9 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.shaded.org.awaitility.Awaitility;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
@@ -228,6 +233,34 @@ class MongoSinkITCase {
         env.execute();
         assertThatIdsAreWrittenInAnyOrder(collectionOf(collection), 1, 2, 3, 4, 5);
         assertThat(failed.get()).isTrue();
+    }
+
+    @Test
+    void writeConcernZero() throws Exception {
+        String collection = "write-concern-zero";
+        MongoSink<BsonDocument> sink =
+                MongoSink.<BsonDocument>builder()
+                        .setUri(MONGO_CONTAINER.getConnectionString() + "/?w=0")
+                        .setDatabase(TEST_DATABASE)
+                        .setCollection(collection)
+                        .setSerializationSchema((doc, context) -> new InsertOneModel<>(doc))
+                        .build();
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+        env.fromData(new BsonDocument("_id", new BsonInt32(1))).sinkTo(sink);
+        env.execute();
+
+        final MongoCollection<Document> mongoCollection = collectionOf(collection);
+
+        // Since with w=0 we don't wait for acknowledgement, the write might be not have been
+        // flushed yet. By default, the journal is flushed every 100 ms.
+        Awaitility.waitAtMost(Duration.ofSeconds(10))
+                .until(
+                        () -> {
+                            try (MongoCursor<Document> cursor =
+                                    mongoCollection.find(Filters.eq("_id", 1)).iterator()) {
+                                return cursor.hasNext();
+                            }
+                        });
     }
 
     private static MongoSink<Document> createSink(
