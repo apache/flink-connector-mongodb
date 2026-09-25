@@ -18,11 +18,11 @@ under the License.
 -->
 
 <!--
-Thank you for contributing to the Apache Flink Kudu connector.
+Thank you for contributing to the Apache Flink MongoDB connector.
 Please follow the Flink contribution guide:
 https://flink.apache.org/how-to-contribute/contribute-code/
 
-Use a title in the form "[FLINK-XXXX][Connectors/Kudu] Description"
+Use a title in the form "[FLINK-XXXX][Connectors/MongoDB] Description"
 and link the corresponding Jira issue below. Documentation typo fixes do not
 require a Jira issue.
 -->
