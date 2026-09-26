@@ -55,6 +55,7 @@ under the License.
 		<mongodb5.version>5.0.28</mongodb5.version>
 		<mongodb6.version>6.0.16</mongodb6.version>
 		<mongodb7.version>7.0.12</mongodb7.version>
+		<mongodb8.version>8.0.32</mongodb8.version>
 		<mongodb.version>${mongodb4.version}</mongodb.version>
 
 		<flink.version>2.1.2</flink.version>
@@ -436,6 +437,13 @@ under the License.
 			<id>mongodb7</id>
 			<properties>
 				<mongodb.version>${mongodb7.version}</mongodb.version>
+			</properties>
+		</profile>
+
+		<profile>
+			<id>mongodb8</id>
+			<properties>
+				<mongodb.version>${mongodb8.version}</mongodb.version>
 			</properties>
 		</profile>
 	</profiles>
