@@ -41,12 +41,12 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 - Build against another Flink version: `mvn clean verify -Dflink.version=<version>`
 - Single module: `mvn clean install -DskipTests -pl flink-connector-mongodb`
 - Skip non-essential checks while iterating: `-Dspotless.check.skip=true -Dcheckstyle.skip=true -Drat.skip=true`
-- Dependency convergence check (not run by default — `dependency-convergence` is bound to `<phase>none</phase>` in `flink-connector-parent` "as it interacts badly with shade-plugin", and this repository's CI does not invoke it either): `mvn -pl <module> org.apache.maven.plugins:maven-enforcer-plugin:enforce -Denforcer.rules=dependencyConvergence`
+- Dependency convergence check: `mvn clean install -DskipTests -Pcheck-convergence -Dflink.convergence.phase=install`. Off in plain local builds (`flink-connector-parent` binds `dependency-convergence` to `<phase>none</phase>` "as it interacts badly with shade-plugin"; the `check-convergence` profile re-binds it). PR/push CI (`push_pr.yml`) runs it via the shared-utils default `run_dependency_convergence: true`; weekly CI (`weekly.yml`) sets it to `false`.
 
 ### Testing
 
 - `*Test` classes run in the `test` phase, `*ITCase` classes run in the `integration-test` phase.
-- Single unit test class: `mvn test -pl flink-connector-mongodb -Dtest=MongoWriterTest`
+- Single unit test class: `mvn test -pl flink-connector-mongodb -Dtest=MongoSampleSplitterTest`
 - Single ITCase: `mvn verify -pl flink-connector-mongodb -Dtest=MongoSinkITCase`
 - ArchUnit rules: `mvn test -pl flink-connector-mongodb -Dtest='*ArchitectureTest'`, then check `git status flink-connector-mongodb/archunit-violations/` (see Testing Standards)
 - MongoDB in tests comes from `MongoTestUtil` (`createMongoDBContainer()`, `createMongoDBShardedContainers()`), which reads the target server version from the `mongodb.version` system property — set by whichever `mongodbN` profile is active, not hardcoded in test code.
@@ -79,7 +79,7 @@ There is no `flink-python` module in this repository.
 ### Key packages in `flink-connector-mongodb/src/main/java`
 
 - `org.apache.flink.connector.mongodb.source` — `@PublicEvolving`: `MongoSource`, `MongoSourceBuilder`. `source.enumerator` / `source.reader` / `source.split` are `@Internal`.
-  - `source.enumerator.splitter` implements the partitioning strategies (`PartitionStrategy`, `@PublicEvolving`): `SINGLE` (no split), `SAMPLE` (random-sample based, the default), `SPLIT_VECTOR` (uses the `splitVector` command, standalone/replica-set only), `SHARDED` (reads chunk boundaries from `config.chunks`), `PAGINATION` (skip/limit based, works everywhere including Atlas). Each has its own `MongoXxxSplitter`.
+  - `source.enumerator.splitter` implements the partitioning strategies (`PartitionStrategy`, `@PublicEvolving`): `DEFAULT` (the default for both `MongoSourceBuilder` and `scan.partition.strategy`: `SHARDED` for sharded collections, otherwise `SPLIT_VECTOR`), `SINGLE` (no split), `SAMPLE` (random-sample based), `SPLIT_VECTOR` (uses the `splitVector` command, standalone/replica-set only), `SHARDED` (reads chunk boundaries from `config.chunks`), `PAGINATION` (skip/limit based, works everywhere including Atlas). `MongoSplitters` dispatches on the strategy; every strategy except `DEFAULT` has its own `MongoXxxSplitter`.
 - `org.apache.flink.connector.mongodb.sink` — `@PublicEvolving`: `MongoSink`, `MongoSinkBuilder`, `MongoSerializationSchema`. `sink.writer` (`MongoWriter`, contexts) is `@Internal`.
 - `org.apache.flink.connector.mongodb.table` — Table/SQL layer: `MongoDynamicTableFactory` is `@Internal`; `FilterHandlingPolicy` is `@PublicEvolving`. Converters (`BsonToRowDataConverters`, `RowDataToBsonConverters`) and the lookup function (`MongoRowDataLookupFunction`) live here too.
 - `org.apache.flink.connector.mongodb.common` — Shared, `@Internal` utilities: `MongoConnectionOptions`, and in `common.utils`: `MongoConstants`, `MongoSerdeUtils`, `MongoUtils`, `MongoValidationUtils`. Check these before writing new helpers.
