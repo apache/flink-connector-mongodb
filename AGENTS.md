@@ -29,7 +29,7 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 - Git
 - Docker (every `*ITCase` starts MongoDB through Testcontainers, including sharded-cluster tests via `MongoShardedContainers`)
 - Unix-like environment (Linux, macOS)
-- The connector builds against `flink.version` in the root `pom.xml`. A change must also work against every Flink version in `.github/workflows/push_pr.yml` and the `weekly.yml` matrix.
+- The connector builds against `flink.version` in the root `pom.xml`. A change must also work against every Flink version in `.github/workflows/push_pr.yml` and against the `weekly.yml` entries whose `branch` is the branch being changed (weekly also builds older release branches such as `v2.0`).
 - MongoDB server compatibility is tested via Maven profiles (`mongodb4`, `mongodb5`, `mongodb6`, `mongodb7`, each pinning `mongodb.version` to a specific server release); CI runs the full test suite once per profile.
 
 ## Commands
@@ -37,8 +37,9 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 ### Build
 
 - Build without tests: `mvn clean package -DskipTests`
-- Full build with tests: `mvn clean verify`
-- Build against a specific MongoDB server version (what CI does): `mvn clean verify -Pmongodb7`
+- Build with unit tests and ITCases: `mvn clean verify` (does not run the end-to-end tests, see below)
+- Build against a specific MongoDB server version: `mvn clean verify -Pmongodb7`
+- Full suite including end-to-end tests (what CI runs): `mvn clean verify -Pmongodb7 -Prun-end-to-end-tests -DdistDir=<extracted flink-<flink.version> binary distribution>`. Without the profile, `flink-connector-mongodb-e2e-tests` runs no tests; without `distDir`, the Flink container image cannot be built. Do not report a change as fully validated from plain `verify`.
 - Build against another Flink version: `mvn clean verify -Dflink.version=<version>`
 - Single module: `mvn clean install -DskipTests -pl flink-connector-mongodb`
 - Skip non-essential checks while iterating: `-Dspotless.check.skip=true -Dcheckstyle.skip=true -Drat.skip=true`
@@ -72,24 +73,24 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 
 - `flink-connector-mongodb` — The connector: `MongoSource` (FLIP-27, `Boundedness.BOUNDED` only — this is a batch/bounded source, there is no CDC or unbounded streaming mode), `MongoSink` (Sink V2), and the Table/SQL factory (`MongoDynamicTableFactory`).
 - `flink-sql-connector-mongodb` — Shaded SQL jar; relocates `com.mongodb`/`org.bson`.
-- `flink-connector-mongodb-e2e-tests` — End-to-end tests against a real Flink distribution.
+- `flink-connector-mongodb-e2e-tests` — End-to-end tests against a real Flink distribution; they run only with `-Prun-end-to-end-tests -DdistDir=...`.
 - `flink-connector-mongodb-table-tests` — Table/SQL-layer integration tests kept in their own module.
 
 There is no `flink-python` module in this repository.
 
 ### Key packages in `flink-connector-mongodb/src/main/java`
 
-- `org.apache.flink.connector.mongodb.source` — `@PublicEvolving`: `MongoSource`, `MongoSourceBuilder`. `source.enumerator` / `source.reader` / `source.split` are `@Internal`.
+- `org.apache.flink.connector.mongodb.source` — `@PublicEvolving`: `MongoSource`, `MongoSourceBuilder`, `config.MongoReadOptions`, `reader.deserializer.MongoDeserializationSchema`, and the types in `MongoSource`'s `Source<OUT, MongoSourceSplit, MongoSourceEnumState>` signature (`split.MongoSourceSplit`, `split.MongoScanSourceSplit`, `enumerator.MongoSourceEnumState`). The rest of `source.enumerator` / `source.reader` / `source.split` (enumerator, assigner, splitters, readers, emitter, split state, serializers) is `@Internal`.
   - `source.enumerator.splitter` implements the partitioning strategies (`PartitionStrategy`, `@PublicEvolving`): `DEFAULT` (the default for both `MongoSourceBuilder` and `scan.partition.strategy`: `SHARDED` for sharded collections, otherwise `SPLIT_VECTOR`), `SINGLE` (no split), `SAMPLE` (random-sample based), `SPLIT_VECTOR` (uses the `splitVector` command, standalone/replica-set only), `SHARDED` (reads chunk boundaries from `config.chunks`), `PAGINATION` (skip/limit based, works everywhere including Atlas). `MongoSplitters` dispatches on the strategy; every strategy except `DEFAULT` has its own `MongoXxxSplitter`.
-- `org.apache.flink.connector.mongodb.sink` — `@PublicEvolving`: `MongoSink`, `MongoSinkBuilder`, `MongoSerializationSchema`. `sink.writer` (`MongoWriter`, contexts) is `@Internal`.
-- `org.apache.flink.connector.mongodb.table` — Table/SQL layer: `MongoDynamicTableFactory` is `@Internal`; `FilterHandlingPolicy` is `@PublicEvolving`. Converters (`BsonToRowDataConverters`, `RowDataToBsonConverters`) and the lookup function (`MongoRowDataLookupFunction`) live here too.
-- `org.apache.flink.connector.mongodb.common` — Shared, `@Internal` utilities: `MongoConnectionOptions`, and in `common.utils`: `MongoConstants`, `MongoSerdeUtils`, `MongoUtils`, `MongoValidationUtils`. Check these before writing new helpers.
+- `org.apache.flink.connector.mongodb.sink` — `@PublicEvolving`: `MongoSink`, `MongoSinkBuilder`, `config.MongoWriteOptions`, `writer.serializer.MongoSerializationSchema`, `writer.context.MongoSinkContext`. `MongoWriter` and `DefaultMongoSinkContext` are `@Internal`.
+- `org.apache.flink.connector.mongodb.table` — Table/SQL layer: `MongoConnectorOptions` and `FilterHandlingPolicy` are `@PublicEvolving`, `MongoFilterPushDownVisitor` is `@Experimental`. The factory (`MongoDynamicTableFactory`), table source/sink, converters (`BsonToRowDataConverters`, `RowDataToBsonConverters`) and the lookup function (`MongoRowDataLookupFunction`) are `@Internal`.
+- `org.apache.flink.connector.mongodb.common` — `config.MongoConnectionOptions` and its builder are `@PublicEvolving`: the connection config used by both `MongoSourceBuilder` and `MongoSinkBuilder`. `common.utils` holds `@Internal` helpers: `MongoConstants`, `MongoSerdeUtils`, `MongoUtils`, `MongoValidationUtils`. Check these before writing new helpers.
 
 ## Architecture Boundaries
 
-1. **Source (FLIP-27, bounded only).** `MongoSourceEnumerator` implements `SplitEnumerator<MongoSourceSplit, MongoSourceEnumState>` and assigns splits produced up front by a `MongoSplitAssigner`/`MongoSplitters` (splitting happens once at enumerator startup via the configured `PartitionStrategy`, not incrementally). `MongoSourceReader` / `MongoScanSourceSplitReader` read one split (a query range) to completion. There is no offset-commit or incremental-discovery machinery like Kafka's — a split is either fully read or not read at all.
+1. **Source (FLIP-27, bounded only).** `MongoSourceEnumerator` implements `SplitEnumerator<MongoSourceSplit, MongoSourceEnumState>` and gets splits from `MongoScanSplitAssigner`, which splits the collection lazily: on the first `getNext()` call, via `MongoSplitters` and the configured `PartitionStrategy`. Unassigned and assigned splits are kept in `MongoSourceEnumState`, so a restore does not re-split. `MongoSourceReader` / `MongoScanSourceSplitReader` read one split (a query range). Recovery keeps partial progress within a split: `MongoRecordEmitter` increments the split's `offset` (a document count) per emitted record, the offset is checkpointed with the split, and a restored split resumes with `skip(offset)`. Keep that offset in step with emitted records when changing the read path. There is no unbounded mode or incremental split discovery.
 2. **Sink (Sink V2, at-least-once only — no exactly-once/transactions).** `MongoWriter` batches `WriteModel<BsonDocument>` objects from `MongoSerializationSchema` and flushes via `MongoCollection.bulkWrite`. A flush is triggered by whichever comes first: `batchSize`, `batchIntervalMs` (via a background `ScheduledExecutorService`), or a checkpoint (`flush(boolean endOfInput)`, gated by `flushOnCheckpoint`). `write()` blocks on `mailboxExecutor.yield()` while `checkpointInProgress` is true, so no new records are batched mid-flush. A failed flush is stored in a `volatile Exception flushException` and rethrown from the next `write()`/`flush()` call — it is never silently dropped.
-3. **Checkpointed state.** `MongoSourceSplitSerializer` (`CURRENT_VERSION = 0`) and `MongoSourceEnumStateSerializer` version the source's split/enumerator state. The sink is stateless (no writer-state serializer) since it has no transactions to recover.
+3. **Checkpointed state.** `MongoSourceSplitSerializer` (`CURRENT_VERSION = 0`) versions the split state. `MongoSourceEnumStateSerializer` has no version of its own: `getVersion()` returns `MongoSourceSplitSerializer.CURRENT_VERSION`, and `deserialize()` passes that version to the split deserializer for the embedded splits. The sink is stateless (no writer-state serializer) since it has no transactions to recover.
 4. **Table layer.** `MongoDynamicTableSource`/`MongoDynamicTableSink` wrap the DataStream connectors; `MongoConnectorOptions` holds every `ConfigOption`. `MongoFilterPushDownVisitor` and `FilterHandlingPolicy` control filter pushdown into the MongoDB query; `MongoShardKeysExtractor`/`MongoPrimaryKeyExtractor` handle upsert/shard-key semantics.
 5. **Connector vs Flink.** Production code may depend only on `@Public`/`@PublicEvolving` Flink API outside connector and util packages (ArchUnit rule, see `ProductionCodeArchitectureTest`). Every Flink API used must exist with the same annotation in `flink.version`, because the connector is released for several Flink minor versions.
 
@@ -111,8 +112,9 @@ There is no `flink-python` module in this repository.
 
 ### Changing checkpointed state
 
-1. Bump `MongoSourceSplitSerializer.CURRENT_VERSION` or the enumerator state serializer version, and keep a read path for every older version
-2. Verify: serializer test with bytes of the previous version
+1. Both serializers share `MongoSourceSplitSerializer.CURRENT_VERSION`. Bump it for a change to either format, and keep a read path for every older version in both `MongoSourceSplitSerializer.deserializeMongoScanSourceSplit` and `MongoSourceEnumStateSerializer.deserialize`.
+2. Giving the enumerator state its own version also means changing which version its embedded splits are read with; otherwise they fail with `Unknown version`.
+3. Verify: serializer tests (e.g. `MongoSourceEnumStateSerializerTest`) with bytes of the previous version
 
 ### Bumping `mongodb.driver.version`
 
@@ -139,7 +141,7 @@ There is no `flink-python` module in this repository.
 - **Format Java files with Spotless immediately after editing:** `mvn spotless:apply`. Uses google-java-format with AOSP style.
 - **Checkstyle:** `tools/maven/checkstyle.xml`. Do not suppress rules; fix the code instead.
 - **Apache License 2.0 header** required on all new files (enforced by Apache Rat). Use an HTML comment for markdown files.
-- **API stability annotations:** every user-facing class/method needs `@Public`, `@PublicEvolving`, `@Experimental`, or `@Internal`. Most of this connector's public surface (`MongoSource`, `MongoSink`, their builders, the serialization schemas, `PartitionStrategy`, `FilterHandlingPolicy`) is `@PublicEvolving`, not `@Public`.
+- **API stability annotations:** every user-facing class/method needs `@Public`, `@PublicEvolving`, `@Experimental`, or `@Internal`. This connector has no `@Public` API: its public surface (`MongoSource`, `MongoSink`, their builders, the connection/read/write options, the (de)serialization schemas, `PartitionStrategy`, `FilterHandlingPolicy`, `MongoConnectorOptions`) is `@PublicEvolving`, and `MongoFilterPushDownVisitor` is `@Experimental`.
 - **MongoClient lifecycle:** a `MongoWriter` owns exactly one `MongoClient` for its lifetime, created in the constructor and closed in `close()`. Do not create a client per record or per batch.
 - **Logging:** use parameterized log statements (SLF4J `{}` placeholders), never string concatenation.
 - **`final`** for variables and fields where applicable.
