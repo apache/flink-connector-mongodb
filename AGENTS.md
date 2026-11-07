@@ -24,6 +24,7 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 ## Prerequisites
 
 - Java 11, 17, or 21 (the `main` branch build matrix; release branch `v2.0` also supports Java 8)
+- On Java 11, add `-Pjava11-target` to every build and test command below. `flink-connector-parent` defaults `maven.compiler.target` to 17, which javac 11 rejects; CI adds the profile on its Java 11 jobs.
 - Maven 3.8.6 (there is no Maven wrapper in this repository; use `mvn` directly)
 - Git
 - Docker (every `*ITCase` starts MongoDB through Testcontainers, including sharded-cluster tests via `MongoShardedContainers`)
