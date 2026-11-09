@@ -162,15 +162,15 @@ There is no `flink-python` module in this repository.
 
 ### Commit message format
 
-- `[FLINK-XXXX][component] Description` where FLINK-XXXX is the JIRA issue number
-- `[hotfix][component] Description` for typo fixes or version-string-only changes without JIRA
+- `[FLINK-XXXX] Description` where FLINK-XXXX is the JIRA issue number. No component tag: every commit in this repository is for the MongoDB connector.
+- `[hotfix] Description` for typo fixes or version-string-only changes without JIRA
 - Each commit must have a meaningful message including the JIRA ID. If you don't know the ticket number, ask.
 - Separate cleanup/refactoring from functional changes into distinct commits
 - When AI tools were used: add `Generated-by: <Tool Name and Version>` trailer per [ASF generative tooling guidance](https://www.apache.org/legal/generative-tooling.html)
 
 ### Pull request conventions
 
-- Title format: `[FLINK-XXXX][connectors/mongodb] Title of the pull request`
+- Title format: `[FLINK-XXXX] Title of the pull request`
 - A corresponding JIRA issue is required (except hotfixes for typos or version bumps)
 - Fill out the PR template completely but concisely
 - Each PR should address exactly one issue
