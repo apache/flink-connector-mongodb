@@ -76,6 +76,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     private final MongoClient mongoClient;
     private final long batchIntervalMs;
     private final int batchSize;
+    private final BulkWriteOptions bulkWriteOptions;
 
     private boolean checkpointInProgress = false;
     private volatile long lastSendTime = 0L;
@@ -143,6 +144,11 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                             batchIntervalMs,
                             batchIntervalMs,
                             TimeUnit.MILLISECONDS);
+        }
+
+        this.bulkWriteOptions = new BulkWriteOptions().ordered(writeOptions.isOrderedWrites());
+        if (writeOptions.isBypassDocumentValidation()) {
+            this.bulkWriteOptions.bypassDocumentValidation(true);
         }
     }
 
@@ -214,12 +220,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 mongoClient
                         .getDatabase(connectionOptions.getDatabase())
                         .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                        .bulkWrite(
-                                bulkRequests,
-                                new BulkWriteOptions()
-                                        .ordered(writeOptions.isOrderedWrites())
-                                        .bypassDocumentValidation(
-                                                writeOptions.isBypassDocumentValidation()));
+                        .bulkWrite(bulkRequests, bulkWriteOptions);
                 ackTime = System.currentTimeMillis();
                 bulkRequests.clear();
                 break;
