@@ -81,11 +81,17 @@ class MongoE2ECase {
                     .dependsOn(MONGO_CONTAINER)
                     .build();
 
+    // One TaskManager with two slots instead of two TaskManagers. FlinkContainers builds an image
+    // per TaskManager under the same tag and starts them in parallel, which intermittently fails
+    // with "pull access denied for flink-configured-taskmanager".
     @RegisterExtension
     private static final FlinkContainers FLINK =
             FlinkContainers.builder()
                     .withFlinkContainersSettings(
-                            FlinkContainersSettings.builder().numTaskManagers(2).build())
+                            FlinkContainersSettings.builder()
+                                    .numTaskManagers(1)
+                                    .numSlotsPerTaskManager(2)
+                                    .build())
                     .withTestcontainersSettings(TESTCONTAINERS_SETTINGS)
                     .build();
 
