@@ -30,7 +30,7 @@ This file provides guidance for AI coding agents working with the Apache Flink M
 - Docker (every `*ITCase` starts MongoDB through Testcontainers, including sharded-cluster tests via `MongoShardedContainers`)
 - Unix-like environment (Linux, macOS)
 - The connector builds against `flink.version` in the root `pom.xml`. A change must also work against every Flink version in `.github/workflows/push_pr.yml` and against the `weekly.yml` entries whose `branch` is the branch being changed (weekly also builds older release branches such as `v2.0`).
-- MongoDB server compatibility is tested via Maven profiles (`mongodb4`, `mongodb5`, `mongodb6`, `mongodb7`, each pinning `mongodb.version` to a specific server release); CI runs the full test suite once per profile.
+- MongoDB server compatibility is tested via Maven profiles (`mongodb4`, `mongodb5`, `mongodb6`, `mongodb7`, `mongodb8`, `mongodb9`, each pinning `mongodb.version` to a specific server release); CI runs the full test suite once per profile.
 
 ## Commands
 
@@ -118,7 +118,7 @@ There is no `flink-python` module in this repository.
 
 ### Bumping `mongodb.driver.version`
 
-1. Check the driver's own compatibility matrix (`mongodb.com/docs/drivers/java/sync/current/reference/compatibility/`) for both the oldest and newest MongoDB server versions this repository tests against (`mongodb4`–`mongodb7` profiles, plus any server version in `MongoTestUtil`) — a driver bump can silently drop support for the older end of that range (verify empirically against a live container, not just by reading the matrix, since a driver can report a version as unsupported while still working, or vice versa).
+1. Check the driver's own compatibility matrix (`mongodb.com/docs/drivers/java/sync/current/reference/compatibility/`) for both the oldest and newest MongoDB server versions this repository tests against (`mongodb4`–`mongodb9` profiles, plus any server version in `MongoTestUtil`) — a driver bump can silently drop support for the older end of that range (verify empirically against a live container, not just by reading the matrix, since a driver can report a version as unsupported while still working, or vice versa).
 2. If server support is dropped, this is a breaking change: bump the connector's own major version first as its own `[hotfix] Set version to X.0-SNAPSHOT` commit, then land the driver bump as a separate, normal PR referencing it.
 3. Update the affected `mongodbN.version` propert(y/ies) and, if a server line's support is dropped entirely, the corresponding CI profile in `.github/workflows/push_pr.yml`.
 4. Verify: `dependency:tree` for new transitive dependencies, the full ITCase suite against every affected `mongodbN` profile.
