@@ -50,7 +50,7 @@ under the License.
 	</scm>
 
 	<properties>
-		<mongodb.driver.version>5.11.1</mongodb.driver.version>
+		<mongodb.driver.version>5.14.0</mongodb.driver.version>
 		<mongodb4.version>4.4.30</mongodb4.version>
 		<mongodb5.version>5.0.28</mongodb5.version>
 		<mongodb6.version>6.0.16</mongodb6.version>
