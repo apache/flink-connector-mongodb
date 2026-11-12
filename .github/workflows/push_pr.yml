@@ -39,7 +39,7 @@ jobs:
   mongo_versions:
     strategy:
       matrix:
-        mongodb: [ mongodb5, mongodb6, mongodb7, mongodb8 ]
+        mongodb: [ mongodb5, mongodb6, mongodb7, mongodb8, mongodb9 ]
         flink: [ 2.2.1 ]
         jdk: [ '21' ]
     uses: apache/flink-connector-shared-utils/.github/workflows/ci.yml@ci_utils
