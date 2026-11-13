@@ -54,7 +54,9 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_BYPASS_VALIDATION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_ORDERED_WRITES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
@@ -210,6 +212,8 @@ class MongoDynamicTableFactoryTest {
         properties.put(DELIVERY_GUARANTEE.key(), "at-least-once");
         properties.put(SINK_MAX_RETRIES.key(), "5");
         properties.put(SINK_RETRY_INTERVAL.key(), "2s");
+        properties.put(SINK_ORDERED_WRITES.key(), "false");
+        properties.put(SINK_BYPASS_VALIDATION.key(), "true");
 
         DynamicTableSink actual = createTableSink(SCHEMA, properties);
 
@@ -221,6 +225,8 @@ class MongoDynamicTableFactoryTest {
                         .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
                         .setMaxRetries(5)
                         .setRetryIntervalMs(TimeUnit.SECONDS.toMillis(2))
+                        .setOrderedWrites(false)
+                        .setBypassDocumentValidation(true)
                         .build();
 
         MongoDynamicTableSink expected =

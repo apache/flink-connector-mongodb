@@ -42,7 +42,9 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_BYPASS_VALIDATION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_ORDERED_WRITES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
@@ -115,6 +117,14 @@ public class MongoConfiguration {
 
     public long getBufferFlushIntervalMs() {
         return config.get(BUFFER_FLUSH_INTERVAL).toMillis();
+    }
+
+    public boolean isOrderedWrites() {
+        return config.get(SINK_ORDERED_WRITES);
+    }
+
+    public boolean isBypassDocumentValidation() {
+        return config.get(SINK_BYPASS_VALIDATION);
     }
 
     public int getSinkMaxRetries() {

@@ -186,16 +186,19 @@ Flink 的 MongoDB Sink 可以通过 `MongoSink.<InputType>builder()` 构造器�
 6. _setMaxRetries(int maxRetries)_
     * 可选。默认值：`3`。
     * 设置写入失败时最大重试次数。
-7. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
+7. _setRetryIntervalMs(long retryIntervalMs)_
+    * 可选。默认值：`1000`。
+    * 设置写入失败时的重试间隔，单位为毫秒。
+8. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
     * 可选。默认值：`DeliveryGuarantee.AT_LEAST_ONCE`.
     * 设置投递保证。 仅一次（EXACTLY_ONCE）的投递保证暂不支持。
-8. _setOrderedWrites(boolean ordered)_
+9. _setOrderedWrites(boolean ordered)_
     * 可选。默认值：`true`。
-    * 设置 MongoDB 驱动程序选项以执行有序写入。
-9. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
+    * 设置 MongoDB 驱动程序选项以执行有序写入。当设置为 false 时，一个键在一个批次中被更改多次可能会导致数据过时或被删除。
+10. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
     * 可选。默认值：`false`。
     * 设置 MongoDB 驱动程序选项以绕过文档验证。
-10. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
+11. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * 必须。
     * 设置 `MongoSerializationSchema` 将输入类型转换为 MongoDB
       [WriteModel](https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/bulkWrite/)。

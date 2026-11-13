@@ -203,16 +203,19 @@ Flink's MongoDB sink is created by using the static builder `MongoSink.<InputTyp
 6. _setMaxRetries(int maxRetries)_
     * Optional. Default: `3`.
     * Sets the max retry times if writing records failed.
-7. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
+7. _setRetryIntervalMs(long retryIntervalMs)_
+    * Optional. Default: `1000`.
+    * Sets the retry interval if writing records to database failed.
+8. _setDeliveryGuarantee(DeliveryGuarantee deliveryGuarantee)_
     * Optional. Default: `DeliveryGuarantee.AT_LEAST_ONCE`.
     * Sets the wanted `DeliveryGuarantee`. The `EXACTLY_ONCE` guarantee is not supported yet.
-8. _setOrderedWrites(boolean ordered)_
+9. _setOrderedWrites(boolean ordered)_
     * Optional. Default: `true`
-    * Defines MongoDB driver option to perform ordered writes.
-9. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
+    * Defines MongoDB driver option to perform ordered writes. With false a key changed more than once within one batch can end up stale or deleted.
+10. _setBypassDocumentValidation(boolean bypassDocumentValidation)_
     * Optional. Default: `false`
     * Defines MongoDB driver option to bypass document validation. 
-10. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
+11. __setSerializationSchema(MongoSerializationSchema<InputType> serializationSchema)__
     * Required.
     * A `MongoSerializationSchema` is required for parsing input record to MongoDB 
       [WriteModel](https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/bulkWrite/).

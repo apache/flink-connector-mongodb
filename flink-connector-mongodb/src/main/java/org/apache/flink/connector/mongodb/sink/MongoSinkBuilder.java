@@ -115,6 +115,17 @@ public class MongoSinkBuilder<IN> {
     }
 
     /**
+     * Sets the retry interval if writing records to database failed.
+     *
+     * @param retryIntervalMs the retry time interval, in milliseconds.
+     * @return this builder
+     */
+    public MongoSinkBuilder<IN> setRetryIntervalMs(long retryIntervalMs) {
+        writeOptionsBuilder.setRetryIntervalMs(retryIntervalMs);
+        return this;
+    }
+
+    /**
      * Sets the wanted {@link DeliveryGuarantee}. The default delivery guarantee is {@link
      * DeliveryGuarantee#AT_LEAST_ONCE}
      *

@@ -313,7 +313,7 @@ Connector Options
       <td>no</td>
       <td style="word-wrap: break-word;">true</td>
       <td>Boolean</td>
-      <td>Defines MongoDB driver option to perform ordered writes. By default, this is true indicating ordered writes.</td>
+      <td>Defines MongoDB driver option to perform ordered writes. With false a key changed more than once within one batch can end up stale or deleted. By default, this is true indicating ordered writes.</td>
     </tr>
     <tr>
       <td><h5>sink.bypass-document-validation</h5></td>

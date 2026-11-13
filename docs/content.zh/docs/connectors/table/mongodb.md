@@ -305,7 +305,7 @@ ON myTopic.key = MyUserTable._id;
       <td>否</td>
       <td style="word-wrap: break-word;">true</td>
       <td>Boolean</td>
-      <td>设置 MongoDB 驱动程序选项以执行有序写入。默认值为 true，表示有序写入。</td>
+      <td>设置 MongoDB 驱动程序选项以执行有序写入。当设置为 false 时，一个键在一个批次中被更改多次可能会导致数据过时或被删除。默认值为 true，表示有序写入。</td>
     </tr>
     <tr>
       <td><h5>sink.bypass-document-validation</h5></td>
