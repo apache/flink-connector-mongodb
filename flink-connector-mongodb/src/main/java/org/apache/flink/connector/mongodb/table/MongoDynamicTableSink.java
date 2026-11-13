@@ -109,6 +109,8 @@ public class MongoDynamicTableSink
                         .setBatchIntervalMs(writeOptions.getBatchIntervalMs())
                         .setDeliveryGuarantee(writeOptions.getDeliveryGuarantee())
                         .setMaxRetries(writeOptions.getMaxRetries())
+                        .setOrderedWrites(writeOptions.isOrderedWrites())
+                        .setBypassDocumentValidation(writeOptions.isBypassDocumentValidation())
                         .setSerializationSchema(serializationSchema)
                         .build();
 

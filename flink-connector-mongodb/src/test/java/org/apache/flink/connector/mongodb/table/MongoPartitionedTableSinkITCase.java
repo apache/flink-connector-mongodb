@@ -45,8 +45,10 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.getConnectorSql;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.getConnectionOptions;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.toOptionsSql;
 import static org.apache.flink.table.api.Expressions.nullOf;
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -272,6 +274,10 @@ class MongoPartitionedTableSinkITCase {
             List<String> primaryKeys,
             Collection<String> shardKeys) {
 
+        Map<String, String> options =
+                getConnectionOptions(
+                        MONGO_SHARDED_CONTAINER.getConnectionString(), database, collection);
+
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink ("
@@ -284,12 +290,7 @@ class MongoPartitionedTableSinkITCase {
                                 + ") "
                                 + "PARTITIONED BY (%s)\n"
                                 + "WITH (%s)",
-                        formatKeys(primaryKeys),
-                        formatKeys(shardKeys),
-                        getConnectorSql(
-                                database,
-                                collection,
-                                MONGO_SHARDED_CONTAINER.getConnectionString())));
+                        formatKeys(primaryKeys), formatKeys(shardKeys), toOptionsSql(options)));
     }
 
     private static String formatKeys(Collection<String> fieldNames) {

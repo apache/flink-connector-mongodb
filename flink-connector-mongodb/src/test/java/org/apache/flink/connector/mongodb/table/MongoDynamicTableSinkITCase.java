@@ -40,7 +40,11 @@ import org.apache.flink.types.RowKind;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.IndexOptions;
+import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.ValidationOptions;
 import org.bson.BsonArray;
 import org.bson.BsonBinary;
 import org.bson.BsonBoolean;
@@ -82,9 +86,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.getConnectionOptions;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.toOptionsSql;
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -106,11 +113,13 @@ class MongoDynamicTableSinkITCase {
                             .setNumberTaskManagers(1)
                             .build());
 
+    private String uri;
     private MongoClient mongoClient;
 
     @BeforeEach
     void setUp() {
-        mongoClient = MongoClients.create(MONGO_CONTAINER.getConnectionString());
+        uri = MONGO_CONTAINER.getConnectionString();
+        mongoClient = MongoClients.create(uri);
     }
 
     @AfterEach
@@ -126,6 +135,7 @@ class MongoDynamicTableSinkITCase {
         String collection = "sink_with_all_supported_types";
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
 
         tEnv.executeSql(
                 String.join(
@@ -148,7 +158,7 @@ class MongoDynamicTableSinkITCase {
                                 "  f12 ARRAY<ROW<k STRING>>,",
                                 "  PRIMARY KEY (_id) NOT ENFORCED",
                                 ") WITH (",
-                                getConnectorSql(database, collection),
+                                toOptionsSql(options),
                                 ")")));
 
         Instant now = Instant.now();
@@ -258,6 +268,9 @@ class MongoDynamicTableSinkITCase {
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
+        Map<String, String> sourceOptions = getConnectionOptions(uri, database, sourceCollection);
+        Map<String, String> sinkOptions = getConnectionOptions(uri, database, sinkCollection);
+
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_source (\n"
@@ -280,12 +293,12 @@ class MongoDynamicTableSinkITCase {
                                 + "`f16` ROW<k INTEGER>,\n"
                                 + " PRIMARY KEY (_id) NOT ENFORCED\n"
                                 + ") WITH ( %s )",
-                        getConnectorSql(database, sourceCollection)));
+                        toOptionsSql(sourceOptions)));
 
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink WITH ( %s ) LIKE mongo_source",
-                        getConnectorSql(database, sinkCollection)));
+                        toOptionsSql(sinkOptions)));
 
         tEnv.executeSql("insert into mongo_sink select * from mongo_source").await();
 
@@ -330,6 +343,8 @@ class MongoDynamicTableSinkITCase {
         Table sourceTable = tEnv.fromChangelogStream(sourceStream, sourceSchema);
         tEnv.createTemporaryView("value_source", sourceTable);
 
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
+
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink (\n"
@@ -337,7 +352,7 @@ class MongoDynamicTableSinkITCase {
                                 + "`name` STRING,\n"
                                 + " PRIMARY KEY (_id) NOT ENFORCED\n"
                                 + ") WITH ( %s )",
-                        getConnectorSql(database, collection)));
+                        toOptionsSql(options)));
 
         tEnv.executeSql("insert into mongo_sink select * from value_source").await();
 
@@ -360,6 +375,7 @@ class MongoDynamicTableSinkITCase {
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink ("
@@ -368,7 +384,7 @@ class MongoDynamicTableSinkITCase {
                                 + "PRIMARY KEY (_id) NOT ENFORCED\n"
                                 + ")\n"
                                 + "WITH (%s)",
-                        getConnectorSql(database, collection)));
+                        toOptionsSql(options)));
 
         ObjectId objectId = new ObjectId();
         tEnv.fromValues(row(objectId.toHexString(), "r1"), row("str", "r2"))
@@ -396,10 +412,13 @@ class MongoDynamicTableSinkITCase {
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
+        Map<String, String> options =
+                getConnectionOptions(MONGO_CONTAINER.getConnectionString(), database, collection);
+
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink (" + "f1 STRING NOT NULL\n" + ")\n" + "WITH (%s)",
-                        getConnectorSql(database, collection)));
+                        toOptionsSql(options)));
 
         assertThatThrownBy(
                         () ->
@@ -417,10 +436,12 @@ class MongoDynamicTableSinkITCase {
 
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
+
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink (" + "f1 STRING NOT NULL\n" + ")\n" + "WITH (%s)",
-                        getConnectorSql(database, collection)));
+                        toOptionsSql(options)));
 
         tEnv.fromValues(row("d1"), row("d1")).executeInsert("mongo_sink").await();
 
@@ -498,11 +519,108 @@ class MongoDynamicTableSinkITCase {
         assertThat(actual).isEqualTo(expected);
     }
 
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSinkWithOrderedWrites(boolean orderedWrites) {
+        String database = "test";
+        String collection = "sink_with_ordered_writes_" + orderedWrites;
+
+        MongoCollection<Document> coll =
+                mongoClient.getDatabase(database).getCollection(collection);
+        coll.createIndex(Indexes.ascending("f1"), new IndexOptions().unique(true));
+
+        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
+        options.put(MongoConnectorOptions.SINK_ORDERED_WRITES.key(), String.valueOf(orderedWrites));
+
+        // Options that keep all rows of a test in one bulk write (no size or interval based flush
+        // before the end of input) and fail the job on the first write error instead of retrying.
+        options.put(FactoryUtil.SINK_PARALLELISM.key(), "1");
+        options.put(MongoConnectorOptions.BUFFER_FLUSH_INTERVAL.key(), "1h");
+        options.put(MongoConnectorOptions.SINK_MAX_RETRIES.key(), "0");
+
+        tEnv.executeSql(
+                String.format(
+                        "CREATE TABLE mongo_sink (f1 STRING NOT NULL) WITH (%s)",
+                        toOptionsSql(options)));
+
+        // The second row violates the unique index, so the bulk write fails either way.
+        // An ordered bulk write stops there, an unordered one still writes the third row.
+        assertThatThrownBy(
+                        () ->
+                                tEnv.fromValues(row("d1"), row("d1"), row("d2"))
+                                        .executeInsert("mongo_sink")
+                                        .await())
+                .hasStackTraceContaining("E11000 duplicate key error");
+
+        List<String> actual = new ArrayList<>();
+        coll.find().map(doc -> doc.getString("f1")).into(actual);
+
+        if (orderedWrites) {
+            assertThat(actual).containsExactly("d1");
+        } else {
+            assertThat(actual).containsExactlyInAnyOrder("d1", "d2");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testSinkWithBypassDocumentValidation(boolean bypassDocumentValidation) throws Exception {
+        String database = "test";
+        String collection = "sink_with_bypass_document_validation_" + bypassDocumentValidation;
+
+        ValidationOptions validationOptions =
+                new ValidationOptions().validator(Filters.eq("f1", "valid"));
+
+        mongoClient
+                .getDatabase(database)
+                .createCollection(
+                        collection,
+                        new CreateCollectionOptions().validationOptions(validationOptions));
+
+        MongoCollection<Document> coll =
+                mongoClient.getDatabase(database).getCollection(collection);
+
+        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
+        options.put(
+                MongoConnectorOptions.SINK_BYPASS_VALIDATION.key(),
+                String.valueOf(bypassDocumentValidation));
+        // Options that keep all rows of a test in one bulk write (no size or interval based flush
+        // before the end of input) and fail the job on the first write error instead of retrying.
+        options.put(FactoryUtil.SINK_PARALLELISM.key(), "1");
+        options.put(MongoConnectorOptions.BUFFER_FLUSH_INTERVAL.key(), "1h");
+        options.put(MongoConnectorOptions.SINK_MAX_RETRIES.key(), "0");
+
+        tEnv.executeSql(
+                String.format(
+                        "CREATE TABLE mongo_sink (f1 STRING NOT NULL) WITH (%s)",
+                        toOptionsSql(options)));
+
+        Table invalidRows = tEnv.fromValues(row("invalid"));
+
+        if (bypassDocumentValidation) {
+            invalidRows.executeInsert("mongo_sink").await();
+
+            List<String> actual = new ArrayList<>();
+            coll.find().map(doc -> doc.getString("f1")).into(actual);
+            assertThat(actual).containsExactly("invalid");
+        } else {
+            assertThatThrownBy(() -> invalidRows.executeInsert("mongo_sink").await())
+                    .hasStackTraceContaining("Document failed validation");
+
+            assertThat(coll.countDocuments()).isZero();
+        }
+    }
+
     private void testSinkWithoutReservedId(
             String database, String collection, List<String> primaryKeys, List<Expression> values)
             throws Exception {
         TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
+        Map<String, String> options = getConnectionOptions(uri, database, collection);
         tEnv.executeSql(
                 String.format(
                         "CREATE TABLE mongo_sink ("
@@ -516,21 +634,12 @@ class MongoDynamicTableSinkITCase {
                                 + "PRIMARY KEY (%s) NOT ENFORCED\n"
                                 + ")\n"
                                 + "WITH (%s)",
-                        getPrimaryKeys(primaryKeys), getConnectorSql(database, collection)));
+                        getPrimaryKeys(primaryKeys), toOptionsSql(options)));
 
         tEnv.fromValues(values).executeInsert("mongo_sink").await();
     }
 
     private static String getPrimaryKeys(List<String> fieldNames) {
         return String.join(",", fieldNames);
-    }
-
-    private static String getConnectorSql(String database, String collection) {
-        return String.format("'%s'='%s',\n", FactoryUtil.CONNECTOR.key(), "mongodb")
-                + String.format(
-                        "'%s'='%s',\n",
-                        MongoConnectorOptions.URI.key(), MONGO_CONTAINER.getConnectionString())
-                + String.format("'%s'='%s',\n", MongoConnectorOptions.DATABASE.key(), database)
-                + String.format("'%s'='%s'\n", MongoConnectorOptions.COLLECTION.key(), collection);
     }
 }
