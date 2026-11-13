@@ -186,8 +186,13 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 try {
                     doBulkWrite();
                 } catch (Exception e) {
-                    LOG.error("Writing records to MongoDB failed when closing MongoWriter", e);
-                    throw new IOException("Writing records to MongoDB failed.", e);
+                    // Do not rethrow: delivery is guaranteed by flush(), so records still
+                    // buffered here are only written on a best-effort basis. They are left
+                    // over when the task failed or was cancelled, typically the very batch
+                    // whose flush just failed, and will be replayed from the last checkpoint.
+                    // Since FLINK-38180 (Flink 2.2) an exception thrown while cleaning up a
+                    // failed task is fatal and shuts down the whole TaskManager.
+                    LOG.warn("Writing records to MongoDB failed when closing writer", e);
                 } finally {
                     mongoClient.close();
                     closed = true;

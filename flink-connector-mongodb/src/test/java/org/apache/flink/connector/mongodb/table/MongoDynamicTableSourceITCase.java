@@ -78,12 +78,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.COLLECTION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.DATABASE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.FILTER_HANDLING_POLICY;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.toOptionsSql;
 import static org.apache.flink.table.factories.FactoryUtil.CONNECTOR;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -356,11 +356,6 @@ class MongoDynamicTableSourceITCase {
             options.putAll(extraOptions);
         }
 
-        String optionString =
-                options.entrySet().stream()
-                        .map(e -> String.format("'%s' = '%s'", e.getKey(), e.getValue()))
-                        .collect(Collectors.joining(",\n"));
-
         return String.join(
                 "\n",
                 Arrays.asList(
@@ -381,7 +376,7 @@ class MongoDynamicTableSourceITCase {
                         "  f11 ARRAY<STRING>,",
                         "  f12 ARRAY<ROW<k STRING>>",
                         ") WITH (",
-                        optionString,
+                        toOptionsSql(options),
                         ")"));
     }
 

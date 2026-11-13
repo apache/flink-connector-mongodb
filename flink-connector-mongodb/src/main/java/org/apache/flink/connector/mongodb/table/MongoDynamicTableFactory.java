@@ -51,7 +51,9 @@ import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCA
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SAMPLES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_SIZE;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SCAN_PARTITION_STRATEGY;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_BYPASS_VALIDATION;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_MAX_RETRIES;
+import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_ORDERED_WRITES;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.SINK_RETRY_INTERVAL;
 import static org.apache.flink.connector.mongodb.table.MongoConnectorOptions.URI;
 import static org.apache.flink.table.factories.FactoryUtil.SINK_PARALLELISM;
@@ -92,6 +94,8 @@ public class MongoDynamicTableFactory
         optionalOptions.add(BUFFER_FLUSH_MAX_ROWS);
         optionalOptions.add(BUFFER_FLUSH_INTERVAL);
         optionalOptions.add(DELIVERY_GUARANTEE);
+        optionalOptions.add(SINK_ORDERED_WRITES);
+        optionalOptions.add(SINK_BYPASS_VALIDATION);
         optionalOptions.add(SINK_MAX_RETRIES);
         optionalOptions.add(SINK_RETRY_INTERVAL);
         optionalOptions.add(SINK_PARALLELISM);
@@ -190,6 +194,8 @@ public class MongoDynamicTableFactory
         return MongoWriteOptions.builder()
                 .setBatchSize(configuration.getBufferFlushMaxRows())
                 .setBatchIntervalMs(configuration.getBufferFlushIntervalMs())
+                .setOrderedWrites(configuration.isOrderedWrites())
+                .setBypassDocumentValidation(configuration.isBypassDocumentValidation())
                 .setMaxRetries(configuration.getSinkMaxRetries())
                 .setRetryIntervalMs(configuration.getSinkRetryIntervalMs())
                 .setDeliveryGuarantee(configuration.getDeliveryGuarantee())
