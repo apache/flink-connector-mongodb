@@ -33,7 +33,10 @@ import org.testcontainers.containers.Network;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -131,12 +134,20 @@ public class MongoTestUtil {
         assertThatIdsAreWrittenInAnyOrder(coll, ids);
     }
 
-    public static String getConnectorSql(
-            String database, String collection, String connectionString) {
-        return String.format("'%s'='%s',\n", FactoryUtil.CONNECTOR.key(), "mongodb")
-                + String.format("'%s'='%s',\n", MongoConnectorOptions.URI.key(), connectionString)
-                + String.format("'%s'='%s',\n", MongoConnectorOptions.DATABASE.key(), database)
-                + String.format("'%s'='%s'\n", MongoConnectorOptions.COLLECTION.key(), collection);
+    public static Map<String, String> getConnectionOptions(
+            String uri, String database, String collection) {
+        Map<String, String> options = new LinkedHashMap<>();
+        options.put(FactoryUtil.CONNECTOR.key(), "mongodb");
+        options.put(MongoConnectorOptions.URI.key(), uri);
+        options.put(MongoConnectorOptions.DATABASE.key(), database);
+        options.put(MongoConnectorOptions.COLLECTION.key(), collection);
+        return options;
+    }
+
+    public static String toOptionsSql(Map<String, String> options) {
+        return options.entrySet().stream()
+                .map(option -> String.format("'%s'='%s'", option.getKey(), option.getValue()))
+                .collect(Collectors.joining(",\n"));
     }
 
     public static void createIndex(
