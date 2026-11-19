@@ -58,6 +58,7 @@ import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertT
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInAnyOrder;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenWithMaxWaitTime;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.fail;
 
 /** Tests for {@link MongoWriter}. */
@@ -265,6 +266,19 @@ class MongoWriterITCase {
             writer.write(buildMessage(2), null);
 
             writer.doBulkWrite();
+        }
+    }
+
+    @Test
+    void testCloseDoesNotThrowWhenFinalWriteFails() throws Exception {
+        final String collection = "test-close-with-failed-write";
+
+        try (MongoWriter<Document> writer = createWriter(collection, -1, -1, false)) {
+            // No size or interval flush, so both inserts stay buffered until close(), where the
+            // duplicate _id fails the bulk write.
+            writer.write(buildMessage(1), null);
+            writer.write(buildMessage(1), null);
+            assertThatCode(writer::close).doesNotThrowAnyException();
         }
     }
 
