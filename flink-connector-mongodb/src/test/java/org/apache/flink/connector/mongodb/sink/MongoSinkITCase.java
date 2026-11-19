@@ -35,7 +35,6 @@ import org.apache.flink.testutils.junit.SharedReference;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.CreateCollectionOptions;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.InsertOneModel;
@@ -61,14 +60,13 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.containers.output.Slf4jLogConsumer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreNotWritten;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInAnyOrder;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenInOrder;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.assertThatIdsAreWrittenWithMaxWaitTime;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** IT cases for {@link MongoSink}. */
@@ -249,18 +247,9 @@ class MongoSinkITCase {
         env.fromData(new BsonDocument("_id", new BsonInt32(1))).sinkTo(sink);
         env.execute();
 
-        final MongoCollection<Document> mongoCollection = collectionOf(collection);
-
         // Since with w=0 we don't wait for acknowledgement, the write might be not have been
         // flushed yet. By default, the journal is flushed every 100 ms.
-        Awaitility.waitAtMost(Duration.ofSeconds(10))
-                .until(
-                        () -> {
-                            try (MongoCursor<Document> cursor =
-                                    mongoCollection.find(Filters.eq("_id", 1)).iterator()) {
-                                return cursor.hasNext();
-                            }
-                        });
+        assertThatIdsAreWrittenWithMaxWaitTime(collectionOf(collection), 10_000L, 1);
     }
 
     private static MongoSink<Document> createSink(

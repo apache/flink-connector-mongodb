@@ -146,10 +146,14 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                             TimeUnit.MILLISECONDS);
         }
 
-        this.bulkWriteOptions = new BulkWriteOptions().ordered(writeOptions.isOrderedWrites());
-        if (writeOptions.isBypassDocumentValidation()) {
-            this.bulkWriteOptions.bypassDocumentValidation(true);
-        }
+        this.bulkWriteOptions =
+                new BulkWriteOptions()
+                        .ordered(writeOptions.isOrderedWrites())
+                        // MongoDB does not allow bypassDocumentValidation to be specified with
+                        // unacknowledged writes (w=0), even when explicitly set to false.
+                        // Only set this option when document validation should be bypassed.
+                        .bypassDocumentValidation(
+                                writeOptions.isBypassDocumentValidation() ? true : null);
     }
 
     @Override
