@@ -76,6 +76,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
     private final MongoClient mongoClient;
     private final long batchIntervalMs;
     private final int batchSize;
+    private final BulkWriteOptions bulkWriteOptions;
 
     private boolean checkpointInProgress = false;
     private volatile long lastSendTime = 0L;
@@ -144,6 +145,15 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                             batchIntervalMs,
                             TimeUnit.MILLISECONDS);
         }
+
+        this.bulkWriteOptions =
+                new BulkWriteOptions()
+                        .ordered(writeOptions.isOrderedWrites())
+                        // MongoDB does not allow bypassDocumentValidation to be specified with
+                        // unacknowledged writes (w=0), even when explicitly set to false.
+                        // Only set this option when document validation should be bypassed.
+                        .bypassDocumentValidation(
+                                writeOptions.isBypassDocumentValidation() ? true : null);
     }
 
     @Override
@@ -214,12 +224,7 @@ public class MongoWriter<IN> implements SinkWriter<IN> {
                 mongoClient
                         .getDatabase(connectionOptions.getDatabase())
                         .getCollection(connectionOptions.getCollection(), BsonDocument.class)
-                        .bulkWrite(
-                                bulkRequests,
-                                new BulkWriteOptions()
-                                        .ordered(writeOptions.isOrderedWrites())
-                                        .bypassDocumentValidation(
-                                                writeOptions.isBypassDocumentValidation()));
+                        .bulkWrite(bulkRequests, bulkWriteOptions);
                 ackTime = System.currentTimeMillis();
                 bulkRequests.clear();
                 break;
