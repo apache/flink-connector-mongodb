@@ -17,6 +17,7 @@
 
 package org.apache.flink.connector.mongodb.testutils;
 
+import org.apache.flink.FlinkVersion;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.mongodb.table.MongoConnectorOptions;
 import org.apache.flink.table.factories.FactoryUtil;
@@ -148,6 +149,18 @@ public class MongoTestUtil {
         return options.entrySet().stream()
                 .map(option -> String.format("'%s'='%s'", option.getKey(), option.getValue()))
                 .collect(Collectors.joining(",\n"));
+    }
+
+    /**
+     * Since Flink 2.3 (FLIP-558), an insert whose upsert key differs from the primary key of the
+     * sink fails unless it names a conflict strategy. A query without an upsert key, such as an
+     * append-only insert, counts as differing. Flink 2.2 does not know the clause. DEDUPLICATE
+     * keeps the behaviour of earlier versions.
+     */
+    public static String onConflictDeduplicate() {
+        return FlinkVersion.current().toString().compareTo("2.3") >= 0
+                ? " ON CONFLICT DO DEDUPLICATE"
+                : "";
     }
 
     public static void createIndex(

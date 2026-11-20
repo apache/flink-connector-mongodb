@@ -31,9 +31,15 @@ jobs:
       fail-fast: false
       matrix:
         flink_branches: [ {
-          flink: 2.2.1,
+          flink: 2.4-SNAPSHOT,
           branch: main
         }, {
+          flink: 2.3.0,
+          branch: main
+        }, {
+          flink: 2.2.1,
+          branch: main
+        },{
           flink: 2.1.3,
           branch: main
         }, {
