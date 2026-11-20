@@ -17,15 +17,19 @@
 
 package org.apache.flink.connector.mongodb.table;
 
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.mongodb.testutils.MongoShardedContainers;
 import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.EnvironmentSettings;
-import org.apache.flink.table.api.TableEnvironment;
+import org.apache.flink.table.api.Schema;
+import org.apache.flink.table.api.Table;
+import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
 import org.apache.flink.table.connector.sink.abilities.SupportsPartitioning;
-import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.test.junit5.MiniClusterExtension;
+import org.apache.flink.types.Row;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
@@ -47,10 +51,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.apache.flink.api.common.typeinfo.Types.BOOLEAN;
+import static org.apache.flink.api.common.typeinfo.Types.DOUBLE;
+import static org.apache.flink.api.common.typeinfo.Types.INT;
+import static org.apache.flink.api.common.typeinfo.Types.LONG;
+import static org.apache.flink.api.common.typeinfo.Types.ROW_NAMED;
+import static org.apache.flink.api.common.typeinfo.Types.STRING;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.getConnectionOptions;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.onConflictDeduplicate;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.toOptionsSql;
-import static org.apache.flink.table.api.Expressions.nullOf;
-import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -69,9 +78,15 @@ class MongoPartitionedTableSinkITCase {
                             .build());
 
     private MongoClient mongoClient;
+    private StreamExecutionEnvironment env;
+    private StreamTableEnvironment tEnv;
 
     @BeforeEach
     void setUp() {
+        Configuration configuration = new Configuration();
+        configuration.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        env = StreamExecutionEnvironment.getExecutionEnvironment(configuration);
+        tEnv = StreamTableEnvironment.create(env);
         mongoClient = MongoClients.create(MONGO_SHARDED_CONTAINER.getConnectionString());
     }
 
@@ -93,16 +108,16 @@ class MongoPartitionedTableSinkITCase {
                 mongoClient, database, collection, hashedIndex, new IndexOptions().unique(true));
         MongoTestUtil.shardCollection(mongoClient, database, collection, hashedIndex);
 
-        List<Expression> testValues =
-                Arrays.asList(
-                        row(1L, nullOf(DataTypes.BOOLEAN()), "ABCDEF", 12.12d, 4),
-                        row(1L, nullOf(DataTypes.BOOLEAN()), "ABCDEF", 12.123d, 5));
-        List<String> primaryKeys = Collections.singletonList("a");
+        createSourceTable(
+                Row.of(1L, null, "ABCDEF", 12.12d, 4), Row.of(1L, null, "ABCDEF", 12.123d, 5));
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
-        createPartitionedTable(tEnv, database, collection, primaryKeys, Arrays.asList("b", "c"));
+        createPartitionedTable(
+                database, collection, Collections.singletonList("a"), Arrays.asList("b", "c"));
 
-        tEnv.fromValues(testValues).executeInsert("mongo_sink").await();
+        tEnv.executeSql(
+                        "INSERT INTO mongo_sink SELECT * FROM test_source"
+                                + onConflictDeduplicate())
+                .await();
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -129,22 +144,24 @@ class MongoPartitionedTableSinkITCase {
                 mongoClient, database, collection, hashedIndex, new IndexOptions().unique(true));
         MongoTestUtil.shardCollection(mongoClient, database, collection, hashedIndex);
 
-        List<Expression> testValues =
-                Arrays.asList(
-                        row(1L, false, "ABCDEF", 12.12d, 4), row(1L, true, "ABCDEF", 12.123d, 5));
-        List<String> primaryKeys = Collections.singletonList("a");
+        createSourceTable(
+                Row.of(1L, false, "ABCDEF", 12.12d, 4), Row.of(1L, true, "ABCDEF", 12.123d, 5));
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
-        createPartitionedTable(tEnv, database, collection, primaryKeys, Arrays.asList("b", "c"));
-
-        // update the shard key value should be failed.
+        createPartitionedTable(
+                database, collection, Collections.singletonList("a"), Arrays.asList("b", "c"));
 
         // The exception during close were moved from job execution result in below flink commit.
         // The suppressedException field contained the original failure
         // As such there is no way to determine the root cause of failure
         // Checking for generic failure until fink is fixed for it.
         // https://github.com/apache/flink/pull/26861/changes#diff-b84174e55cb1999d99ad60cdeded7be20ff4978472bfc785c5a77b6270f47b56L947
-        assertThatThrownBy(() -> tEnv.fromValues(testValues).executeInsert("mongo_sink").await())
+        assertThatThrownBy(
+                        () ->
+                                // update the shard key value should be failed.
+                                tEnv.executeSql(
+                                                "INSERT INTO mongo_sink SELECT * FROM test_source"
+                                                        + onConflictDeduplicate())
+                                        .await())
                 .hasStackTraceContaining("Job execution failed");
     }
 
@@ -159,19 +176,19 @@ class MongoPartitionedTableSinkITCase {
                 mongoClient, database, collection, hashedIndex, new IndexOptions());
         MongoTestUtil.shardCollection(mongoClient, database, collection, hashedIndex);
 
-        List<Expression> testValues =
-                Arrays.asList(
-                        row(2L, true, "ABCDEF", 12.12d, 4), row(2L, false, "ABCDEF", 12.123d, 5));
+        createSourceTable(
+                Row.of(2L, true, "ABCDEF", 12.12d, 4), Row.of(2L, false, "ABCDEF", 12.123d, 5));
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
         createPartitionedTable(
-                tEnv,
                 database,
                 collection,
                 Collections.singletonList("a"),
                 Collections.singletonList("c"));
 
-        tEnv.fromValues(testValues).executeInsert("mongo_sink").await();
+        tEnv.executeSql(
+                        "INSERT INTO mongo_sink SELECT * FROM test_source"
+                                + onConflictDeduplicate())
+                .await();
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -198,19 +215,16 @@ class MongoPartitionedTableSinkITCase {
                 mongoClient, database, collection, hashedIndex, new IndexOptions().unique(true));
         MongoTestUtil.shardCollection(mongoClient, database, collection, hashedIndex);
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
         createPartitionedTable(
-                tEnv,
-                database,
-                collection,
-                Collections.singletonList("a"),
-                Arrays.asList("b", "c"));
+                database, collection, Collections.singletonList("a"), Arrays.asList("b", "c"));
 
         tEnv.executeSql(
-                        "INSERT INTO mongo_sink PARTITION (b='true', c='ABCDEF') SELECT 3, 12.1234, 5")
+                        "INSERT INTO mongo_sink PARTITION (b='true', c='ABCDEF') SELECT 3, 12.1234, 5"
+                                + onConflictDeduplicate())
                 .await();
         tEnv.executeSql(
-                        "INSERT INTO mongo_sink PARTITION (b='true', c='ABCDEF') SELECT 3, 12.12345, 6")
+                        "INSERT INTO mongo_sink PARTITION (b='true', c='ABCDEF') SELECT 3, 12.12345, 6"
+                                + onConflictDeduplicate())
                 .await();
 
         MongoCollection<Document> coll =
@@ -238,19 +252,16 @@ class MongoPartitionedTableSinkITCase {
                 mongoClient, database, collection, hashedIndex, new IndexOptions().unique(true));
         MongoTestUtil.shardCollection(mongoClient, database, collection, hashedIndex);
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
         createPartitionedTable(
-                tEnv,
-                database,
-                collection,
-                Collections.singletonList("a"),
-                Arrays.asList("c", "b"));
+                database, collection, Collections.singletonList("a"), Arrays.asList("c", "b"));
 
         tEnv.executeSql(
-                        "INSERT INTO mongo_sink PARTITION (c='ABCDEFG') SELECT 4, false, 12.12345, 6")
+                        "INSERT INTO mongo_sink PARTITION (c='ABCDEFG') SELECT 4, false, 12.12345, 6"
+                                + onConflictDeduplicate())
                 .await();
         tEnv.executeSql(
-                        "INSERT INTO mongo_sink PARTITION (c='ABCDEFG') SELECT 4, false, 12.123456, 7")
+                        "INSERT INTO mongo_sink PARTITION (c='ABCDEFG') SELECT 4, false, 12.123456, 7"
+                                + onConflictDeduplicate())
                 .await();
 
         MongoCollection<Document> coll =
@@ -267,8 +278,29 @@ class MongoPartitionedTableSinkITCase {
         assertThat(coll.find(Filters.eq("_id", 4L))).containsExactly(expected);
     }
 
-    private static void createPartitionedTable(
-            TableEnvironment tEnv,
+    private void createSourceTable(Row... rows) {
+        Table table =
+                tEnv.fromDataStream(
+                        env.fromElements(rows)
+                                .returns(
+                                        ROW_NAMED(
+                                                new String[] {"a", "b", "c", "d", "e"},
+                                                LONG,
+                                                BOOLEAN,
+                                                STRING,
+                                                DOUBLE,
+                                                INT)),
+                        Schema.newBuilder()
+                                .column("a", DataTypes.BIGINT())
+                                .column("b", DataTypes.BOOLEAN())
+                                .column("c", DataTypes.STRING())
+                                .column("d", DataTypes.DOUBLE())
+                                .column("e", DataTypes.INT())
+                                .build());
+        tEnv.createTemporaryView("test_source", table);
+    }
+
+    private void createPartitionedTable(
             String database,
             String collection,
             List<String> primaryKeys,

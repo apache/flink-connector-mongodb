@@ -21,17 +21,16 @@ package org.apache.flink.connector.mongodb.table;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.typeutils.RowTypeInfo;
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.RestartStrategyOptions;
 import org.apache.flink.connector.mongodb.testutils.MongoTestUtil;
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.DataTypes;
-import org.apache.flink.table.api.EnvironmentSettings;
 import org.apache.flink.table.api.Schema;
 import org.apache.flink.table.api.Table;
-import org.apache.flink.table.api.TableEnvironment;
 import org.apache.flink.table.api.bridge.java.StreamTableEnvironment;
-import org.apache.flink.table.expressions.Expression;
 import org.apache.flink.table.factories.FactoryUtil;
 import org.apache.flink.test.junit5.MiniClusterExtension;
 import org.apache.flink.types.Row;
@@ -90,7 +89,16 @@ import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
+import static org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo.TIMESTAMP;
+import static org.apache.flink.api.common.typeinfo.Types.BOOLEAN;
+import static org.apache.flink.api.common.typeinfo.Types.DOUBLE;
+import static org.apache.flink.api.common.typeinfo.Types.INSTANT;
+import static org.apache.flink.api.common.typeinfo.Types.INT;
+import static org.apache.flink.api.common.typeinfo.Types.LONG;
+import static org.apache.flink.api.common.typeinfo.Types.ROW_NAMED;
+import static org.apache.flink.api.common.typeinfo.Types.STRING;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.getConnectionOptions;
+import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.onConflictDeduplicate;
 import static org.apache.flink.connector.mongodb.testutils.MongoTestUtil.toOptionsSql;
 import static org.apache.flink.table.api.Expressions.row;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -115,9 +123,15 @@ class MongoDynamicTableSinkITCase {
 
     private String uri;
     private MongoClient mongoClient;
+    private StreamExecutionEnvironment env;
+    private StreamTableEnvironment tEnv;
 
     @BeforeEach
     void setUp() {
+        Configuration configuration = new Configuration();
+        configuration.set(RestartStrategyOptions.RESTART_STRATEGY, "disable");
+        env = StreamExecutionEnvironment.getExecutionEnvironment(configuration);
+        tEnv = StreamTableEnvironment.create(env);
         uri = MONGO_CONTAINER.getConnectionString();
         mongoClient = MongoClients.create(uri);
     }
@@ -134,7 +148,6 @@ class MongoDynamicTableSinkITCase {
         String database = "test";
         String collection = "sink_with_all_supported_types";
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
         Map<String, String> options = getConnectionOptions(uri, database, collection);
 
         tEnv.executeSql(
@@ -162,7 +175,8 @@ class MongoDynamicTableSinkITCase {
                                 ")")));
 
         Instant now = Instant.now();
-        tEnv.fromValues(
+        Table table =
+                tEnv.fromValues(
                         DataTypes.ROW(
                                 DataTypes.FIELD("_id", DataTypes.BIGINT()),
                                 DataTypes.FIELD("f1", DataTypes.STRING()),
@@ -198,8 +212,12 @@ class MongoDynamicTableSinkITCase {
                                 Collections.singletonMap("k", 12),
                                 Row.of(13),
                                 Arrays.asList("14_1", "14_2"),
-                                Arrays.asList(Row.of("15_1"), Row.of("15_2"))))
-                .executeInsert("mongo_sink")
+                                Arrays.asList(Row.of("15_1"), Row.of("15_2"))));
+        tEnv.createTemporaryView("test_source", table);
+
+        tEnv.executeSql(
+                        "INSERT INTO mongo_sink SELECT * FROM test_source"
+                                + onConflictDeduplicate())
                 .await();
 
         MongoCollection<Document> coll =
@@ -266,8 +284,6 @@ class MongoDynamicTableSinkITCase {
                         .withDocumentClass(BsonDocument.class);
         sourceColl.insertOne(testData);
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
-
         Map<String, String> sourceOptions = getConnectionOptions(uri, database, sourceCollection);
         Map<String, String> sinkOptions = getConnectionOptions(uri, database, sinkCollection);
 
@@ -300,7 +316,10 @@ class MongoDynamicTableSinkITCase {
                         "CREATE TABLE mongo_sink WITH ( %s ) LIKE mongo_source",
                         toOptionsSql(sinkOptions)));
 
-        tEnv.executeSql("insert into mongo_sink select * from mongo_source").await();
+        tEnv.executeSql(
+                        "insert into mongo_sink select * from mongo_source"
+                                + onConflictDeduplicate())
+                .await();
 
         MongoCollection<BsonDocument> sinkColl =
                 mongoClient
@@ -317,9 +336,6 @@ class MongoDynamicTableSinkITCase {
     void testSinkWithAllRowKind() throws ExecutionException, InterruptedException {
         String database = "test";
         String collection = "test_sink_with_all_row_kind";
-
-        StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
-        StreamTableEnvironment tEnv = StreamTableEnvironment.create(env);
 
         DataStream<Row> sourceStream =
                 env.fromCollection(
@@ -354,7 +370,10 @@ class MongoDynamicTableSinkITCase {
                                 + ") WITH ( %s )",
                         toOptionsSql(options)));
 
-        tEnv.executeSql("insert into mongo_sink select * from value_source").await();
+        tEnv.executeSql(
+                        "insert into mongo_sink select * from value_source"
+                                + onConflictDeduplicate())
+                .await();
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -373,8 +392,6 @@ class MongoDynamicTableSinkITCase {
         String database = "test";
         String collection = "sink_with_reserved_id";
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
-
         Map<String, String> options = getConnectionOptions(uri, database, collection);
         tEnv.executeSql(
                 String.format(
@@ -387,8 +404,14 @@ class MongoDynamicTableSinkITCase {
                         toOptionsSql(options)));
 
         ObjectId objectId = new ObjectId();
-        tEnv.fromValues(row(objectId.toHexString(), "r1"), row("str", "r2"))
-                .executeInsert("mongo_sink", overwrite)
+        Table table = tEnv.fromValues(row(objectId.toHexString(), "r1"), row("str", "r2"));
+        tEnv.createTemporaryView("test_source", table);
+
+        tEnv.executeSql(
+                        "insert "
+                                + (overwrite ? "overwrite " : "into ")
+                                + "mongo_sink select * from test_source"
+                                + onConflictDeduplicate())
                 .await();
 
         MongoCollection<Document> coll =
@@ -409,8 +432,6 @@ class MongoDynamicTableSinkITCase {
     void testOverwriteSinkWithoutPrimaryKey() {
         String database = "test";
         String collection = "overwrite_sink_without_primary_key";
-
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
         Map<String, String> options =
                 getConnectionOptions(MONGO_CONTAINER.getConnectionString(), database, collection);
@@ -433,8 +454,6 @@ class MongoDynamicTableSinkITCase {
     void testSinkWithoutPrimaryKey() throws Exception {
         String database = "test";
         String collection = "sink_without_primary_key";
-
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
         Map<String, String> options = getConnectionOptions(uri, database, collection);
 
@@ -463,12 +482,11 @@ class MongoDynamicTableSinkITCase {
         String collection = "sink_with_non_composite_pk";
 
         Instant now = Instant.now();
-        List<Expression> testValues =
-                Collections.singletonList(
-                        row(2L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
-        List<String> primaryKeys = Collections.singletonList("a");
-
-        testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
+        testSinkWithoutReservedId(
+                database,
+                collection,
+                Collections.singletonList("a"),
+                Row.of(2L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -492,12 +510,11 @@ class MongoDynamicTableSinkITCase {
         String collection = "sink_with_composite_pk";
 
         Instant now = Instant.now();
-        List<Expression> testValues =
-                Collections.singletonList(
-                        row(1L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
-        List<String> primaryKeys = Arrays.asList("a", "c");
-
-        testSinkWithoutReservedId(database, collection, primaryKeys, testValues);
+        testSinkWithoutReservedId(
+                database,
+                collection,
+                Arrays.asList("a", "c"),
+                Row.of(1L, true, "ABCDE", 12.12d, 4, Timestamp.from(now), now));
 
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
@@ -528,8 +545,6 @@ class MongoDynamicTableSinkITCase {
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
         coll.createIndex(Indexes.ascending("f1"), new IndexOptions().unique(true));
-
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
 
         Map<String, String> options = getConnectionOptions(uri, database, collection);
         options.put(MongoConnectorOptions.SINK_ORDERED_WRITES.key(), String.valueOf(orderedWrites));
@@ -582,8 +597,6 @@ class MongoDynamicTableSinkITCase {
         MongoCollection<Document> coll =
                 mongoClient.getDatabase(database).getCollection(collection);
 
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
-
         Map<String, String> options = getConnectionOptions(uri, database, collection);
         options.put(
                 MongoConnectorOptions.SINK_BYPASS_VALIDATION.key(),
@@ -617,9 +630,31 @@ class MongoDynamicTableSinkITCase {
     }
 
     private void testSinkWithoutReservedId(
-            String database, String collection, List<String> primaryKeys, List<Expression> values)
+            String database, String collection, List<String> primaryKeys, Row... rows)
             throws Exception {
-        TableEnvironment tEnv = TableEnvironment.create(EnvironmentSettings.inStreamingMode());
+        Table table =
+                tEnv.fromDataStream(
+                        env.fromElements(rows)
+                                .returns(
+                                        ROW_NAMED(
+                                                new String[] {"a", "b", "c", "d", "e", "f", "g"},
+                                                LONG,
+                                                BOOLEAN,
+                                                STRING,
+                                                DOUBLE,
+                                                INT,
+                                                TIMESTAMP,
+                                                INSTANT)),
+                        Schema.newBuilder()
+                                .column("a", DataTypes.BIGINT())
+                                .column("b", DataTypes.BOOLEAN())
+                                .column("c", DataTypes.STRING())
+                                .column("d", DataTypes.DOUBLE())
+                                .column("e", DataTypes.INT())
+                                .column("f", DataTypes.TIMESTAMP().bridgedTo(Timestamp.class))
+                                .column("g", DataTypes.TIMESTAMP_LTZ())
+                                .build());
+        tEnv.createTemporaryView("test_source", table);
 
         Map<String, String> options = getConnectionOptions(uri, database, collection);
         tEnv.executeSql(
@@ -637,7 +672,10 @@ class MongoDynamicTableSinkITCase {
                                 + "WITH (%s)",
                         getPrimaryKeys(primaryKeys), toOptionsSql(options)));
 
-        tEnv.fromValues(values).executeInsert("mongo_sink").await();
+        tEnv.executeSql(
+                        "INSERT INTO mongo_sink SELECT * FROM test_source"
+                                + onConflictDeduplicate())
+                .await();
     }
 
     private static String getPrimaryKeys(List<String> fieldNames) {
