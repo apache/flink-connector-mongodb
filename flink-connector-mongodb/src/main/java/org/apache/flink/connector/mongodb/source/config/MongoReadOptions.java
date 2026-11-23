@@ -22,6 +22,9 @@ import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.connector.mongodb.source.enumerator.splitter.PartitionStrategy;
 import org.apache.flink.connector.mongodb.source.reader.split.MongoScanSourceSplitReader;
 
+import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
+
 import javax.annotation.Nullable;
 
 import java.io.Serializable;
@@ -51,6 +54,8 @@ public class MongoReadOptions implements Serializable {
 
     private final int samplesPerPartition;
 
+    private final @Nullable BsonDocument filter;
+
     private final @Nullable Integer partitionRecordSize;
 
     private MongoReadOptions(
@@ -59,12 +64,14 @@ public class MongoReadOptions implements Serializable {
             PartitionStrategy partitionStrategy,
             MemorySize partitionSize,
             int samplesPerPartition,
+            @Nullable Bson filter,
             @Nullable Integer partitionRecordSize) {
         this.fetchSize = fetchSize;
         this.noCursorTimeout = noCursorTimeout;
         this.partitionStrategy = partitionStrategy;
         this.partitionSize = partitionSize;
         this.samplesPerPartition = samplesPerPartition;
+        this.filter = filter == null ? null : filter.toBsonDocument();
         this.partitionRecordSize = partitionRecordSize;
     }
 
@@ -88,6 +95,10 @@ public class MongoReadOptions implements Serializable {
         return samplesPerPartition;
     }
 
+    public @Nullable BsonDocument getFilter() {
+        return filter;
+    }
+
     public @Nullable Integer getPartitionRecordSize() {
         return partitionRecordSize;
     }
@@ -105,6 +116,7 @@ public class MongoReadOptions implements Serializable {
                 && partitionStrategy == that.partitionStrategy
                 && samplesPerPartition == that.samplesPerPartition
                 && Objects.equals(partitionSize, that.partitionSize)
+                && Objects.equals(filter, that.filter)
                 && Objects.equals(partitionRecordSize, that.partitionRecordSize);
     }
 
@@ -115,6 +127,7 @@ public class MongoReadOptions implements Serializable {
                 partitionStrategy,
                 partitionSize,
                 samplesPerPartition,
+                filter,
                 partitionRecordSize);
     }
 
@@ -130,6 +143,7 @@ public class MongoReadOptions implements Serializable {
         private PartitionStrategy partitionStrategy = SCAN_PARTITION_STRATEGY.defaultValue();
         private MemorySize partitionSize = SCAN_PARTITION_SIZE.defaultValue();
         private int samplesPerPartition = SCAN_PARTITION_SAMPLES.defaultValue();
+        private @Nullable Bson filter = null;
         private @Nullable Integer partitionRecordSize = null;
 
         private MongoReadOptionsBuilder() {}
@@ -218,7 +232,8 @@ public class MongoReadOptions implements Serializable {
 
         /**
          * Sets the number of records in each partition. This will only take effect when the
-         * partition strategy is set to Pagination.
+         * partition strategy is {@link PartitionStrategy#PAGINATION}. If set this will not use
+         * partitionSize.
          *
          * @param partitionRecordSize number of records in each partition.
          * @return this builder
@@ -229,6 +244,21 @@ public class MongoReadOptions implements Serializable {
                     partitionRecordSize == null || partitionRecordSize > 0,
                     "The record size per partition must be larger than 0.");
             this.partitionRecordSize = partitionRecordSize;
+            return this;
+        }
+
+        /**
+         * Sets the filter which is only used to compute splits in the partition strategy {@link
+         * PartitionStrategy#PAGINATION}. Its equality predicates are used for an index-backed query
+         * when an index exists whose leading fields are equality fields of the filter followed by
+         * _id: 1. Otherwise splits are computed over the _id index of the entire collection.
+         *
+         * @param filter the filter of documents to read
+         * @return this builder
+         */
+        public MongoReadOptionsBuilder setFilter(Bson filter) {
+            checkNotNull(filter, "The filter must not be null");
+            this.filter = filter;
             return this;
         }
 
@@ -244,6 +274,7 @@ public class MongoReadOptions implements Serializable {
                     partitionStrategy,
                     partitionSize,
                     samplesPerPartition,
+                    filter,
                     partitionRecordSize);
         }
     }

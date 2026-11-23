@@ -59,6 +59,10 @@ public class MongoConstants {
 
     public static final String DROPPED_FIELD = "dropped";
 
+    public static final String AND_OPERATOR = "$and";
+
+    public static final String EQ_OPERATOR = "$eq";
+
     public static final BsonValue BSON_MIN_KEY = new BsonMinKey();
 
     public static final BsonValue BSON_MAX_KEY = new BsonMaxKey();
